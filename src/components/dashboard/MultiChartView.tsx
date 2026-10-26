@@ -1,17 +1,17 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import * as LightweightCharts from 'lightweight-charts';
+import { createChart, ColorType, IChartApi } from 'lightweight-charts';
 
 const ASSETS = ["BTC", "ETH", "SOL", "NVDA", "AAPL", "MELI", "Oro", "Petróleo WTI"];
 
 const ChartItem = ({ symbol }: { symbol: string }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<LightweightCharts.IChartApi | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
-    const chart = LightweightCharts.createChart(chartContainerRef.current, {
-      layout: { background: { type: LightweightCharts.ColorType.Solid, color: '#161b25' }, textColor: '#8d97a8' },
+    const chart = createChart(chartContainerRef.current, {
+      layout: { background: { type: ColorType.Solid, color: '#161b25' }, textColor: '#8d97a8' },
       width: 300,
       height: 130,
       grid: { vertLines: { color: '#262d3b' }, horzLines: { color: '#262d3b' } },

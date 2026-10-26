@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import * as LightweightCharts from 'lightweight-charts';
+import { createChart, ColorType, IChartApi } from 'lightweight-charts';
 import { X } from 'lucide-react';
 import { Asset } from '@/types';
 
@@ -11,15 +11,15 @@ interface DetailPanelProps {
 
 export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<LightweightCharts.IChartApi | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
   const [chartType, setChartType] = useState<'area' | 'velas'>('velas');
   const [timeframe, setTimeframe] = useState('1D');
 
   useEffect(() => {
     if (!isOpen || !chartContainerRef.current || !asset) return;
 
-    const chart = LightweightCharts.createChart(chartContainerRef.current, {
-      layout: { background: { type: LightweightCharts.ColorType.Solid, color: '#161b25' }, textColor: '#8d97a8' },
+    const chart = createChart(chartContainerRef.current, {
+      layout: { background: { type: ColorType.Solid, color: '#161b25' }, textColor: '#8d97a8' },
       width: 400,
       height: 300,
       grid: { vertLines: { color: '#262d3b' }, horzLines: { color: '#262d3b' } },
