@@ -17,7 +17,8 @@ const ChartItem = ({ symbol }: { symbol: string }) => {
       grid: { vertLines: { color: '#262d3b' }, horzLines: { color: '#262d3b' } },
     });
     chartRef.current = chart;
-    const areaSeries = chart.addAreaSeries({ lineColor: '#4fc7bd', topColor: '#4fc7bd', bottomColor: 'rgba(79,199,189,0)' });
+    const chartAny = chart as any;
+    const areaSeries = chartAny.addAreaSeries({ lineColor: '#4fc7bd', topColor: '#4fc7bd', bottomColor: 'rgba(79,199,189,0)' });
     areaSeries.setData([{ time: '2023-01-01', value: 100 }, { time: '2023-01-02', value: 120 }]);
     return () => chart.remove();
   }, [symbol]);

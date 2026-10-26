@@ -12,10 +12,10 @@ const FEEDS = {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const category = searchParams.get('category') as keyof typeof FEEDS || 'todas';
+  const category = searchParams.get('category') || 'todas';
 
   try {
-    const categories = category === 'todas' ? Object.keys(FEEDS) : [category];
+    const categories = (category === 'todas') ? Object.keys(FEEDS) : Object.keys(FEEDS).includes(category) ? [category] : Object.keys(FEEDS);
     const feeds = await Promise.all(
       categories.map(async (cat) => {
         const feed = await parser.parseURL(FEEDS[cat as keyof typeof FEEDS]);

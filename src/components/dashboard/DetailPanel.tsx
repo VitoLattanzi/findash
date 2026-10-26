@@ -27,9 +27,10 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
     });
     chartRef.current = chart;
 
+    const chartAny = chart as any;
     const series = chartType === 'area' 
-      ? chart.addAreaSeries({ lineColor: '#4fc7bd', topColor: '#4fc7bd', bottomColor: 'rgba(79,199,189,0)' })
-      : chart.addCandlestickSeries();
+      ? chartAny.addAreaSeries({ lineColor: '#4fc7bd', topColor: '#4fc7bd', bottomColor: 'rgba(79,199,189,0)' })
+      : chartAny.addCandlestickSeries();
 
     series.setData([
       { time: '2023-01-01', open: 100, high: 120, low: 90, close: 110 },

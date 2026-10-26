@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       tickerArray.map(async (ticker) => {
         const symbol = ticker.trim();
         try {
-          const quote = await yahooFinance.quote(symbol);
+          const quote: any = await yahooFinance.quote(symbol);
           return {
             symbol,
             price: quote.regularMarketPrice,
