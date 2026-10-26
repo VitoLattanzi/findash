@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FinDash — Base</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   TOKENS — cambiá estos valores para re-tematizar todo el dash
+   ========================================================= */
+:root{
+  --bg:#0c0f14; --bg2:#12161e; --card:#161b25; --line:#262d3b;
+  --text:#e9e7df; --dim:#8d97a8; --gold:#d8ad3f; --teal:#4fc7bd; --red:#d9685f;
+  --sidebar-w:220px; --panel-w:420px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:14px; line-height:1.5;
+}
+h1,h2,h3,h4{font-family:'Fraunces',Georgia,serif; margin:0}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+
+/* =========================================================
+   TICKER (barra superior en movimiento)
+   ========================================================= */
+.ticker-outer{background:var(--bg2);border-bottom:1px solid var(--line);overflow:hidden;white-space:nowrap}
+.ticker-track{display:inline-flex;animation:scroll 32s linear infinite;padding:8px 0}
+.ticker-track span{padding:0 20px;font-size:12.5px;color:var(--dim);border-right:1px solid var(--line)}
+.ticker-track b{color:var(--text);font-weight:600}
+.up{color:var(--teal)} .down{color:var(--red)}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion: reduce){.ticker-track{animation:none}}
+
+/* =========================================================
+   LAYOUT: sidebar fija + contenido dinámico
+   ========================================================= */
+.shell{display:flex;min-height:calc(100vh - 36px)}
+.sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);padding:18px 10px;position:sticky;top:36px;align-self:flex-start;height:calc(100vh - 36px)}
+.brand{font-family:'Fraunces';font-weight:600;font-size:18px;padding:4px 10px 18px}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;color:var(--dim);font-size:13px;padding:10px 10px;border-radius:5px;margin-bottom:2px}
+.nav-item:hover{background:#1a2030}
+.nav-item.active{background:#1d2330;color:var(--text)}
+.content{flex:1;padding:26px 28px;min-width:0}
+.view{display:none;animation:fade .2s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.view-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+.view-head h2{font-size:22px}
+
+/* =========================================================
+   Piezas reutilizables: cards, badges, pills, tags, tablas
+   ========================================================= */
+.cols{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.col-main{flex:2;min-width:320px}
+.col-side{flex:1;min-width:260px}
+.panel-box{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px}
+.panel-box h3{font-size:13.5px;color:var(--dim);font-weight:500;margin-bottom:10px}
+
+.toggle-group{display:flex;gap:0;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.toggle-group button{background:var(--bg2);color:var(--dim);border:none;padding:7px 14px;font-size:12.5px}
+.toggle-group button.on{background:var(--gold);color:var(--bg)}
+
+/* lista/cards de activos */
+#pinnedList.list-view .asset-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+#pinnedList.list-view .asset-item:hover{background:#1a2030}
+#pinnedList.list-view .bars{display:none}
+#pinnedList.card-view{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+#pinnedList.card-view .asset-item{background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:12px;cursor:pointer}
+#pinnedList.card-view .asset-item:hover{border-color:var(--gold)}
+.asset-item b{font-size:13.5px}
+.bars{display:flex;align-items:flex-end;gap:2px;height:24px;margin-top:6px}
+.bars i{flex:1;background:var(--teal);opacity:.75;border-radius:1px}
+
+.news-item{padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.news-item:last-child{border:none}
+.news-item .src{color:var(--gold);font-size:11px;display:block;margin-top:2px}
+.idx-row{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line)}
+.idx-row:last-child{border:none}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--dim);font-weight:500;font-size:11.5px;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid var(--line)}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#1a2030}
+
+.tag{display:inline-block;background:var(--bg2);border:1px solid var(--line);font-size:11.5px;color:var(--dim);padding:3px 8px;border-radius:4px;margin:3px 4px 0 0;cursor:pointer}
+.tag.on{color:var(--gold);border-color:var(--gold)}
+.alert-chip{display:block;margin-top:8px;background:#2a1c1c;color:#f0b9a8;border:1px solid #5a2f2a;font-size:11.5px;padding:7px 9px;border-radius:4px}
+
+.search-row{display:flex;gap:8px;margin-bottom:14px}
+.search-row input{flex:1;background:var(--bg2);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:5px}
+.search-row button{background:var(--gold);border:none;color:var(--bg);padding:8px 14px;border-radius:5px;font-weight:600}
+.country-card{display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:10px 12px;margin-bottom:8px}
+.country-card button.rm{background:none;border:none;color:var(--dim);font-size:14px}
+
+/* calendario simple */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:11px;text-align:center}
+.cal-grid div{padding:7px 2px;border-radius:4px;color:var(--dim)}
+.cal-grid div.today{background:var(--gold);color:var(--bg);font-weight:600}
+.cal-grid div.event{border:1px solid var(--teal);color:var(--teal)}
+
+/* multigráficos */
+.multi-grid{display:grid;gap:12px}
+.multi-grid.g4{grid-template-columns:1fr 1fr}
+.multi-grid.g2{grid-template-columns:1fr}
+.chart-cell{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px}
+.chart-cell select{width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--text);padding:6px 8px;border-radius:4px;margin-bottom:8px}
+.chart-ph{height:130px;border-radius:5px;background:linear-gradient(180deg, rgba(79,199,189,.35), rgba(79,199,189,0) 70%), var(--bg2);border:1px solid var(--line)}
+
+/* cartera */
+.form-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.form-row input{background:var(--bg2);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:5px;flex:1;min-width:120px}
+.form-row button{background:var(--gold);border:none;color:var(--bg);padding:8px 16px;border-radius:5px;font-weight:600}
+
+/* =========================================================
+   PANEL DE DETALLE (overlay que se abre al clickear un activo)
+   ========================================================= */
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.backdrop.show{opacity:1;pointer-events:auto}
+.detail-panel{position:fixed;top:0;right:0;height:100%;width:var(--panel-w);max-width:92vw;background:var(--card);border-left:1px solid var(--line);
+  transform:translateX(100%);transition:transform .25s ease;z-index:21;overflow-y:auto;padding:22px}
+.detail-panel.open{transform:translateX(0)}
+.close-btn{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--dim);font-size:16px}
+.panel-top .px{font-size:22px;font-family:'Fraunces';font-weight:600}
+.pills{display:flex;gap:6px;margin:14px 0;flex-wrap:wrap}
+.pill{font-size:11.5px;color:var(--dim);border:1px solid var(--line);background:none;padding:4px 10px;border-radius:20px}
+.pill.on{color:var(--bg);background:var(--gold);border-color:var(--gold)}
+.vol-strip{position:relative;height:150px;border-radius:5px;margin:10px 0 16px;background:linear-gradient(180deg, rgba(79,199,189,.35), rgba(79,199,189,0) 70%), var(--bg2);border:1px solid var(--line)}
+.vol-strip .vol{position:absolute;bottom:0;left:0;right:0;display:flex;gap:2px;height:26px;padding:0 4px}
+.vol-strip .vol i{flex:1;background:var(--dim);opacity:.4}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;font-size:12px;color:var(--dim);margin-bottom:16px}
+.metrics b{display:block;color:var(--text);font-size:13.5px}
+.analysis{background:var(--bg2);border:1px dashed var(--line);border-radius:5px;padding:12px 14px;font-size:12.5px;margin-bottom:16px}
+.analysis b{color:var(--red)}
+
+@media(max-width:760px){
+  .shell{flex-direction:column}
+  .sidebar{width:100%;height:auto;position:static;display:flex;overflow-x:auto;padding:10px}
+  .sidebar .brand{display:none}
+  .nav-item{flex-shrink:0;width:auto}
+  .multi-grid.g4{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker-outer">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">💠 FinDash</div>
+    <nav id="nav">
+      <button class="nav-item active" data-target="dashboard">🏠 <span>Dashboard</span></button>
+      <button class="nav-item" data-target="cripto">🪙 <span>Cripto</span></button>
+      <button class="nav-item" data-target="bolsa">📈 <span>Bolsa &amp; M. Primas</span></button>
+      <button class="nav-item" data-target="paises">🌎 <span>Países</span></button>
+      <button class="nav-item" data-target="noticias">📰 <span>Noticias &amp; Calendario</span></button>
+      <button class="nav-item" data-target="multi">📊 <span>Multigráficos</span></button>
+      <button class="nav-item" data-target="cartera">💼 <span>Mi Cartera</span></button>
+    </nav>
+  </aside>
+
+  <!-- CONTENIDO -->
+  <main class="content">
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="view active">
+      <div class="view-head">
+        <h2>Dashboard</h2>
+        <div class="toggle-group" id="viewToggle">
+          <button class="on" data-mode="list">Lista</button>
+          <button data-mode="card">Cards</button>
+        </div>
+      </div>
+      <div class="cols">
+        <div class="col-main">
+          <div class="panel-box">
+            <h3>ACTIVOS FIJADOS</h3>
+            <div id="pinnedList" class="list-view"></div>
+          </div>
+        </div>
+        <div class="col-side">
+          <div class="panel-box" style="margin-bottom:14px">
+            <h3>RESUMEN DEL DÍA</h3>
+            <div class="news-item">El Riesgo País cae por debajo de los 700 puntos.<span class="src">Ámbito Financiero</span></div>
+            <div class="news-item">Bitcoin se mantiene firme sobre los $67.000.<span class="src">Cointelegraph ES</span></div>
+            <div class="news-item">Nvidia lidera las subas del Nasdaq tras resultados.<span class="src">Reuters</span></div>
+          </div>
+          <div class="panel-box">
+            <h3>INDICADORES ARGENTINA</h3>
+            <div class="idx-row"><span>Dólar MEP</span><b>$1.245</b></div>
+            <div class="idx-row"><span>Dólar CCL</span><b>$1.251</b></div>
+            <div class="idx-row"><span>Dólar Blue</span><b>$1.235</b></div>
+            <div class="idx-row"><span>Riesgo País</span><b>687 pb</b></div>
+            <div class="idx-row"><span>Inflación m/m</span><b>2,7%</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CRIPTO -->
+    <section id="cripto" class="view">
+      <div class="view-head"><h2>Cripto</h2></div>
+      <div class="cols">
+        <div class="col-main">
+          <div class="panel-box">
+            <table>
+              <thead><tr><th>Activo</th><th>Precio</th><th>24h%</th><th>Vol 24h</th></tr></thead>
+              <tbody id="cryptoTable"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-side">
+          <div class="panel-box">
+            <h3>OPERACIONES DE BALLENAS</h3>
+            <div class="alert-chip">⚠️ Entrada masiva a exchange — posible preparación para vender · $20M SOL</div>
+            <div class="alert-chip">⚠️ Retiro de $8M BTC de Binance — posible acumulación</div>
+            <div class="alert-chip">⚠️ Transferencia de $14M ETH entre wallets desconocidas</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOLSA & MATERIAS PRIMAS -->
+    <section id="bolsa" class="view">
+      <div class="view-head">
+        <h2>Bolsa &amp; Materias Primas</h2>
+        <div class="toggle-group" id="bolsaToggle">
+          <button class="on" data-mode="acciones">Acciones</button>
+          <button data-mode="commodities">Commodities</button>
+        </div>
+      </div>
+      <div class="panel-box">
+        <table id="bolsaAcciones">
+          <thead><tr><th>Ticker</th><th>Precio</th><th>24h%</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <table id="bolsaCommodities" style="display:none">
+          <thead><tr><th>Commodity</th><th>Ticker</th><th>Precio</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PAÍSES -->
+    <section id="paises" class="view">
+      <div class="view-head"><h2>Países (ETFs e Índices)</h2></div>
+      <div class="search-row">
+        <input id="countryInput" placeholder="Agregar país o ETF (ej: Brasil / EWZ) y Enter">
+        <button id="countryAddBtn">Agregar</button>
+      </div>
+      <div id="countryList"></div>
+    </section>
+
+    <!-- NOTICIAS & CALENDARIO -->
+    <section id="noticias" class="view">
+      <div class="view-head"><h2>Noticias &amp; Calendario</h2></div>
+      <div class="cols">
+        <div class="col-main">
+          <div style="margin-bottom:12px">
+            <span class="tag on" data-cat="todas">Todas</span>
+            <span class="tag" data-cat="macro">Finanzas/Macro</span>
+            <span class="tag" data-cat="fintech">Fintechs</span>
+            <span class="tag" data-cat="ia">IA</span>
+            <span class="tag" data-cat="cripto">Cripto</span>
+          </div>
+          <div class="panel-box" id="newsFeed"></div>
+        </div>
+        <div class="col-side">
+          <div class="panel-box">
+            <h3 id="calTitle">CALENDARIO</h3>
+            <div class="cal-grid" id="calGrid"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MULTIGRÁFICOS -->
+    <section id="multi" class="view">
+      <div class="view-head">
+        <h2>Multigráficos</h2>
+        <div class="toggle-group" id="multiToggle">
+          <button data-mode="g2">2 gráficos</button>
+          <button class="on" data-mode="g4">4 gráficos</button>
+        </div>
+      </div>
+      <div class="multi-grid g4" id="multiGrid"></div>
+    </section>
+
+    <!-- MI CARTERA -->
+    <section id="cartera" class="view">
+      <div class="view-head"><h2>Mi Cartera</h2></div>
+      <div class="form-row">
+        <input id="cartActivo" placeholder="Activo (ej: BTC)">
+        <input id="cartCantidad" type="number" placeholder="Cantidad" step="any">
+        <input id="cartPrecio" type="number" placeholder="Precio de compra" step="any">
+        <button id="cartAddBtn">Agregar tenencia</button>
+      </div>
+      <div class="panel-box">
+        <table>
+          <thead><tr><th>Activo</th><th>Cantidad</th><th>Precio compra</th><th>Valor</th><th></th></tr></thead>
+          <tbody id="carteraTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- PANEL DE DETALLE -->
+<div class="backdrop" id="backdrop"></div>
+<aside class="detail-panel" id="detailPanel">
+  <button class="close-btn" id="closeDetail">✕</button>
+  <div class="panel-top">
+    <div class="px" id="dpName">—</div>
+    <div id="dpChange" class="up" style="font-size:13px"></div>
+  </div>
+  <div class="pills" id="dpChartToggle">
+    <button class="pill" data-ct="area">Área</button>
+    <button class="pill on" data-ct="velas">Velas</button>
+  </div>
+  <div class="pills" id="dpTimeframe">
+    <button class="pill on">1D</button><button class="pill">1S</button><button class="pill">1M</button>
+    <button class="pill">3M</button><button class="pill">6M</button><button class="pill">1A</button><button class="pill">2A</button>
+  </div>
+  <div class="vol-strip"><div class="vol" id="dpVol"></div></div>
+  <div class="metrics">
+    <div>Apertura<b id="mOpen">—</b></div>
+    <div>Máximo<b id="mHigh">—</b></div>
+    <div>Mínimo<b id="mLow">—</b></div>
+    <div>Vol.<b id="mVol">—</b></div>
+    <div>PER<b>—</b></div>
+    <div>Cap. merc.<b id="mCap">—</b></div>
+  </div>
+  <div class="analysis"><b id="mAth">—</b> — espacio reservado para la lógica de análisis crítico (¿caro o barato según su contexto?).</div>
+  <div class="panel-box">
+    <h3>NOTICIAS DEL ACTIVO</h3>
+    <div class="news-item">Analistas revisan al alza sus proyecciones para el sector.<span class="src">Bloomberg Línea</span></div>
+    <div class="news-item">Volumen de operaciones por encima del promedio semanal.<span class="src">Reuters</span></div>
+  </div>
+</aside>
+
+<script>
+/* =========================================================
+   DATOS DE EJEMPLO — reemplazar por las llamadas reales a
+   /api/market, /api/news, /api/calendar, Binance, Yahoo Finance, etc.
+   ========================================================= */
+const TICKER_DATA = [
+  {t:"BTC",p:"$67.240",c:"+2,3%",up:true},{t:"ETH",p:"$3.180",c:"+1,1%",up:true},
+  {t:"SOL",p:"$142",c:"-0,8%",up:false},{t:"Dólar MEP",p:"$1.245"},{t:"Dólar CCL",p:"$1.251"},
+  {t:"Dólar Blue",p:"$1.235"},{t:"Riesgo País",p:"687 pb"},{t:"Inflación",p:"2,7% m/m"}
+];
+
+const PINNED_ASSETS = [
+  {name:"BTC", price:67240, change:2.3, open:65700,high:68100,low:65200,vol:"41.2B",cap:"1.32T",ath:-12,bars:[40,60,50,80,65]},
+  {name:"NVDA", price:138.20, change:1.8, open:135.0,high:140.1,low:134.5,vol:"28.4M",cap:"3.4T",ath:-5,bars:[30,45,55,40,70]},
+  {name:"MELI", price:1912, change:-0.6, open:1925,high:1940,low:1890,vol:"310K",cap:"38.1B",ath:-20,bars:[50,48,60,58,45]},
+  {name:"Argentina (ARGT)", price:68.4, change:0.9, open:67.8,high:69.2,low:67.1,vol:"180K",cap:"—",ath:-30,bars:[35,42,50,55,60]},
+  {name:"Oro", price:2680, change:0.4, open:2668,high:2690,low:2660,vol:"—",cap:"—",ath:-2,bars:[55,58,60,62,61]},
+  {name:"ETH", price:3180, change:1.1, open:3140,high:3210,low:3120,vol:"18.6B",cap:"382B",ath:-28,bars:[40,55,50,65,60]}
+];
+
+const CRYPTO_TABLE = [
+  {name:"BTC",price:"$67.240",chg:2.3,vol:"$41.2B"},{name:"ETH",price:"$3.180",chg:1.1,vol:"$18.6B"},
+  {name:"BNB",price:"$612",chg:-0.4,vol:"$2.1B"},{name:"BCH",price:"$430",chg:0.9,vol:"$680M"},
+  {name:"SOL",price:"$142",chg:-0.8,vol:"$3.4B"}
+];
+
+const ACCIONES = [
+  {name:"AAPL",price:"$228",chg:0.5},{name:"NVDA",price:"$138",chg:1.8},
+  {name:"MSFT",price:"$415",chg:-0.2},{name:"MELI",price:"$1.912",chg:-0.6}
+];
+const COMMODITIES = [
+  {name:"Oro",t:"GC=F",price:"$2.680"},{name:"Plata",t:"SI=F",price:"$31.40"},
+  {name:"Petróleo WTI",t:"CL=F",price:"$71.20"},{name:"Gas Natural",t:"NG=F",price:"$2.85"},
+  {name:"Soja",t:"ZS=F",price:"$10.12"},{name:"Diamantes (sector)",t:"AAL.L / SIG",price:"—"}
+];
+
+const COUNTRIES_DEFAULT = [
+  {name:"Argentina", etf:"ARGT", bars:[35,42,50,55,60]},
+  {name:"Brasil", etf:"EWZ", bars:[50,45,48,52,49]},
+  {name:"EE.UU.", etf:"SPY", bars:[55,58,60,59,62]},
+  {name:"China", etf:"FXI", bars:[40,38,42,45,41]}
+];
+
+const NEWS = [
+  {cat:"macro", text:"El Riesgo País cae por debajo de los 700 puntos.", src:"Ámbito Financiero"},
+  {cat:"cripto", text:"Bitcoin se mantiene firme sobre los $67.000.", src:"Cointelegraph ES"},
+  {cat:"ia", text:"Nvidia presenta su nueva arquitectura de chips de IA.", src:"Xataka"},
+  {cat:"fintech", text:"Una fintech argentina levanta una nueva ronda de inversión.", src:"iProUP"},
+  {cat:"macro", text:"El dólar CCL opera estable en la rueda de hoy.", src:"El Cronista"}
+];
+
+/* ========================================================= RENDER HELPERS */
+function bars(arr){ return arr.map(h=>`<i style="height:${h}%"></i>`).join(""); }
+
+function renderTicker(){
+  const html = TICKER_DATA.map(d=>`<span>${d.t} <b>${d.p}</b> ${d.c?`<i class="${d.up?'up':'down'}">${d.c}</i>`:""}</span>`).join("");
+  document.getElementById("tickerTrack").innerHTML = html + html; // duplicado para loop continuo
+}
+
+function renderPinned(){
+  const el = document.getElementById("pinnedList");
+  el.innerHTML = PINNED_ASSETS.map(a=>`
+    <div class="asset-item" onclick='openDetail(${JSON.stringify(a)})'>
+      <div><b>${a.name}</b><div style="color:var(--dim);font-size:12px">$${a.price.toLocaleString()}</div></div>
+      <div class="${a.change>=0?'up':'down'}">${a.change>=0?'+':''}${a.change}%</div>
+      <div class="bars">${bars(a.bars)}</div>
+    </div>`).join("");
+}
+
+function renderCrypto(){
+  document.getElementById("cryptoTable").innerHTML = CRYPTO_TABLE.map(r=>`
+    <tr onclick='openDetail({name:"${r.name}",price:${parseFloat(r.price.replace(/[$.]/g,""))},change:${r.chg}})'>
+      <td><b>${r.name}</b></td><td>${r.price}</td>
+      <td class="${r.chg>=0?'up':'down'}">${r.chg>=0?'+':''}${r.chg}%</td><td>${r.vol}</td>
+    </tr>`).join("");
+}
+
+function renderBolsa(){
+  document.querySelector("#bolsaAcciones tbody").innerHTML = ACCIONES.map(r=>`
+    <tr onclick='openDetail({name:"${r.name}",price:${parseFloat(r.price.replace(/[$.]/g,""))},change:${r.chg}})'>
+      <td><b>${r.name}</b></td><td>${r.price}</td><td class="${r.chg>=0?'up':'down'}">${r.chg>=0?'+':''}${r.chg}%</td>
+    </tr>`).join("");
+  document.querySelector("#bolsaCommodities tbody").innerHTML = COMMODITIES.map(r=>`
+    <tr onclick='openDetail({name:"${r.name}",price:0,change:0})'>
+      <td><b>${r.name}</b></td><td>${r.t}</td><td>${r.price}</td>
+    </tr>`).join("");
+}
+
+function renderNews(filter){
+  const list = NEWS.filter(n=>filter==="todas"||n.cat===filter);
+  document.getElementById("newsFeed").innerHTML = list.map(n=>`
+    <div class="news-item">${n.text}<span class="src">${n.src}</span></div>`).join("") || `<div class="news-item">Sin noticias en esta categoría.</div>`;
+}
+
+function renderCalendar(){
+  const now = new Date();
+  const y=now.getFullYear(), m=now.getMonth();
+  const first = new Date(y,m,1).getDay();
+  const days = new Date(y,m+1,0).getDate();
+  document.getElementById("calTitle").textContent = "CALENDARIO — " + now.toLocaleDateString('es-AR',{month:'long',year:'numeric'}).toUpperCase();
+  let html="";
+  ["D","L","M","M","J","V","S"].forEach(d=>html+=`<div style="color:var(--gold)">${d}</div>`);
+  for(let i=0;i<first;i++) html+="<div></div>";
+  const events=[5,12,18,27];
+  for(let d=1; d<=days; d++){
+    const cls = d===now.getDate() ? "today" : events.includes(d) ? "event" : "";
+    html+=`<div class="${cls}">${d}</div>`;
+  }
+  document.getElementById("calGrid").innerHTML = html;
+}
+
+const MULTI_OPTIONS = ["BTC","ETH","SOL","NVDA","AAPL","MELI","Oro","Petróleo WTI"];
+function renderMultiGrid(count){
+  const grid = document.getElementById("multiGrid");
+  let html="";
+  for(let i=0;i<count;i++){
+    html+=`<div class="chart-cell">
+      <select onchange="this.closest('.chart-cell').querySelector('.cell-label').textContent=this.value">
+        ${MULTI_OPTIONS.map(o=>`<option>${o}</option>`).join("")}
+      </select>
+      <div class="chart-ph"></div>
+      <div class="cell-label" style="font-size:11.5px;color:var(--dim);margin-top:6px">${MULTI_OPTIONS[i%MULTI_OPTIONS.length]}</div>
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+/* ========================================================= PAÍSES (persistido en localStorage) */
+function loadCountries(){
+  try{ return JSON.parse(localStorage.getItem("findash_countries")) || COUNTRIES_DEFAULT; }
+  catch(e){ return COUNTRIES_DEFAULT; }
+}
+function saveCountries(list){
+  try{ localStorage.setItem("findash_countries", JSON.stringify(list)); }catch(e){}
+}
+let countries = loadCountries();
+function renderCountries(){
+  document.getElementById("countryList").innerHTML = countries.map((c,i)=>`
+    <div class="country-card">
+      <div><b>${c.name}</b> <span style="color:var(--dim)">(${c.etf})</span><div class="bars">${bars(c.bars)}</div></div>
+      <button class="rm" onclick="removeCountry(${i})">✕</button>
+    </div>`).join("");
+}
+function removeCountry(i){ countries.splice(i,1); saveCountries(countries); renderCountries(); }
+document.getElementById("countryAddBtn").addEventListener("click", addCountryFromInput);
+document.getElementById("countryInput").addEventListener("keydown", e=>{ if(e.key==="Enter") addCountryFromInput(); });
+function addCountryFromInput(){
+  const v = document.getElementById("countryInput").value.trim();
+  if(!v) return;
+  const [name, etf] = v.split("/").map(s=>s.trim());
+  countries.push({name:name||v, etf:etf||"—", bars:[40,45,50,48,55]});
+  saveCountries(countries); renderCountries();
+  document.getElementById("countryInput").value="";
+}
+
+/* ========================================================= CARTERA (persistido en localStorage) */
+function loadCartera(){ try{ return JSON.parse(localStorage.getItem("findash_cartera"))||[]; }catch(e){ return []; } }
+function saveCartera(list){ try{ localStorage.setItem("findash_cartera", JSON.stringify(list)); }catch(e){} }
+let cartera = loadCartera();
+function renderCartera(){
+  document.getElementById("carteraTable").innerHTML = cartera.map((h,i)=>`
+    <tr><td><b>${h.activo}</b></td><td>${h.cantidad}</td><td>$${h.precio}</td>
+    <td>$${(h.cantidad*h.precio).toLocaleString()}</td>
+    <td><button class="rm" onclick="removeHolding(${i})" style="background:none;border:none;color:var(--dim)">✕</button></td></tr>`).join("")
+    || `<tr><td colspan="5" style="color:var(--dim)">Todavía no cargaste ninguna tenencia.</td></tr>`;
+}
+function removeHolding(i){ cartera.splice(i,1); saveCartera(cartera); renderCartera(); }
+document.getElementById("cartAddBtn").addEventListener("click", ()=>{
+  const activo = document.getElementById("cartActivo").value.trim();
+  const cantidad = parseFloat(document.getElementById("cartCantidad").value);
+  const precio = parseFloat(document.getElementById("cartPrecio").value);
+  if(!activo || !cantidad || !precio) return;
+  cartera.push({activo,cantidad,precio});
+  saveCartera(cartera); renderCartera();
+  document.getElementById("cartActivo").value=""; document.getElementById("cartCantidad").value=""; document.getElementById("cartPrecio").value="";
+});
+
+/* ========================================================= NAVEGACIÓN LATERAL */
+document.getElementById("nav").addEventListener("click", e=>{
+  const btn = e.target.closest(".nav-item"); if(!btn) return;
+  document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.getElementById(btn.dataset.target).classList.add("active");
+});
+
+/* toggle lista/cards */
+document.getElementById("viewToggle").addEventListener("click", e=>{
+  const btn=e.target.closest("button"); if(!btn) return;
+  document.querySelectorAll("#viewToggle button").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  document.getElementById("pinnedList").className = btn.dataset.mode==="list" ? "list-view" : "card-view";
+});
+
+/* toggle acciones/commodities */
+document.getElementById("bolsaToggle").addEventListener("click", e=>{
+  const btn=e.target.closest("button"); if(!btn) return;
+  document.querySelectorAll("#bolsaToggle button").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  document.getElementById("bolsaAcciones").style.display = btn.dataset.mode==="acciones" ? "table" : "none";
+  document.getElementById("bolsaCommodities").style.display = btn.dataset.mode==="commodities" ? "table" : "none";
+});
+
+/* filtro de noticias por categoría */
+document.querySelectorAll("#noticias .tag").forEach(tag=>{
+  tag.addEventListener("click", ()=>{
+    document.querySelectorAll("#noticias .tag").forEach(t=>t.classList.remove("on"));
+    tag.classList.add("on");
+    renderNews(tag.dataset.cat);
+  });
+});
+
+/* toggle 2/4 gráficos */
+document.getElementById("multiToggle").addEventListener("click", e=>{
+  const btn=e.target.closest("button"); if(!btn) return;
+  document.querySelectorAll("#multiToggle button").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  const grid=document.getElementById("multiGrid");
+  grid.className = "multi-grid " + btn.dataset.mode;
+  renderMultiGrid(btn.dataset.mode==="g4" ? 4 : 2);
+});
+
+/* ========================================================= PANEL DE DETALLE */
+function openDetail(a){
+  document.getElementById("dpName").textContent = a.name + (a.price?` · $${a.price.toLocaleString()}`:"");
+  const chg = document.getElementById("dpChange");
+  if(a.change!==undefined){ chg.textContent = (a.change>=0?'+':'')+a.change+"% hoy"; chg.className = a.change>=0?'up':'down'; }
+  else { chg.textContent=""; }
+  document.getElementById("mOpen").textContent = a.open ? "$"+a.open.toLocaleString() : "—";
+  document.getElementById("mHigh").textContent = a.high ? "$"+a.high.toLocaleString() : "—";
+  document.getElementById("mLow").textContent = a.low ? "$"+a.low.toLocaleString() : "—";
+  document.getElementById("mVol").textContent = a.vol || "—";
+  document.getElementById("mCap").textContent = a.cap || "—";
+  document.getElementById("mAth").textContent = a.ath ? a.ath+"% vs ATH" : "— vs ATH";
+  document.getElementById("dpVol").innerHTML = bars(a.bars || [30,50,40,70,45,60,35,55]);
+  document.getElementById("detailPanel").classList.add("open");
+  document.getElementById("backdrop").classList.add("show");
+}
+function closeDetail(){
+  document.getElementById("detailPanel").classList.remove("open");
+  document.getElementById("backdrop").classList.remove("show");
+}
+document.getElementById("closeDetail").addEventListener("click", closeDetail);
+document.getElementById("backdrop").addEventListener("click", closeDetail);
+
+document.getElementById("dpChartToggle").addEventListener("click", e=>{
+  const btn=e.target.closest(".pill"); if(!btn) return;
+  document.querySelectorAll("#dpChartToggle .pill").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  // TODO: acá se conecta lightweight-charts y se cambia entre área/velas de verdad
+});
+document.getElementById("dpTimeframe").addEventListener("click", e=>{
+  const btn=e.target.closest(".pill"); if(!btn) return;
+  document.querySelectorAll("#dpTimeframe .pill").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  // TODO: acá se vuelve a pedir la data de precio para el rango elegido
+});
+
+/* ========================================================= INIT */
+renderTicker();
+renderPinned();
+renderCrypto();
+renderBolsa();
+renderNews("todas");
+renderCalendar();
+renderMultiGrid(4);
+renderCountries();
+renderCartera();
+</script>
+</body>
+</html>
