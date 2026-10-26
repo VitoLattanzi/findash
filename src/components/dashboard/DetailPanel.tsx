@@ -1,6 +1,5 @@
-'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
+import * as LightweightCharts from 'lightweight-charts';
 import { X } from 'lucide-react';
 import { Asset } from '@/types';
 
@@ -12,32 +11,38 @@ interface DetailPanelProps {
 
 export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
+  const chartRef = useRef<LightweightCharts.IChartApi | null>(null);
   const [chartType, setChartType] = useState<'area' | 'velas'>('velas');
   const [timeframe, setTimeframe] = useState('1D');
 
   useEffect(() => {
     if (!isOpen || !chartContainerRef.current || !asset) return;
 
-    const chart = createChart(chartContainerRef.current, {
-      layout: { background: { type: ColorType.Solid, color: '#161b25' }, textColor: '#8d97a8' },
+    const chart = LightweightCharts.createChart(chartContainerRef.current, {
+      layout: { background: { type: LightweightCharts.ColorType.Solid, color: '#161b25' }, textColor: '#8d97a8' },
       width: 400,
       height: 300,
       grid: { vertLines: { color: '#262d3b' }, horzLines: { color: '#262d3b' } },
     });
     chartRef.current = chart;
 
-    const chartAny = chart as any;
-    const series = chartType === 'area' 
-      ? chartAny.addAreaSeries({ lineColor: '#4fc7bd', topColor: '#4fc7bd', bottomColor: 'rgba(79,199,189,0)' })
-      : chartAny.addCandlestickSeries();
+    if (chartType === 'area') {
+      const areaSeries = chart.addAreaSeries({ lineColor: '#4fc7bd', topColor: '#4fc7bd', bottomColor: 'rgba(79,199,189,0)' });
+      areaSeries.setData([
+        { time: '2023-01-01', value: 100 },
+        { time: '2023-01-02', value: 125 },
+      ]);
+    } else {
+      const candleSeries = chart.addCandlestickSeries();
+      candleSeries.setData([
+        { time: '2023-01-01', open: 100, high: 120, low: 90, close: 110 },
+        { time: '2023-01-02', open: 110, high: 130, low: 105, close: 125 },
+      ]);
+    }
 
-    series.setData([
-      { time: '2023-01-01', open: 100, high: 120, low: 90, close: 110 },
-      { time: '2023-01-02', open: 110, high: 130, low: 105, close: 125 },
-    ]);
-
-    return () => chart.remove();
+    return () => {
+      chart.remove();
+    };
   }, [isOpen, asset, chartType]);
 
   if (!isOpen || !asset) return null;
@@ -50,8 +55,8 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
         
         <div className="mb-4">
           <div className="text-[22px] font-display font-semibold">{asset.name}</div>
-          <div className={`text-[13px] ${asset.change >= 0 ? 'text-teal' : 'text-red'}`}>
-            {asset.change >= 0 ? '+' : ''}{asset.change}% hoy
+          <div className={`text-[13px] ${(asset.change || 0) >= 0 ? 'text-teal' : 'text-red'}`}>
+            {(asset.change || 0) >= 0 ? '+' : ''}{(asset.change || 0).toFixed(2)}% hoy
           </div>
         </div>
 
@@ -82,3 +87,4 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
     </>
   );
 };
+
