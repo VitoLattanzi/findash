@@ -61,8 +61,8 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-20" onClick={onClose} />
-      <aside className="fixed top-0 right-0 h-full w-[420px] max-w-[92vw] bg-card border-l border-line z-[21] overflow-y-auto p-[22px]">
+      <div className="fixed inset-0 bg-black/50 z-[50]" onClick={onClose} />
+      <aside className="fixed top-0 right-0 h-full w-full sm:w-[420px] sm:max-w-[92vw] bg-card border-l border-line z-[51] overflow-y-auto p-4 pb-10 sm:p-[22px]">
         <button onClick={onClose} className="absolute top-4 right-4 text-dim hover:text-text" aria-label="Cerrar">
           <X size={18} />
         </button>

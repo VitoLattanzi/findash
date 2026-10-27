@@ -34,44 +34,68 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
     : '--:--:--';
 
   return (
-    <aside className="w-[var(--sidebar-w)] flex-shrink-0 bg-bg2 border-r border-line p-[18px_10px] sticky top-9 h-[calc(100vh-36px)] flex flex-col">
-      <div className="font-display font-semibold text-[18px] p-[4px_10px_18px] tracking-tight">
-        <span className="text-gold">◆</span> FinDash
-      </div>
-      <nav className="flex flex-col gap-0.5">
-        {navItems.map((item, i) => (
-          <button
-            key={item.target}
-            onClick={() => setActiveView(item.target)}
-            className={`group flex items-center gap-2.5 w-full text-left text-[13px] p-[10px] rounded-[5px] transition-colors ${
-              activeView === item.target
-                ? 'bg-card text-text shadow-[inset_2px_0_0_var(--gold)]'
-                : 'text-dim hover:bg-[#1a2030] hover:text-text'
-            }`}
-          >
-            <item.icon size={16} className={activeView === item.target ? 'text-gold' : ''} />
-            <span>{item.name}</span>
-            <kbd
-              className={`ml-auto text-[9.5px] font-mono px-1 rounded-[3px] border ${
+    <>
+      <aside className="hidden md:flex w-[var(--sidebar-w)] flex-shrink-0 bg-bg2 border-r border-line p-[18px_10px] sticky top-9 h-[calc(100dvh-36px)] flex-col">
+        <div className="font-display font-semibold text-[18px] p-[4px_10px_18px] tracking-tight">
+          <span className="text-gold">◆</span> FinDash
+        </div>
+        <nav className="flex flex-col gap-0.5">
+          {navItems.map((item, i) => (
+            <button
+              key={item.target}
+              onClick={() => setActiveView(item.target)}
+              className={`group flex items-center gap-2.5 w-full text-left text-[13px] p-[10px] rounded-[5px] transition-colors ${
                 activeView === item.target
-                  ? 'border-line text-gold'
-                  : 'border-transparent text-dim/60 group-hover:border-line'
+                  ? 'bg-card text-text shadow-[inset_2px_0_0_var(--gold)]'
+                  : 'text-dim hover:bg-[#1a2030] hover:text-text'
               }`}
             >
-              {i + 1}
-            </kbd>
-          </button>
-        ))}
-      </nav>
+              <item.icon size={16} className={activeView === item.target ? 'text-gold' : ''} />
+              <span>{item.name}</span>
+              <kbd
+                className={`ml-auto text-[9.5px] font-mono px-1 rounded-[3px] border ${
+                  activeView === item.target
+                    ? 'border-line text-gold'
+                    : 'border-transparent text-dim/60 group-hover:border-line'
+                }`}
+              >
+                {i + 1}
+              </kbd>
+            </button>
+          ))}
+        </nav>
 
-      <div className="mt-auto pt-3 border-t border-line space-y-1">
-        <div className="flex items-center gap-2 px-2.5 text-[11px]">
-          <span className={`w-1.5 h-1.5 rounded-full ${open ? 'bg-teal animate-pulse' : 'bg-red'}`} />
-          <span className="text-dim">Wall St {open ? 'abierto' : 'cerrado'}</span>
+        <div className="mt-auto pt-3 border-t border-line space-y-1">
+          <div className="flex items-center gap-2 px-2.5 text-[11px]">
+            <span className={`w-1.5 h-1.5 rounded-full ${open ? 'bg-teal animate-pulse' : 'bg-red'}`} />
+            <span className="text-dim">Wall St {open ? 'abierto' : 'cerrado'}</span>
+          </div>
+          <div className="px-2.5 text-[11px] text-dim font-mono tabular-nums">{etTime} ET</div>
+          <div className="px-2.5 text-[10px] text-dim/60">Cripto 24/7 · 1–7 navegar</div>
         </div>
-        <div className="px-2.5 text-[11px] text-dim font-mono tabular-nums">{etTime} ET</div>
-        <div className="px-2.5 text-[10px] text-dim/60">Cripto 24/7 · 1–7 navegar</div>
-      </div>
-    </aside>
+      </aside>
+
+      <nav
+        aria-label="Navegación principal"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-bg2/95 backdrop-blur border-t border-line safe-bottom"
+      >
+        <div className="grid grid-cols-7">
+          {navItems.map((item) => (
+            <button
+              key={item.target}
+              onClick={() => setActiveView(item.target)}
+              aria-label={item.name}
+              aria-current={activeView === item.target ? 'page' : undefined}
+              className={`flex flex-col items-center justify-center gap-1 min-h-[52px] px-0.5 py-1.5 transition-colors ${
+                activeView === item.target ? 'text-gold' : 'text-dim active:text-text'
+              }`}
+            >
+              <item.icon size={18} />
+              <span className="text-[8.5px] leading-none truncate w-full text-center">{item.name}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
+    </>
   );
 };

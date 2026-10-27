@@ -29,18 +29,20 @@ const SortHeader = ({
   align = 'left',
   sort,
   onSort,
+  className = '',
 }: {
   label: string;
   sortKey: SortKey;
   align?: 'left' | 'right';
   sort: { key: SortKey; dir: 1 | -1 };
   onSort: (key: SortKey) => void;
+  className?: string;
 }) => (
   <th
     onClick={() => onSort(sortKey)}
     className={`p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px] cursor-pointer select-none hover:text-text ${
       align === 'right' ? 'text-right' : 'text-left'
-    } ${sort.key === sortKey ? 'text-gold' : ''}`}
+    } ${sort.key === sortKey ? 'text-gold' : ''} ${className}`}
   >
     {label}
     <span className="ml-1 text-[9px]">{sort.key === sortKey ? (sort.dir === 1 ? '▲' : '▼') : '↕'}</span>
@@ -176,7 +178,13 @@ export const BolsaView = () => {
               <thead>
                 <tr>
                   <SortHeader label="Ticker" sortKey="symbol" sort={sort} onSort={toggleSort} />
-                  <SortHeader label="Nombre" sortKey="name" sort={sort} onSort={toggleSort} />
+                  <SortHeader
+                    label="Nombre"
+                    sortKey="name"
+                    sort={sort}
+                    onSort={toggleSort}
+                    className="hidden sm:table-cell"
+                  />
                   <SortHeader label="Precio" sortKey="price" align="right" sort={sort} onSort={toggleSort} />
                   <SortHeader label="24h%" sortKey="change" align="right" sort={sort} onSort={toggleSort} />
                   <th className="p-[8px_10px] border-b border-line"></th>
@@ -201,7 +209,7 @@ export const BolsaView = () => {
                       className="hover:bg-[#1a2030] cursor-pointer"
                     >
                       <td className="p-[9px_10px] border-b border-line font-bold">{q.symbol}</td>
-                      <td className="p-[9px_10px] border-b border-line text-dim truncate max-w-[220px]">
+                      <td className="p-[9px_10px] border-b border-line text-dim truncate max-w-[220px] hidden sm:table-cell">
                         {q.name || '—'}
                       </td>
                       <td className="p-[9px_10px] border-b border-line text-right">${formatPrice(q.price)}</td>

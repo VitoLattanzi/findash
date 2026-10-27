@@ -37,7 +37,7 @@ export const PortfolioView = () => {
             <tr>
               <th className="p-[8px_10px] border-b border-line text-dim font-medium">Activo</th>
               <th className="p-[8px_10px] border-b border-line text-dim font-medium">Cantidad</th>
-              <th className="p-[8px_10px] border-b border-line text-dim font-medium">Precio compra</th>
+              <th className="hidden sm:table-cell p-[8px_10px] border-b border-line text-dim font-medium">Precio compra</th>
               <th className="p-[8px_10px] border-b border-line text-dim font-medium">Valor</th>
               <th className="p-[8px_10px] border-b border-line text-dim font-medium"></th>
             </tr>
@@ -47,7 +47,7 @@ export const PortfolioView = () => {
               <tr key={i} className="hover:bg-[#1a2030]">
                 <td className="p-[9px_10px] border-b border-line font-bold">{h.activo}</td>
                 <td className="p-[9px_10px] border-b border-line">{h.cantidad}</td>
-                <td className="p-[9px_10px] border-b border-line">${h.precio.toLocaleString()}</td>
+                <td className="hidden sm:table-cell p-[9px_10px] border-b border-line">${h.precio.toLocaleString()}</td>
                 <td className="p-[9px_10px] border-b border-line">${(h.cantidad * h.precio).toLocaleString()}</td>
                 <td className="p-[9px_10px] border-b border-line">
                   <button onClick={() => removeHolding(i)} className="text-dim hover:text-red"><X size={16} /></button>

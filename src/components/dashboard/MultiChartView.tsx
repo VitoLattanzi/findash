@@ -56,7 +56,7 @@ export const MultiChartView = () => {
 
   return (
     <section>
-      <div className="flex justify-between items-center mb-[18px]">
+      <div className="flex justify-between items-center mb-[18px] flex-wrap gap-2">
         <h2 className="text-[22px]">Multigráficos</h2>
         <div className="flex border border-line rounded-[5px] overflow-hidden">
           <button
@@ -73,7 +73,7 @@ export const MultiChartView = () => {
           </button>
         </div>
       </div>
-      <div className={`grid gap-[12px] ${mode === 'g4' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+      <div className={`grid gap-[12px] ${mode === 'g4' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
         {slots.slice(0, count).map((slot, i) => (
           <div key={i}>
             <select

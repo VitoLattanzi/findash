@@ -56,7 +56,7 @@ export const NewsFeed = () => {
             <button
               key={cat}
               onClick={() => setCategory(cat)}
-              className={`inline-block bg-bg2 border border-line text-[11.5px] p-[3px_8px] rounded-[4px] cursor-pointer mr-2 ${
+              className={`inline-block bg-bg2 border border-line text-[11.5px] p-[3px_8px] rounded-[4px] cursor-pointer mr-2 mb-1.5 ${
                 category === cat ? 'text-gold border-gold' : 'text-dim'
               }`}
             >

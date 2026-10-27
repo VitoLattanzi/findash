@@ -45,9 +45,14 @@ export default function Dashboard() {
   return (
     <>
       <Ticker />
-      <div className="flex min-h-[calc(100vh-36px)]">
+      <div className="flex min-h-[calc(100svh-36px)]">
         <Sidebar activeView={activeView} setActiveView={setActiveView} />
-        <main key={activeView} className="flex-1 p-[26px_28px] min-w-0 view-enter">{renderView()}</main>
+        <main
+          key={activeView}
+          className="flex-1 min-w-0 p-4 pb-24 sm:p-[26px_28px] sm:pb-24 md:pb-[26px] view-enter"
+        >
+          {renderView()}
+        </main>
       </div>
     </>
   );

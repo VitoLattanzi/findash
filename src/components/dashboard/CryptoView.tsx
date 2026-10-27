@@ -93,8 +93,8 @@ export const CryptoView = () => {
                 <th className="p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px]">Activo</th>
                 <th className="p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px]">Precio</th>
                 <th className="p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px]">24h%</th>
-                <th className="p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px]">Vol 24h</th>
-                <th className="p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px]">48h</th>
+                <th className="hidden md:table-cell p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px]">Vol 24h</th>
+                <th className="hidden sm:table-cell p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px]">48h</th>
               </tr>
             </thead>
             <tbody>
@@ -116,8 +116,8 @@ export const CryptoView = () => {
                     <td className={`p-[9px_10px] border-b border-line ${r.change >= 0 ? 'text-teal' : 'text-red'}`}>
                       {formatPercent(r.change)}
                     </td>
-                    <td className="p-[9px_10px] border-b border-line text-dim">{formatVolume(r.vol)}</td>
-                    <td className="p-[9px_10px] border-b border-line">
+                    <td className="hidden md:table-cell p-[9px_10px] border-b border-line text-dim">{formatVolume(r.vol)}</td>
+                    <td className="hidden sm:table-cell p-[9px_10px] border-b border-line">
                       <div className="w-[80px] h-[24px]">
                         <Sparkline data={r.bars} change={r.change} width={80} height={24} />
                       </div>
@@ -138,8 +138,8 @@ export const CryptoView = () => {
         <h2 className="text-[22px]">Cripto</h2>
       </div>
 
-      <div className="flex gap-5 items-start flex-wrap">
-        <div className="flex-[2] min-w-[340px] flex flex-col gap-4">
+      <div className="flex flex-col xl:flex-row gap-5 items-stretch xl:items-start">
+        <div className="w-full xl:w-auto xl:flex-[2] min-w-0 flex flex-col gap-4">
           <div className="bg-card border border-line rounded-[6px] p-4">
             <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
               <div>
@@ -177,7 +177,7 @@ export const CryptoView = () => {
           </div>
         </div>
 
-        <div className="flex-[1] min-w-[260px] bg-card border border-line rounded-[6px] p-4">
+        <div className="w-full xl:w-auto xl:flex-[1] xl:min-w-[260px] min-w-0 bg-card border border-line rounded-[6px] p-4">
           <h3 className="text-[13.5px] text-dim font-medium mb-2.5">OPERACIONES DE BALLENAS</h3>
           <div className="block mt-2 bg-[#2a1c1c] text-[#f0b9a8] border border-[#5a2f2a] text-[11.5px] p-[7px_9px] rounded-[4px] mb-2">
             Detector de ballenas en espera de stream @aggTrade

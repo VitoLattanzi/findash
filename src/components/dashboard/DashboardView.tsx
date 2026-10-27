@@ -217,7 +217,7 @@ export const DashboardView = () => {
 
   return (
     <>
-      <div className="flex justify-between items-center mb-[18px]">
+      <div className="flex justify-between items-center mb-[18px] flex-wrap gap-2">
         <h2 className="text-[22px]">Dashboard</h2>
         <div className="flex border border-line rounded-[5px] overflow-hidden">
           <button
@@ -235,8 +235,8 @@ export const DashboardView = () => {
         </div>
       </div>
 
-      <div className="flex gap-5 items-start flex-wrap">
-        <div className="flex-[2] min-w-[340px] flex flex-col gap-4">
+      <div className="flex flex-col lg:flex-row gap-5 items-stretch lg:items-start">
+        <div className="w-full lg:w-auto lg:flex-[2] min-w-0 flex flex-col gap-4">
           <div className="bg-card border border-line rounded-[6px] p-4">
             <h3 className="text-[13.5px] text-dim font-medium mb-2.5">ACTIVOS FIJADOS</h3>
             {pinned.length === 0 ? (
@@ -304,7 +304,7 @@ export const DashboardView = () => {
           </div>
         </div>
 
-        <div className="flex-[1] min-w-[260px] flex flex-col gap-3.5">
+        <div className="w-full lg:w-auto lg:flex-[1] lg:min-w-[260px] min-w-0 flex flex-col gap-3.5">
           <div className="bg-card border border-line rounded-[6px] p-4">
             <h3 className="text-[13.5px] text-dim font-medium mb-2.5">INDICADORES ARGENTINA</h3>
             {dollars.length === 0 && risk === null ? (

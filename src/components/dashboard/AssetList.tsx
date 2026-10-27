@@ -16,7 +16,7 @@ export const AssetList = ({ assets, view, onAssetClick, onRemove }: AssetListPro
   }
 
   return (
-    <div className={view === 'list' ? 'flex flex-col' : 'grid grid-cols-2 gap-2.5'}>
+    <div className={view === 'list' ? 'flex flex-col' : 'grid grid-cols-1 sm:grid-cols-2 gap-2.5'}>
       {assets.map((a) => (
         <div
           key={a.symbol ?? a.name}
@@ -54,7 +54,7 @@ export const AssetList = ({ assets, view, onAssetClick, onRemove }: AssetListPro
                 onRemove(a);
               }}
               title="Quitar del dashboard"
-              className="text-dim hover:text-red opacity-0 group-hover:opacity-100 transition-opacity px-1"
+              className="text-dim hover:text-red opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity px-1"
             >
               ✕
             </button>

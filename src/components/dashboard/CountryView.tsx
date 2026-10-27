@@ -293,7 +293,7 @@ export const CountryView = () => {
                       e.stopPropagation();
                       removeCountry(i);
                     }}
-                    className="text-dim hover:text-red flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="text-dim hover:text-red flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                     aria-label={`Quitar ${c.name}`}
                   >
                     <X size={15} />
@@ -329,7 +329,7 @@ export const CountryView = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 mt-3 border-t border-line pt-3 flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 border-t border-line pt-3 flex-1">
                   <div>
                     <div className="text-[10px] uppercase tracking-wide text-teal mb-1.5">
                       Buenas {pos.length ? `(${pos.length})` : ''}
@@ -360,7 +360,7 @@ export const CountryView = () => {
                       </ul>
                     )}
                   </div>
-                  <div className="border-l border-line pl-2">
+                  <div className="sm:border-l sm:border-line sm:pl-2">
                     <div className="text-[10px] uppercase tracking-wide text-red mb-1.5">
                       Malas {neg.length ? `(${neg.length})` : ''}
                     </div>
