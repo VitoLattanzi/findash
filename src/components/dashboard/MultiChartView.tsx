@@ -1,83 +1,17 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
-import { createChart, ColorType, AreaSeries, CandlestickSeries, IChartApi, Time } from 'lightweight-charts';
-import { useSeriesData } from '@/hooks/useSeriesData';
+import React, { useState } from 'react';
+import { PriceChart } from '@/components/common/PriceChart';
 import { CATALOG } from '@/lib/catalog';
 import { AssetType } from '@/types';
 
-const OPTIONS = CATALOG.filter((c) => c.group !== 'commodities');
+const OPTIONS = CATALOG;
 
 const ChartCell = ({ symbol, type }: { symbol: string; type: AssetType }) => {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
   const [chartType, setChartType] = useState<'area' | 'velas'>('area');
-  const { points, candles, loading, error } = useSeriesData(symbol, type);
-
-  useEffect(() => {
-    const el = chartContainerRef.current;
-    if (!el) return;
-
-    const chart = createChart(el, {
-      layout: { background: { type: ColorType.Solid, color: '#161b25' }, textColor: '#8d97a8' },
-      width: el.clientWidth || 300,
-      height: 150,
-      grid: { vertLines: { color: '#202632' }, horzLines: { color: '#202632' } },
-      rightPriceScale: { borderColor: '#262d3b' },
-      timeScale: { borderColor: '#262d3b', timeVisible: false },
-      crosshair: { mode: 0 },
-    });
-    chartRef.current = chart;
-
-    if (chartType === 'area') {
-      const area = chart.addSeries(AreaSeries, {
-        lineColor: '#4fc7bd',
-        topColor: 'rgba(79,199,189,0.35)',
-        bottomColor: 'rgba(79,199,189,0)',
-        lineWidth: 2,
-      });
-      area.setData(points.map((p) => ({ time: p.time as Time, value: p.value })));
-    } else {
-      const candlestick = chart.addSeries(CandlestickSeries, {
-        upColor: '#4fc7bd',
-        downColor: '#d9685f',
-        borderVisible: false,
-        wickUpColor: '#4fc7bd',
-        wickDownColor: '#d9685f',
-      });
-      candlestick.setData(
-        candles.map((c) => ({
-          time: c.time as Time,
-          open: c.open,
-          high: c.high,
-          low: c.low,
-          close: c.close,
-        }))
-      );
-    }
-
-    chart.timeScale().fitContent();
-
-    const onResize = () => chart.applyOptions({ width: el.clientWidth });
-    const observer = new ResizeObserver(onResize);
-    observer.observe(el);
-
-    return () => {
-      observer.disconnect();
-      chart.remove();
-      chartRef.current = null;
-    };
-  }, [chartType, points, candles]);
 
   return (
     <div className="bg-card border border-line rounded-[6px] p-[12px]">
-      <div ref={chartContainerRef} className="h-[150px] w-full relative">
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center text-dim text-[11.5px]">Cargando...</div>
-        )}
-        {!loading && error && (
-          <div className="absolute inset-0 flex items-center justify-center text-dim text-[11.5px]">{error}</div>
-        )}
-      </div>
+      <PriceChart symbol={symbol} type={type} chartType={chartType} height={150} />
       <div className="flex justify-between items-center mt-2">
         <span className="text-[11.5px] text-dim">{symbol}</span>
         <div className="flex border border-line rounded-[4px] overflow-hidden">

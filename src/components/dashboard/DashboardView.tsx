@@ -21,6 +21,13 @@ interface DollarQuote {
   venta: number;
 }
 
+interface Headline {
+  title: string;
+  link: string;
+  source: string;
+  pubDate: string;
+}
+
 export const DashboardView = () => {
   const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned', DEFAULT_PINNED);
   const [view, setView] = useState<'list' | 'card'>('list');
@@ -30,6 +37,8 @@ export const DashboardView = () => {
   const [loadingStocks, setLoadingStocks] = useState(false);
   const [dollars, setDollars] = useState<DollarQuote[]>([]);
   const [risk, setRisk] = useState<number | null>(null);
+  const [headlines, setHeadlines] = useState<Headline[]>([]);
+  const [loadingNews, setLoadingNews] = useState(true);
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState<string>('crypto');
 
@@ -110,6 +119,26 @@ export const DashboardView = () => {
         if (typeof v === 'number') setRisk(v);
       })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingNews(true);
+
+    fetch('/api/news?category=todas')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (Array.isArray(data)) setHeadlines(data.slice(0, 4));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingNews(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const assets: Asset[] = useMemo(() => {
@@ -268,18 +297,29 @@ export const DashboardView = () => {
 
           <div className="bg-card border border-line rounded-[6px] p-4">
             <h3 className="text-[13.5px] text-dim font-medium mb-2.5">RESUMEN DEL DÍA</h3>
-            <div className="news-item py-[9px] border-b border-line text-[12.5px]">
-              El Riesgo País cae por debajo de los 700 puntos.
-              <span className="text-gold text-[11px] block mt-[2px]">Ámbito Financiero</span>
-            </div>
-            <div className="news-item py-[9px] border-b border-line text-[12.5px]">
-              Bitcoin se mantiene firme sobre los $67.000.
-              <span className="text-gold text-[11px] block mt-[2px]">Cointelegraph ES</span>
-            </div>
-            <div className="news-item py-[9px] text-[12.5px]">
-              Nvidia lidera las subas del Nasdaq tras resultados.
-              <span className="text-gold text-[11px] block mt-[2px]">Reuters</span>
-            </div>
+            {loadingNews ? (
+              <div className="text-dim text-[12px]">Cargando titulares...</div>
+            ) : headlines.length === 0 ? (
+              <div className="text-dim text-[12px]">Sin titulares disponibles.</div>
+            ) : (
+              headlines.map((h, i) => (
+                <a
+                  key={`${h.link}-${i}`}
+                  href={h.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`block py-[9px] text-[12.5px] hover:text-gold ${
+                    i < headlines.length - 1 ? 'border-b border-line' : ''
+                  }`}
+                >
+                  {h.title}
+                  <span className="text-gold text-[11px] block mt-[2px]">
+                    {h.source}
+                    {h.pubDate ? ` · ${new Date(h.pubDate).toLocaleDateString('es-AR')}` : ''}
+                  </span>
+                </a>
+              ))
+            )}
           </div>
         </div>
       </div>

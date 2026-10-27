@@ -1,9 +1,9 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, AreaSeries, CandlestickSeries, IChartApi, Time } from 'lightweight-charts';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { Asset } from '@/types';
 import { useSeriesData } from '@/hooks/useSeriesData';
+import { PriceChart } from '@/components/common/PriceChart';
 import { formatPrice } from '@/lib/format';
 
 interface DetailPanelProps {
@@ -15,75 +15,11 @@ interface DetailPanelProps {
 const TIMEFRAMES = ['1D', '1S', '1M', '3M', '6M', '1A', '2A'];
 
 export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
   const [chartType, setChartType] = useState<'area' | 'velas'>('area');
   const [timeframe, setTimeframe] = useState('1M');
 
   const symbol = asset?.symbol ?? asset?.name;
-  const { points, candles, loading, error } = useSeriesData(
-    isOpen ? symbol : undefined,
-    asset?.type
-  );
-
-  useEffect(() => {
-    const el = chartContainerRef.current;
-    if (!isOpen || !el) return;
-
-    const chart = createChart(el, {
-      layout: { background: { type: ColorType.Solid, color: '#161b25' }, textColor: '#8d97a8' },
-      width: el.clientWidth || 376,
-      height: 280,
-      grid: { vertLines: { color: '#202632' }, horzLines: { color: '#202632' } },
-      rightPriceScale: { borderColor: '#262d3b' },
-      timeScale: { borderColor: '#262d3b' },
-    });
-    chartRef.current = chart;
-
-    if (chartType === 'area') {
-      const series = chart.addSeries(AreaSeries, {
-        lineColor: '#4fc7bd',
-        topColor: 'rgba(79,199,189,0.35)',
-        bottomColor: 'rgba(79,199,189,0)',
-        lineWidth: 2,
-      });
-      if (points.length > 0) {
-        series.setData(points.map((p) => ({ time: p.time as Time, value: p.value })));
-        chart.timeScale().fitContent();
-      }
-    } else {
-      const series = chart.addSeries(CandlestickSeries, {
-        upColor: '#4fc7bd',
-        downColor: '#d9685f',
-        borderVisible: false,
-        wickUpColor: '#4fc7bd',
-        wickDownColor: '#d9685f',
-      });
-      if (candles.length > 0) {
-        series.setData(
-          candles.map((c) => ({
-            time: c.time as Time,
-            open: c.open,
-            high: c.high,
-            low: c.low,
-            close: c.close,
-          }))
-        );
-        chart.timeScale().fitContent();
-      }
-    }
-
-    const observer = new ResizeObserver(() => {
-      if (el.clientWidth) chart.applyOptions({ width: el.clientWidth });
-    });
-    observer.observe(el);
-
-    return () => {
-      observer.disconnect();
-      chart.remove();
-      chartRef.current = null;
-    };
-  }, [isOpen, symbol, chartType, points, candles]);
+  const { points, candles, loading, error } = useSeriesData(isOpen ? symbol : undefined, asset?.type);
 
   if (!isOpen || !asset) return null;
 
@@ -120,18 +56,15 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
           ))}
         </div>
 
-        <div className="relative">
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center text-dim text-[12px] z-10">
-              Cargando gráfico...
-            </div>
-          )}
-          {!loading && error && (
-            <div className="absolute inset-0 flex items-center justify-center text-dim text-[12px] z-10">
-              {error}
-            </div>
-          )}
-          <div ref={chartContainerRef} className="h-[280px] mb-3 w-full" />
+        <div className="mb-3">
+          <PriceChart
+            chartType={chartType}
+            height={280}
+            points={points}
+            candles={candles}
+            loading={loading}
+            error={error}
+          />
         </div>
 
         <div className="flex gap-1 mb-4 flex-wrap">
