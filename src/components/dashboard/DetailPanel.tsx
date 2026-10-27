@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, IChartApi } from 'lightweight-charts';
+import { createChart, ColorType, AreaSeries, CandlestickSeries, IChartApi } from 'lightweight-charts';
 import { X } from 'lucide-react';
 import { Asset } from '@/types';
 
@@ -27,13 +27,23 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
     chartRef.current = chart;
 
     if (chartType === 'area') {
-      const areaSeries = chart.addAreaSeries({ lineColor: '#4fc7bd', topColor: '#4fc7bd', bottomColor: 'rgba(79,199,189,0)' });
+      const areaSeries = chart.addSeries(AreaSeries, {
+        lineColor: '#4fc7bd',
+        topColor: '#4fc7bd',
+        bottomColor: 'rgba(79,199,189,0)',
+      });
       areaSeries.setData([
         { time: '2023-01-01', value: 100 },
         { time: '2023-01-02', value: 125 },
       ]);
     } else {
-      const candleSeries = chart.addCandlestickSeries();
+      const candleSeries = chart.addSeries(CandlestickSeries, {
+        upColor: '#4fc7bd',
+        downColor: '#d9685f',
+        borderVisible: false,
+        wickUpColor: '#4fc7bd',
+        wickDownColor: '#d9685f',
+      });
       candleSeries.setData([
         { time: '2023-01-01', open: 100, high: 120, low: 90, close: 110 },
         { time: '2023-01-02', open: 110, high: 130, low: 105, close: 125 },
