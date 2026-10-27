@@ -1,6 +1,8 @@
 'use client';
 import React, { useState } from 'react';
 import { DashboardView } from '@/components/dashboard/DashboardView';
+import { CryptoView } from '@/components/dashboard/CryptoView';
+import { BolsaView } from '@/components/dashboard/BolsaView';
 import { CountryView } from '@/components/dashboard/CountryView';
 import { PortfolioView } from '@/components/dashboard/PortfolioView';
 import { MultiChartView } from '@/components/dashboard/MultiChartView';
@@ -14,6 +16,8 @@ export default function Dashboard() {
   const renderView = () => {
     switch (activeView) {
       case 'dashboard': return <DashboardView />;
+      case 'cripto': return <CryptoView />;
+      case 'bolsa': return <BolsaView />;
       case 'paises': return <CountryView />;
       case 'cartera': return <PortfolioView />;
       case 'multi': return <MultiChartView />;

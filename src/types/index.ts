@@ -33,4 +33,7 @@ export interface BinanceMiniTicker {
   s: string; // Symbol
   c: string; // Close price
   o: string; // Open price
+  h?: string; // High price
+  l?: string; // Low price
+  q?: string; // Quote volume
 }
