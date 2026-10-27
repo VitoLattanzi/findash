@@ -1,5 +1,9 @@
+export type AssetType = 'crypto' | 'stock';
+
 export interface Asset {
   name: string;
+  symbol?: string;
+  type?: AssetType;
   price: number;
   change: number;
   open?: number;
@@ -26,7 +30,6 @@ export interface Holding {
 export interface Country {
   name: string;
   etf: string;
-  bars: number[];
 }
 
 export interface BinanceMiniTicker {
@@ -36,4 +39,9 @@ export interface BinanceMiniTicker {
   h?: string; // High price
   l?: string; // Low price
   q?: string; // Quote volume
+}
+
+export interface SeriesPoint {
+  time: string;
+  value: number;
 }
