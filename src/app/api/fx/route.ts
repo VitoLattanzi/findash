@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 
 interface FxResponse {
   base: 'USD';
-  rates: { ARS: number; BRL: number; EUR: number; GBP: number };
+  rates: { ARS: number; BRL: number; EUR: number; GBP: number; JPY: number; CNY: number };
   updatedAt: string | null;
 }
 
-const CURRENCIES = ['ARS', 'BRL', 'EUR', 'GBP'] as const;
+const CURRENCIES = ['ARS', 'BRL', 'EUR', 'GBP', 'JPY', 'CNY'] as const;
 
 async function fromErApi(): Promise<{ rates: Record<string, number>; updatedAt: string | null } | null> {
   try {
@@ -25,7 +25,7 @@ async function fromErApi(): Promise<{ rates: Record<string, number>; updatedAt: 
 
 async function fromFrankfurter(): Promise<Record<string, number> | null> {
   try {
-    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL,EUR,GBP', {
+    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL,EUR,GBP,JPY,CNY', {
       next: { revalidate: 600 },
       headers: { Accept: 'application/json' },
     });
@@ -84,6 +84,8 @@ export async function GET() {
       BRL: rates.BRL ?? 0,
       EUR: rates.EUR ?? 0,
       GBP: rates.GBP ?? 0,
+      JPY: rates.JPY ?? 0,
+      CNY: rates.CNY ?? 0,
     },
     updatedAt: primary?.updatedAt ?? null,
   };
