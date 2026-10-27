@@ -22,7 +22,7 @@ const FX_META: Array<{ key: keyof FxRates; label: string; prefix: string; decima
   { key: 'ARS', label: 'USD/ARS', prefix: '$', decimals: 2 },
   { key: 'BRL', label: 'USD/BRL', prefix: 'R$', decimals: 3 },
   { key: 'EUR', label: 'USD/EUR', prefix: '€', decimals: 3 },
-  { key: 'GBP', label: 'USD/GBP', prefix: '£', decimals: 3 },
+  { key: 'GBP', label: 'USD/LIB', prefix: '£', decimals: 3 },
 ];
 
 const nf = (decimals: number) =>
