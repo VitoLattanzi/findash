@@ -90,7 +90,7 @@ export const Ticker = () => {
 
   return (
     <div className="bg-bg2 border-b border-line overflow-hidden whitespace-nowrap">
-      <div className="inline-flex animate-scroll py-2">
+      <div className="inline-flex animate-scroll py-2 hover:[animation-play-state:paused]">
         {[...items, ...items].map((d, i) => (
           <span key={`${d.label}-${i}`} className="px-5 text-[12.5px] text-dim border-r border-line">
             {d.label} <b className="text-text font-semibold">{d.value}</b>

@@ -55,36 +55,75 @@ export const PriceChart = ({
 
     const dataLength = chartType === 'area' ? points.length : candles.length;
 
+    const series =
+      chartType === 'area'
+        ? chart.addSeries(AreaSeries, {
+            lineColor: '#4fc7bd',
+            topColor: 'rgba(79,199,189,0.35)',
+            bottomColor: 'rgba(79,199,189,0)',
+            lineWidth: 2,
+          })
+        : chart.addSeries(CandlestickSeries, {
+            upColor: '#4fc7bd',
+            downColor: '#d9685f',
+            borderVisible: false,
+            wickUpColor: '#4fc7bd',
+            wickDownColor: '#d9685f',
+          });
+
     if (chartType === 'area') {
-      const series = chart.addSeries(AreaSeries, {
-        lineColor: '#4fc7bd',
-        topColor: 'rgba(79,199,189,0.35)',
-        bottomColor: 'rgba(79,199,189,0)',
-        lineWidth: 2,
-      });
       if (points.length > 0) {
-        series.setData(points.map((p) => ({ time: p.time as Time, value: p.value })));
+        series.setData(points.map((p) => ({ time: p.time as Time, value: p.value })) as never);
       }
-    } else {
-      const series = chart.addSeries(CandlestickSeries, {
-        upColor: '#4fc7bd',
-        downColor: '#d9685f',
-        borderVisible: false,
-        wickUpColor: '#4fc7bd',
-        wickDownColor: '#d9685f',
-      });
-      if (candles.length > 0) {
-        series.setData(
-          candles.map((c) => ({
-            time: c.time as Time,
-            open: c.open,
-            high: c.high,
-            low: c.low,
-            close: c.close,
-          }))
-        );
-      }
+    } else if (candles.length > 0) {
+      series.setData(
+        candles.map((c) => ({
+          time: c.time as Time,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+        })) as never
+      );
     }
+
+    const priceFmt = (v: number) =>
+      v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const legend = document.createElement('div');
+    legend.className =
+      'absolute top-1.5 left-2 z-[4] text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-[rgba(12,15,20,0.65)] text-dim pointer-events-none hidden';
+    el.appendChild(legend);
+
+    const fmtTime = (t: any) =>
+      typeof t === 'string'
+        ? t
+        : t && typeof t === 'object' && 'year' in t
+          ? `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`
+          : '';
+
+    chart.subscribeCrosshairMove((param) => {
+      if (!param.time) {
+        legend.classList.add('hidden');
+        return;
+      }
+      const d: any = param.seriesData?.get(series);
+      if (!d) {
+        legend.classList.add('hidden');
+        return;
+      }
+      if (typeof d.value === 'number') {
+        legend.textContent = `${fmtTime(param.time)} · ${priceFmt(d.value)}`;
+      } else if (typeof d.close === 'number') {
+        const up = d.close >= d.open;
+        legend.innerHTML = `<span class="${up ? 'text-teal' : 'text-red'}">${fmtTime(param.time)} · A ${priceFmt(
+          d.open
+        )} · M ${priceFmt(d.high)} · m ${priceFmt(d.low)} · C ${priceFmt(d.close)}</span>`;
+      } else {
+        legend.classList.add('hidden');
+        return;
+      }
+      legend.classList.remove('hidden');
+    });
 
     if (dataLength > 0) chart.timeScale().fitContent();
 
@@ -187,6 +226,7 @@ export const PriceChart = ({
       window.removeEventListener('pointerup', onPointerUp);
       el.removeEventListener('dblclick', onDoubleClick);
       overlay.remove();
+      legend.remove();
       chart.remove();
     };
   }, [chartType, points, candles, height]);
@@ -204,6 +244,17 @@ export const PriceChart = ({
         </div>
       )}
       <div ref={containerRef} style={{ height }} className="w-full cursor-crosshair select-none" />
+      {symbol && (
+        <div
+          aria-hidden
+          className={`absolute inset-x-0 top-0 flex items-center justify-center pointer-events-none select-none font-display font-semibold tracking-wide text-[rgba(233,231,223,0.05)] ${
+            compact ? 'text-[26px]' : 'text-[42px]'
+          }`}
+          style={{ height }}
+        >
+          {symbol.toUpperCase()}
+        </div>
+      )}
       {!compact && (
         <div className="text-[10px] text-dim mt-1">Arrastrá sobre el gráfico para ampliar · doble click para resetear</div>
       )}

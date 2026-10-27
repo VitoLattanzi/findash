@@ -28,6 +28,19 @@ interface Headline {
   pubDate: string;
 }
 
+interface Fng {
+  value: number;
+  classification: string;
+}
+
+const FNG_LABEL: Record<string, string> = {
+  'Extreme Fear': 'Miedo extremo',
+  Fear: 'Miedo',
+  Neutral: 'Neutral',
+  Greed: 'Codicia',
+  'Extreme Greed': 'Codicia extrema',
+};
+
 export const DashboardView = () => {
   const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned', DEFAULT_PINNED);
   const [view, setView] = useState<'list' | 'card'>('list');
@@ -39,6 +52,7 @@ export const DashboardView = () => {
   const [risk, setRisk] = useState<number | null>(null);
   const [headlines, setHeadlines] = useState<Headline[]>([]);
   const [loadingNews, setLoadingNews] = useState(true);
+  const [fng, setFng] = useState<Fng | null>(null);
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState<string>('crypto');
 
@@ -119,6 +133,22 @@ export const DashboardView = () => {
         if (typeof v === 'number') setRisk(v);
       })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/fng')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled || typeof data?.value !== 'number') return;
+        setFng({ value: data.value, classification: data.classification ?? '' });
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -292,6 +322,36 @@ export const DashboardView = () => {
                   <b className="font-semibold">{risk !== null ? `${risk} pb` : '—'}</b>
                 </div>
               </>
+            )}
+          </div>
+
+          <div className="bg-card border border-line rounded-[6px] p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[13.5px] text-dim font-medium">MIEDO Y CODICIA</h3>
+              <span className="text-[10px] text-dim/70 uppercase tracking-wide">Cripto</span>
+            </div>
+            {fng ? (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <b className="text-[28px] font-display leading-none">{fng.value}</b>
+                  <span className="text-[11.5px] text-dim uppercase tracking-wide">
+                    {FNG_LABEL[fng.classification] ?? fng.classification}
+                  </span>
+                </div>
+                <div className="relative h-1.5 mt-3 rounded-full bg-gradient-to-r from-red via-gold to-teal">
+                  <span
+                    className="absolute -top-[3px] w-3 h-3 rounded-full bg-text border-2 border-bg shadow"
+                    style={{ left: `calc(${Math.min(Math.max(fng.value, 0), 100)}% - 6px)` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[9.5px] text-dim mt-1">
+                  <span>Miedo</span>
+                  <span>Neutral</span>
+                  <span>Codicia</span>
+                </div>
+              </>
+            ) : (
+              <div className="text-dim text-[12px]">Cargando índice...</div>
             )}
           </div>
 

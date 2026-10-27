@@ -50,6 +50,7 @@ html {
   color-scheme: dark;
   scrollbar-width: thin;
   scrollbar-color: #2b3342 transparent;
+  scroll-behavior: smooth;
 }
 
 * {
@@ -85,4 +86,32 @@ html {
 ::selection {
   background: rgba(216, 173, 63, 0.28);
   color: var(--text);
+}
+
+body {
+  background-image:
+    radial-gradient(900px 520px at 10% -12%, rgba(216, 173, 63, 0.07), transparent 65%),
+    radial-gradient(820px 620px at 108% 112%, rgba(79, 199, 189, 0.05), transparent 60%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 2px;
+}
+
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.view-enter {
+  animation: view-in 0.22s ease-out;
 }
