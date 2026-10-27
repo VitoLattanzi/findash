@@ -44,7 +44,7 @@ export function useSeriesData(symbol?: string, type?: AssetType): SeriesState {
           const pair = symbol.toUpperCase().endsWith('USDT')
             ? symbol.toUpperCase()
             : `${symbol.toUpperCase()}USDT`;
-          const res = await fetch(`/api/klines?symbols=${pair}&interval=1d&limit=180`);
+          const res = await fetch(`/api/klines?symbols=${pair}&interval=1d&limit=500`);
           const json = await res.json();
           const raw = Array.isArray(json?.[pair]) ? json[pair] : [];
 
@@ -107,3 +107,4 @@ export function useSeriesData(symbol?: string, type?: AssetType): SeriesState {
 
   return state;
 }
+

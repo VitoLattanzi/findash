@@ -14,6 +14,7 @@ interface PriceChartProps {
   candles?: CandlePoint[];
   loading?: boolean;
   error?: string | null;
+  compact?: boolean;
 }
 
 export const PriceChart = ({
@@ -26,6 +27,7 @@ export const PriceChart = ({
   candles: candlesProp,
   loading: loadingProp,
   error: errorProp,
+  compact,
 }: PriceChartProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -202,7 +204,9 @@ export const PriceChart = ({
         </div>
       )}
       <div ref={containerRef} style={{ height }} className="w-full cursor-crosshair select-none" />
-      <div className="text-[10px] text-dim mt-1">Arrastrá sobre el gráfico para ampliar · doble click para resetear</div>
+      {!compact && (
+        <div className="text-[10px] text-dim mt-1">Arrastrá sobre el gráfico para ampliar · doble click para resetear</div>
+      )}
     </div>
   );
 };

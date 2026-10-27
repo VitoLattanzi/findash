@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { Asset } from '@/types';
 import { useSeriesData } from '@/hooks/useSeriesData';
@@ -14,16 +14,35 @@ interface DetailPanelProps {
 
 const TIMEFRAMES = ['1D', '1S', '1M', '3M', '6M', '1A', '2A'];
 
+const TF_DAYS: Record<string, number> = {
+  '1D': 1,
+  '1S': 7,
+  '1M': 30,
+  '3M': 90,
+  '6M': 180,
+  '1A': 365,
+  '2A': 730,
+};
+
 export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
   const [chartType, setChartType] = useState<'area' | 'velas'>('area');
   const [timeframe, setTimeframe] = useState('1M');
 
   const symbol = asset?.symbol ?? asset?.name;
-  const { points, candles, loading, error } = useSeriesData(isOpen ? symbol : undefined, asset?.type);
+  const series = useSeriesData(isOpen ? symbol : undefined, asset?.type);
+
+  const view = useMemo(() => {
+    const days = TF_DAYS[timeframe] ?? 30;
+    return {
+      points: series.points.slice(-days),
+      candles: series.candles.slice(-days),
+    };
+  }, [series.points, series.candles, timeframe]);
 
   if (!isOpen || !asset) return null;
 
-  const last = candles[candles.length - 1];
+  const { loading, error } = series;
+  const last = view.candles[view.candles.length - 1];
 
   return (
     <>
@@ -60,8 +79,8 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
           <PriceChart
             chartType={chartType}
             height={280}
-            points={points}
-            candles={candles}
+            points={view.points}
+            candles={view.candles}
             loading={loading}
             error={error}
           />

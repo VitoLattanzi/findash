@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { ARGENTINA_TICKERS, COMMODITY_TICKERS, DEFAULT_PINNED, PinnedAsset, SP500_TICKERS, labelFor } from '@/lib/catalog';
 import { formatPercent, formatPrice } from '@/lib/format';
+import { DetailPanel } from '@/components/dashboard/DetailPanel';
+import { Asset } from '@/types';
 
 interface Quote {
   symbol: string;
@@ -26,6 +28,7 @@ export const BolsaView = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned', DEFAULT_PINNED);
+  const [selected, setSelected] = useState<Asset | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,7 +130,20 @@ export const BolsaView = () => {
                 {filtered.map((q) => {
                   const isPinned = pinned.some((p) => p.symbol === q.symbol);
                   return (
-                    <tr key={q.symbol} className="hover:bg-[#1a2030]">
+                    <tr
+                      key={q.symbol}
+                      onClick={() =>
+                        setSelected({
+                          name: q.name || q.symbol,
+                          symbol: q.symbol,
+                          type: 'stock',
+                          price: q.price ?? 0,
+                          change: q.change ?? 0,
+                          bars: [],
+                        })
+                      }
+                      className="hover:bg-[#1a2030] cursor-pointer"
+                    >
                       <td className="p-[9px_10px] border-b border-line font-bold">{q.symbol}</td>
                       <td className="p-[9px_10px] border-b border-line text-dim truncate max-w-[220px]">
                         {q.name || '—'}
@@ -142,7 +158,10 @@ export const BolsaView = () => {
                       </td>
                       <td className="p-[9px_10px] border-b border-line text-right">
                         <button
-                          onClick={() => togglePin(q.symbol)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePin(q.symbol);
+                          }}
                           title={isPinned ? 'Quitar del dashboard' : 'Fijar en dashboard'}
                           className={`text-[14px] ${isPinned ? 'text-gold' : 'text-dim hover:text-text'}`}
                         >
@@ -157,6 +176,8 @@ export const BolsaView = () => {
           </div>
         )}
       </div>
+
+      <DetailPanel asset={selected} isOpen={!!selected} onClose={() => setSelected(null)} />
     </section>
   );
 };

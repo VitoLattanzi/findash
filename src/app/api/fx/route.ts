@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 
 interface FxResponse {
   base: 'USD';
-  rates: { ARS: number; BRL: number; EUR: number; GBP: number; JPY: number; CNY: number };
+  rates: { ARS: number; BRL: number; EUR: number; GBP: number; JPY: number; CNY: number; MXN: number; INR: number };
   updatedAt: string | null;
 }
 
-const CURRENCIES = ['ARS', 'BRL', 'EUR', 'GBP', 'JPY', 'CNY'] as const;
+const CURRENCIES = ['ARS', 'BRL', 'EUR', 'GBP', 'JPY', 'CNY', 'MXN', 'INR'] as const;
 
 async function fromErApi(): Promise<{ rates: Record<string, number>; updatedAt: string | null } | null> {
   try {
@@ -25,7 +25,7 @@ async function fromErApi(): Promise<{ rates: Record<string, number>; updatedAt: 
 
 async function fromFrankfurter(): Promise<Record<string, number> | null> {
   try {
-    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL,EUR,GBP,JPY,CNY', {
+    const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=BRL,EUR,GBP,JPY,CNY,MXN,INR', {
       next: { revalidate: 600 },
       headers: { Accept: 'application/json' },
     });
@@ -86,6 +86,8 @@ export async function GET() {
       GBP: rates.GBP ?? 0,
       JPY: rates.JPY ?? 0,
       CNY: rates.CNY ?? 0,
+      MXN: rates.MXN ?? 0,
+      INR: rates.INR ?? 0,
     },
     updatedAt: primary?.updatedAt ?? null,
   };
