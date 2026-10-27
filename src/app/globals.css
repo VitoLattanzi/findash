@@ -45,3 +45,44 @@ body {
 h1, h2, h3, h4 {
   font-family: var(--font-display);
 }
+
+html {
+  color-scheme: dark;
+  scrollbar-width: thin;
+  scrollbar-color: #2b3342 transparent;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2b3342 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2b3342;
+  border-radius: 8px;
+  border: 2px solid var(--bg);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3d4759;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::selection {
+  background: rgba(216, 173, 63, 0.28);
+  color: var(--text);
+}
