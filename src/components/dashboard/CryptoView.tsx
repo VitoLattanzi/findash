@@ -103,7 +103,10 @@ export const CryptoView = () => {
                 return (
                   <tr
                     key={r.pair}
-                    onClick={() => setSelected(r.name)}
+                    onClick={() => {
+                      setSelected(r.name);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                     className={`cursor-pointer ${isActive ? 'bg-[#1d2330]' : 'hover:bg-[#1a2030]'}`}
                   >
                     <td className={`p-[9px_10px] border-b border-line font-bold ${isActive ? 'text-gold' : ''}`}>
