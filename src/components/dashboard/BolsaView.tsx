@@ -15,11 +15,37 @@ interface Quote {
 
 type Tab = 'sp500' | 'argentina' | 'commodities';
 
+type SortKey = 'symbol' | 'name' | 'price' | 'change';
+
 const TAB_TICKERS: Record<Tab, string> = {
   sp500: SP500_TICKERS,
   argentina: ARGENTINA_TICKERS,
   commodities: COMMODITY_TICKERS,
 };
+
+const SortHeader = ({
+  label,
+  sortKey,
+  align = 'left',
+  sort,
+  onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  align?: 'left' | 'right';
+  sort: { key: SortKey; dir: 1 | -1 };
+  onSort: (key: SortKey) => void;
+}) => (
+  <th
+    onClick={() => onSort(sortKey)}
+    className={`p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px] cursor-pointer select-none hover:text-text ${
+      align === 'right' ? 'text-right' : 'text-left'
+    } ${sort.key === sortKey ? 'text-gold' : ''}`}
+  >
+    {label}
+    <span className="ml-1 text-[9px]">{sort.key === sortKey ? (sort.dir === 1 ? '▲' : '▼') : '↕'}</span>
+  </th>
+);
 
 export const BolsaView = () => {
   const [tab, setTab] = useState<Tab>('sp500');
@@ -27,6 +53,7 @@ export const BolsaView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'symbol', dir: 1 });
   const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned_v2', DEFAULT_PINNED);
   const [selected, setSelected] = useState<Asset | null>(null);
 
@@ -59,11 +86,40 @@ export const BolsaView = () => {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return quotes;
-    return quotes.filter(
-      (item) => item.symbol.toLowerCase().includes(q) || (item.name ?? '').toLowerCase().includes(q)
-    );
-  }, [quotes, search]);
+    const base = q
+      ? quotes.filter(
+          (item) => item.symbol.toLowerCase().includes(q) || (item.name ?? '').toLowerCase().includes(q)
+        )
+      : [...quotes];
+
+    const value = (item: Quote): number | string | null => {
+      switch (sort.key) {
+        case 'price':
+          return item.price;
+        case 'change':
+          return item.change;
+        case 'name':
+          return item.name ?? item.symbol;
+        default:
+          return item.symbol;
+      }
+    };
+
+    return base.sort((a, b) => {
+      const va = value(a);
+      const vb = value(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === 'string' || typeof vb === 'string') {
+        return String(va).localeCompare(String(vb), 'es') * sort.dir;
+      }
+      return (va - vb) * sort.dir;
+    });
+  }, [quotes, search, sort]);
+
+  const toggleSort = (key: SortKey) =>
+    setSort((prev) => (prev.key === key ? { key, dir: prev.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
 
   const togglePin = (symbol: string) => {
     const isPinned = pinned.some((p) => p.symbol === symbol);
@@ -115,15 +171,15 @@ export const BolsaView = () => {
         ) : error ? (
           <div className="text-red text-[12.5px]">{error}</div>
         ) : (
-          <div className="max-h-[65vh] overflow-y-auto">
+          <div>
             <table className="w-full text-left text-[13px] border-collapse">
-              <thead className="sticky top-0 bg-card">
+              <thead>
                 <tr>
-                  <th className="p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px]">Ticker</th>
-                  <th className="p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px]">Nombre</th>
-                  <th className="p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px] text-right">Precio</th>
-                  <th className="p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px] text-right">24h%</th>
-                  <th className="p-[8px_10px] border-b border-line text-dim font-medium text-[11.5px]"></th>
+                  <SortHeader label="Ticker" sortKey="symbol" sort={sort} onSort={toggleSort} />
+                  <SortHeader label="Nombre" sortKey="name" sort={sort} onSort={toggleSort} />
+                  <SortHeader label="Precio" sortKey="price" align="right" sort={sort} onSort={toggleSort} />
+                  <SortHeader label="24h%" sortKey="change" align="right" sort={sort} onSort={toggleSort} />
+                  <th className="p-[8px_10px] border-b border-line"></th>
                 </tr>
               </thead>
               <tbody>
