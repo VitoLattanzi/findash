@@ -12,7 +12,7 @@ interface DetailPanelProps {
   onClose: () => void;
 }
 
-const TIMEFRAMES = ['1D', '1S', '1M', '3M', '6M', '1A', '2A'];
+const TIMEFRAMES = ['1D', '1S', '1M', '3M', '6M', '1A', '5A', '10A', 'Máx'];
 
 const TF_DAYS: Record<string, number> = {
   '1D': 1,
@@ -21,12 +21,14 @@ const TF_DAYS: Record<string, number> = {
   '3M': 90,
   '6M': 180,
   '1A': 365,
-  '2A': 730,
+  '5A': 1825,
+  '10A': 3650,
+  'Máx': 99999,
 };
 
 export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
   const [chartType, setChartType] = useState<'area' | 'velas'>('area');
-  const [timeframe, setTimeframe] = useState('1M');
+  const [timeframe, setTimeframe] = useState('Máx');
 
   const symbol = asset?.symbol ?? asset?.name;
   const series = useSeriesData(isOpen ? symbol : undefined, asset?.type);
