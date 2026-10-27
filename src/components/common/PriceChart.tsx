@@ -47,8 +47,11 @@ export const PriceChart = ({
       height,
       grid: { vertLines: { color: '#202632' }, horzLines: { color: '#202632' } },
       rightPriceScale: { borderColor: '#262d3b' },
-      timeScale: { borderColor: '#262d3b' },
+      timeScale: { borderColor: '#262d3b', rightOffset: 0 },
+      crosshair: { mode: 0 },
     });
+
+    const dataLength = chartType === 'area' ? points.length : candles.length;
 
     if (chartType === 'area') {
       const series = chart.addSeries(AreaSeries, {
@@ -59,7 +62,6 @@ export const PriceChart = ({
       });
       if (points.length > 0) {
         series.setData(points.map((p) => ({ time: p.time as Time, value: p.value })));
-        chart.timeScale().fitContent();
       }
     } else {
       const series = chart.addSeries(CandlestickSeries, {
@@ -79,9 +81,96 @@ export const PriceChart = ({
             close: c.close,
           }))
         );
-        chart.timeScale().fitContent();
       }
     }
+
+    if (dataLength > 0) chart.timeScale().fitContent();
+
+    // Never let the newest data go past the middle of the visible chart
+    let clamping = false;
+    const lastIndex = Math.max(dataLength - 1, 0);
+    const onRangeChange = (range: { from: number; to: number } | null) => {
+      if (clamping || !range || dataLength === 0) return;
+      const span = range.to - range.from;
+      const maxTo = lastIndex + span / 2;
+      if (range.to > maxTo) {
+        clamping = true;
+        chart.timeScale().setVisibleLogicalRange({ from: maxTo - span, to: maxTo });
+        clamping = false;
+      }
+    };
+    chart.timeScale().subscribeVisibleLogicalRangeChange(onRangeChange);
+
+    // Drag-to-zoom: drag a selection box to zoom into that area
+    let startX: number | null = null;
+    let selecting = false;
+    const overlay = document.createElement('div');
+    overlay.style.position = 'absolute';
+    overlay.style.top = '0';
+    overlay.style.bottom = '26px';
+    overlay.style.background = 'rgba(79,199,189,0.15)';
+    overlay.style.borderLeft = '1px solid #4fc7bd';
+    overlay.style.borderRight = '1px solid #4fc7bd';
+    overlay.style.pointerEvents = 'none';
+    overlay.style.display = 'none';
+    overlay.style.zIndex = '5';
+    el.appendChild(overlay);
+
+    const plotWidth = () => el.clientWidth - chart.priceScale('right').width();
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if (x > plotWidth()) return;
+      startX = x;
+      selecting = false;
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (startX == null) return;
+      const rect = el.getBoundingClientRect();
+      const x = Math.max(0, Math.min(plotWidth(), e.clientX - rect.left));
+
+      if (!selecting && Math.abs(x - startX) > 6) {
+        selecting = true;
+        chart.applyOptions({ handleScroll: false, handleScale: false });
+      }
+      if (selecting) {
+        const left = Math.min(startX, x);
+        const width = Math.abs(x - startX);
+        overlay.style.left = `${left}px`;
+        overlay.style.width = `${width}px`;
+        overlay.style.display = 'block';
+      }
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (startX == null) return;
+      const rect = el.getBoundingClientRect();
+      const x = Math.max(0, Math.min(plotWidth(), e.clientX - rect.left));
+
+      if (selecting) {
+        chart.applyOptions({ handleScroll: true, handleScale: true });
+        const ts = chart.timeScale();
+        const a = ts.coordinateToLogical(Math.min(startX, x));
+        const b = ts.coordinateToLogical(Math.max(startX, x));
+        if (a != null && b != null && b - a >= 2) {
+          ts.setVisibleLogicalRange({ from: a, to: b });
+        }
+      }
+
+      overlay.style.display = 'none';
+      startX = null;
+      selecting = false;
+    };
+
+    const onDoubleClick = () => chart.timeScale().fitContent();
+
+    el.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    el.addEventListener('dblclick', onDoubleClick);
 
     const observer = new ResizeObserver(() => {
       if (el.clientWidth) chart.applyOptions({ width: el.clientWidth });
@@ -90,6 +179,12 @@ export const PriceChart = ({
 
     return () => {
       observer.disconnect();
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange);
+      el.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      el.removeEventListener('dblclick', onDoubleClick);
+      overlay.remove();
       chart.remove();
     };
   }, [chartType, points, candles, height]);
@@ -106,7 +201,8 @@ export const PriceChart = ({
           {error}
         </div>
       )}
-      <div ref={containerRef} style={{ height }} className="w-full" />
+      <div ref={containerRef} style={{ height }} className="w-full cursor-crosshair select-none" />
+      <div className="text-[10px] text-dim mt-1">Arrastrá sobre el gráfico para ampliar · doble click para resetear</div>
     </div>
   );
 };
