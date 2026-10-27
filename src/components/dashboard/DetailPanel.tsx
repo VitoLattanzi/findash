@@ -12,38 +12,51 @@ interface DetailPanelProps {
   onClose: () => void;
 }
 
-const TIMEFRAMES = ['1D', '1S', '1M', '3M', '6M', '1A', '5A', '10A', 'Máx'];
+const TIMEFRAMES = ['1h', '12h', '24h', '1s', '2s', '1m', '3m', '6m', '1a', '3a', '5a', 'ALL'];
+
+const INTRADAY: Record<string, number> = { '1h': 1, '12h': 12, '24h': 24 };
 
 const TF_DAYS: Record<string, number> = {
-  '1D': 1,
-  '1S': 7,
-  '1M': 30,
-  '3M': 90,
-  '6M': 180,
-  '1A': 365,
-  '5A': 1825,
-  '10A': 3650,
-  'Máx': 99999,
+  '1s': 7,
+  '2s': 14,
+  '1m': 30,
+  '3m': 90,
+  '6m': 180,
+  '1a': 365,
+  '3a': 1095,
+  '5a': 1825,
+  ALL: 99999,
 };
 
 export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
   const [chartType, setChartType] = useState<'area' | 'velas'>('area');
-  const [timeframe, setTimeframe] = useState('Máx');
+  const [timeframe, setTimeframe] = useState('1a');
 
   const symbol = asset?.symbol ?? asset?.name;
+  const isIntraday = timeframe in INTRADAY;
+
   const series = useSeriesData(isOpen ? symbol : undefined, asset?.type);
+  const intraday = useSeriesData(
+    isOpen && isIntraday ? symbol : undefined,
+    asset?.type,
+    '5m',
+    INTRADAY[timeframe] ?? 24
+  );
+
+  const active = isIntraday ? intraday : series;
 
   const view = useMemo(() => {
-    const days = TF_DAYS[timeframe] ?? 30;
-    return {
-      points: series.points.slice(-days),
-      candles: series.candles.slice(-days),
-    };
-  }, [series.points, series.candles, timeframe]);
+    if (isIntraday) {
+      const bars = Math.max((INTRADAY[timeframe] ?? 24) * 12, 2);
+      return { points: intraday.points.slice(-bars), candles: intraday.candles.slice(-bars) };
+    }
+    const days = TF_DAYS[timeframe] ?? 365;
+    return { points: series.points.slice(-days), candles: series.candles.slice(-days) };
+  }, [isIntraday, timeframe, intraday.points, intraday.candles, series.points, series.candles]);
 
   if (!isOpen || !asset) return null;
 
-  const { loading, error } = series;
+  const { loading, error } = active;
   const last = view.candles[view.candles.length - 1];
 
   return (

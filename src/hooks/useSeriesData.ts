@@ -3,12 +3,14 @@ import { AssetType, SeriesPoint } from '@/types';
 import { CATALOG } from '@/lib/catalog';
 
 export interface CandlePoint {
-  time: string;
+  time: string | number;
   open: number;
   high: number;
   low: number;
   close: number;
 }
+
+type Interval = '1d' | '5m';
 
 interface SeriesState {
   points: SeriesPoint[];
@@ -24,7 +26,12 @@ function resolveType(symbol: string, type?: AssetType): AssetType {
   return CATALOG.find((c) => c.symbol.toUpperCase() === symbol.toUpperCase())?.type ?? 'stock';
 }
 
-export function useSeriesData(symbol?: string, type?: AssetType): SeriesState {
+export function useSeriesData(
+  symbol?: string,
+  type?: AssetType,
+  interval: Interval = '1d',
+  hours = 24
+): SeriesState {
   const [state, setState] = useState<SeriesState>(EMPTY);
 
   useEffect(() => {
@@ -38,10 +45,13 @@ export function useSeriesData(symbol?: string, type?: AssetType): SeriesState {
 
     const resolvedType = resolveType(symbol, type);
     const upper = symbol.toUpperCase();
-    const pair =
-      resolvedType === 'crypto' && !upper.endsWith('USDT') ? `${upper}USDT` : upper;
+    const pair = resolvedType === 'crypto' && !upper.endsWith('USDT') ? `${upper}USDT` : upper;
+    const query =
+      interval === '5m'
+        ? `interval=5m&hours=${hours}`
+        : `interval=1d&years=10`;
 
-    fetch(`/api/history?symbol=${encodeURIComponent(pair)}&type=${resolvedType}&years=10`)
+    fetch(`/api/history?symbol=${encodeURIComponent(pair)}&type=${resolvedType}&${query}`)
       .then((res) => res.json())
       .then((json) => {
         if (cancelled) return;
@@ -63,7 +73,7 @@ export function useSeriesData(symbol?: string, type?: AssetType): SeriesState {
     return () => {
       cancelled = true;
     };
-  }, [symbol, type]);
+  }, [symbol, type, interval, hours]);
 
   return state;
 }

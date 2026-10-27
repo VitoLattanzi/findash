@@ -94,12 +94,21 @@ export const PriceChart = ({
       'absolute top-1.5 left-2 z-[4] text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-[rgba(12,15,20,0.65)] text-dim pointer-events-none hidden';
     el.appendChild(legend);
 
-    const fmtTime = (t: any) =>
-      typeof t === 'string'
-        ? t
-        : t && typeof t === 'object' && 'year' in t
-          ? `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`
-          : '';
+    const fmtTime = (t: any) => {
+      if (typeof t === 'number') {
+        return new Date(t * 1000).toLocaleString('es-AR', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+      if (typeof t === 'string') return t;
+      if (t && typeof t === 'object' && 'year' in t) {
+        return `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`;
+      }
+      return '';
+    };
 
     chart.subscribeCrosshairMove((param) => {
       if (!param.time) {

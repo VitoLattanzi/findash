@@ -42,6 +42,6 @@ export interface BinanceMiniTicker {
 }
 
 export interface SeriesPoint {
-  time: string;
+  time: string | number;
   value: number;
 }
