@@ -27,7 +27,7 @@ export const BolsaView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned', DEFAULT_PINNED);
+  const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned_v2', DEFAULT_PINNED);
   const [selected, setSelected] = useState<Asset | null>(null);
 
   useEffect(() => {

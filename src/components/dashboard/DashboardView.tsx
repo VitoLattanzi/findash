@@ -42,7 +42,7 @@ const FNG_LABEL: Record<string, string> = {
 };
 
 export const DashboardView = () => {
-  const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned', DEFAULT_PINNED);
+  const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned_v2', DEFAULT_PINNED);
   const [view, setView] = useState<'list' | 'card'>('list');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [quotes, setQuotes] = useState<Record<string, QuoteResponse>>({});
@@ -180,7 +180,7 @@ export const DashboardView = () => {
         const open = t ? parseFloat(t.o) : 0;
         const change = t && open ? ((price - open) / open) * 100 : 0;
         return {
-          name: p.symbol,
+          name: p.label || p.symbol,
           symbol: p.symbol,
           type: 'crypto' as const,
           price,
@@ -190,7 +190,7 @@ export const DashboardView = () => {
       }
       const q = quotes[p.symbol];
       return {
-        name: p.symbol,
+        name: p.label || p.symbol,
         symbol: p.symbol,
         type: 'stock' as const,
         price: q?.price ?? 0,

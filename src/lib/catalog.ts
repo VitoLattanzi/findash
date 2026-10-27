@@ -4,7 +4,7 @@ export interface CatalogItem {
   symbol: string;
   label: string;
   type: AssetType;
-  group: 'sp500' | 'argentina' | 'commodities' | 'crypto';
+  group: 'indices' | 'sp500' | 'argentina' | 'commodities' | 'crypto';
 }
 
 export interface PinnedAsset {
@@ -32,6 +32,14 @@ const argentinaSymbols = [
 
 const commoditySymbols = ['GC=F', 'SI=F', 'CL=F', 'NG=F', 'ZS=F', 'HG=F'];
 
+const indexList: Array<[string, string]> = [
+  ['^GSPC', 'S&P 500'],
+  ['^IXIC', 'Nasdaq Composite'],
+  ['^DJI', 'Dow Jones'],
+  ['TLT', 'Bono 20Y USA'],
+  ['IEF', 'Bono 7-10Y USA'],
+];
+
 const cryptoList: Array<[string, string]> = [
   ['BTC', 'Bitcoin'],
   ['ETH', 'Ethereum'],
@@ -48,6 +56,7 @@ const cryptoList: Array<[string, string]> = [
 ];
 
 export const CATALOG: CatalogItem[] = [
+  ...indexList.map(([symbol, label]) => ({ symbol, label, type: 'stock' as const, group: 'indices' as const })),
   ...sp500Symbols.map((symbol) => ({ symbol, label: symbol, type: 'stock' as const, group: 'sp500' as const })),
   ...argentinaSymbols.map((symbol) => ({ symbol, label: symbol, type: 'stock' as const, group: 'argentina' as const })),
   ...commoditySymbols.map((symbol) => ({ symbol, label: symbol, type: 'stock' as const, group: 'commodities' as const })),
@@ -56,6 +65,7 @@ export const CATALOG: CatalogItem[] = [
 
 export const CATALOG_GROUPS = [
   { key: 'crypto', title: 'Cripto' },
+  { key: 'indices', title: 'Índices' },
   { key: 'sp500', title: 'S&P 500' },
   { key: 'argentina', title: 'Argentina' },
   { key: 'commodities', title: 'Commodities' },
@@ -66,6 +76,7 @@ export const ARGENTINA_TICKERS = argentinaSymbols.join(',');
 export const COMMODITY_TICKERS = commoditySymbols.join(',');
 
 export const DEFAULT_PINNED: PinnedAsset[] = [
+  { symbol: '^GSPC', label: 'S&P 500', type: 'stock' },
   { symbol: 'BTC', label: 'Bitcoin', type: 'crypto' },
   { symbol: 'ETH', label: 'Ethereum', type: 'crypto' },
   { symbol: 'NVDA', label: 'NVDA', type: 'stock' },
