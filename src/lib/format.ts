@@ -1,8 +1,35 @@
 export function formatPrice(price?: number | null): string {
   if (price == null || !Number.isFinite(price)) return '—';
-  if (price >= 1) return price.toLocaleString('es-AR', { maximumFractionDigits: 2 });
-  if (price >= 0.01) return price.toFixed(4);
-  return price.toFixed(8);
+  if (price === 0) return '0,00';
+
+  const abs = Math.abs(price);
+  const sign = price < 0 ? '-' : '';
+
+  if (abs >= 1) {
+    return `${sign}${abs.toLocaleString('es-AR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+
+  // Para valores < 1 (ej. altcoins, memecoins: 0,0000123...)
+  // Corta en el tercer dígito a partir del primer no-cero preservando los ceros iniciales
+  const str = abs.toFixed(18);
+  const match = str.match(/^0\.(0*)([1-9]\d*)/);
+  if (!match) {
+    return `${sign}${abs.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  const leadingZeros = match[1];
+  const decimals = Math.max(2, leadingZeros.length + 3);
+  let rounded = abs.toFixed(decimals);
+
+  // Evita ceros superfluos al final en números con pocos decimales (ej. 0.500 -> 0.50)
+  while (rounded.endsWith('0') && (rounded.split('.')[1]?.length || 0) > Math.max(2, leadingZeros.length + 1)) {
+    rounded = rounded.slice(0, -1);
+  }
+
+  return `${sign}${rounded.replace('.', ',')}`;
 }
 
 export function formatPercent(value?: number | null): string {

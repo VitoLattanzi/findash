@@ -13,6 +13,11 @@ export interface Asset {
   cap?: string;
   ath?: number;
   bars: number[];
+  marketState?: string;
+  preMarketPrice?: number | null;
+  preMarketChange?: number | null;
+  postMarketPrice?: number | null;
+  postMarketChange?: number | null;
 }
 
 export interface News {

@@ -1,6 +1,7 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { LayoutDashboard, Coins, TrendingUp, Globe, Newspaper, BarChart3, Briefcase, Landmark } from 'lucide-react';
+import { MarketStatusWidget } from '@/components/layout/MarketStatusWidget';
 
 const navItems = [
   { name: 'Dashboard', icon: LayoutDashboard, target: 'dashboard' },
@@ -13,27 +14,7 @@ const navItems = [
   // { name: 'Mi Cartera', icon: Briefcase, target: 'cartera' }, // Pausado temporalmente
 ];
 
-const isUsMarketOpen = (date: Date) => {
-  const et = new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  const day = et.getDay();
-  const mins = et.getHours() * 60 + et.getMinutes();
-  return day >= 1 && day <= 5 && mins >= 570 && mins < 960;
-};
-
 export const Sidebar = ({ activeView, setActiveView }: { activeView: string, setActiveView: (v: string) => void }) => {
-  const [now, setNow] = useState<Date | null>(null);
-
-  useEffect(() => {
-    setNow(new Date());
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const open = now ? isUsMarketOpen(now) : false;
-  const etTime = now
-    ? now.toLocaleTimeString('es-AR', { timeZone: 'America/New_York', hour12: false })
-    : '--:--:--';
-
   return (
     <>
       <aside className="hidden md:flex w-[var(--sidebar-w)] flex-shrink-0 bg-bg2 border-r border-line p-[18px_10px] sticky top-9 h-[calc(100dvh-36px)] flex-col z-20">
@@ -57,14 +38,7 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
           ))}
         </nav>
 
-        <div className="mt-auto pt-3 border-t border-line space-y-1">
-          <div className="flex items-center gap-2 px-2.5 text-[11px]">
-            <span className={`w-1.5 h-1.5 rounded-full ${open ? 'bg-teal animate-pulse' : 'bg-red'}`} />
-            <span className="text-dim">Wall St {open ? 'abierto' : 'cerrado'}</span>
-          </div>
-          <div className="px-2.5 text-[11px] text-dim font-mono tabular-nums">{etTime} ET</div>
-          <div className="px-2.5 text-[10px] text-dim/60">Cripto 24/7</div>
-        </div>
+        <MarketStatusWidget />
       </aside>
 
       <nav

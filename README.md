@@ -67,7 +67,8 @@ Navegá toda la terminal sin despegar las manos del teclado (los atajos funciona
 
 ## Módulos y Funcionalidades 🧭
 
-*   **Dashboard Principal:** Vista integral con el horario y estado del mercado de Wall Street (ET) en vivo, índice Fear & Greed, activos destacados y gráficos rápidos con selector de temporalidades.
+*   **Dashboard Principal:** Vista integral con rotador dinámico de los mercados más relevantes del mundo (Wall St, BCBA/BYMA, Londres, Tokio, Hong Kong y Cripto 24/7 con estados en vivo: Abierto, Cierra pronto, Abre pronto, Cerrado), menú desplegable interactivo con diagnóstico de tendencia diaria (**Alcista / Bajista** por índice representativo y barra de balance global), índice Fear & Greed, activos destacados y gráficos rápidos con selector de temporalidades.
+*   **Panel de Detalle Extendido (Pre/Post Market):** Soporte en tiempo real para sesiones extendidas de negociación (Pre-Market y After-Hours) en acciones y bonos al cerrarse el mercado regular, mostrando variaciones y cotizaciones atenuadas.
 *   **Criptomercado en Vivo:** Conexión continua a Binance WebSocket con fallback automático a endpoints alternativos para evitar restricciones geográficas.
 *   **Bolsa & ADRs:** Catálogo curado de las 100 principales acciones del S&P 500, materias primas (oro, plata, petróleo, soja) y ADRs argentinos, con sparklines y métricas de rendimiento.
 *   **Mercado Argentino (CEDEARs, Bonos & Dólares):** Módulo dedicado al nicho financiero de Argentina:
@@ -105,6 +106,7 @@ FinDash utiliza una arquitectura distribuida de **Server Route Handlers** (Next.
 
 ### 4. Motor Gráfico & TradingView
 *   **Lightweight Charts:** Renderizado acelerado por hardware diseñado para series temporales densas. La carga de datos se desacopla del motor mediante el hook `useSeriesData`, que normaliza los formatos de Binance y Yahoo antes de alimentar el motor de renderizado.
+*   **Formato Dinámico en Crosshair y Escala:** Soporte para tokens y activos de micro-precio (`< 1`), cortando automáticamente en el tercer dígito significativo tras los ceros iniciales (ej. `$0,0000123`) para evitar notaciones truncadas o valores en cero.
 *   **Redirección Dinámica a TradingView:** Botones de acceso directo al gráfico interactivo oficial de TradingView (`tradingview.com/chart`), resolviendo automáticamente el ticker y exchange correspondiente:
     *   *Criptomonedas:* `BINANCE:BTCUSDT`, `BINANCE:ETHUSDT`, etc.
     *   *Bonos Soberanos Argentinos:* `BCBA:AL30`, `BCBA:GD30`, etc.

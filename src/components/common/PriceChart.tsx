@@ -4,6 +4,7 @@ import { createChart, ColorType, AreaSeries, CandlestickSeries, IChartApi, Time 
 import { useSeriesData, CandlePoint } from '@/hooks/useSeriesData';
 import { AssetType, SeriesPoint } from '@/types';
 import { getTradingViewUrl } from '@/lib/tradingview';
+import { formatPrice } from '@/lib/format';
 
 interface PriceChartProps {
   symbol?: string;
@@ -50,6 +51,9 @@ export const PriceChart = ({
         textColor: '#8d97a8',
         attributionLogo: false,
       },
+      localization: {
+        priceFormatter: (p: number) => formatPrice(p),
+      },
       width: el.clientWidth || 360,
       height,
       grid: { vertLines: { color: '#202632' }, horzLines: { color: '#202632' } },
@@ -92,8 +96,7 @@ export const PriceChart = ({
       );
     }
 
-    const priceFmt = (v: number) =>
-      v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const priceFmt = (v: number) => formatPrice(v);
     const legend = document.createElement('div');
     legend.className =
       'absolute top-1.5 left-2 z-[4] text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-[rgba(12,15,20,0.65)] text-dim pointer-events-none hidden';
@@ -126,12 +129,12 @@ export const PriceChart = ({
         return;
       }
       if (typeof d.value === 'number') {
-        legend.textContent = `${fmtTime(param.time)} · ${priceFmt(d.value)}`;
+        legend.textContent = `${fmtTime(param.time)} · $${priceFmt(d.value)}`;
       } else if (typeof d.close === 'number') {
         const up = d.close >= d.open;
-        legend.innerHTML = `<span class="${up ? 'text-teal' : 'text-red'}">${fmtTime(param.time)} · A ${priceFmt(
+        legend.innerHTML = `<span class="${up ? 'text-teal' : 'text-red'}">${fmtTime(param.time)} · A $${priceFmt(
           d.open
-        )} · M ${priceFmt(d.high)} · m ${priceFmt(d.low)} · C ${priceFmt(d.close)}</span>`;
+        )} · M $${priceFmt(d.high)} · m $${priceFmt(d.low)} · C $${priceFmt(d.close)}</span>`;
       } else {
         legend.classList.add('hidden');
         return;

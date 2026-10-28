@@ -17,6 +17,11 @@ interface MarketResult {
   bars: number[] | null;
   series: SeriesPoint[] | null;
   error: string | null;
+  marketState?: string | null;
+  preMarketPrice?: number | null;
+  preMarketChange?: number | null;
+  postMarketPrice?: number | null;
+  postMarketChange?: number | null;
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -126,6 +131,11 @@ export async function GET(request: NextRequest) {
           bars: series ? series.map((p) => p.value) : null,
           series,
           error: null,
+          marketState: q.marketState || null,
+          preMarketPrice: typeof q.preMarketPrice === 'number' ? q.preMarketPrice : null,
+          preMarketChange: typeof q.preMarketChangePercent === 'number' ? q.preMarketChangePercent : null,
+          postMarketPrice: typeof q.postMarketPrice === 'number' ? q.postMarketPrice : null,
+          postMarketChange: typeof q.postMarketChangePercent === 'number' ? q.postMarketChangePercent : null,
         };
       })
     );

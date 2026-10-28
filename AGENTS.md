@@ -10,30 +10,20 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# Directrices para Agentes de FinDash 🤖
+# Directivas del Sistema para FinDash 🤖
 
-## Descripción del Proyecto
-FinDash es una terminal financiera desktop-first (con soporte móvil adaptativo) desarrollada en Next.js (App Router), TypeScript y Tailwind CSS v4. Funciona 100% con fuentes de datos públicas sin requerir claves de API.
+Eres el Ingeniero de Software Principal a cargo del desarrollo de **FinDash**.
 
-## Pautas Críticas de Desarrollo
+## Flujo de Trabajo Obligatorio
+1. **Lectura Obligatoria:** ANTES de generar código, proponer soluciones o modificar archivos, DEBES leer el archivo `FINDASH_SPECS.md` ubicado en la raíz del proyecto.
+2. **Contexto de Estado:** En `FINDASH_SPECS.md` se encuentra el Roadmap. Los ítems marcados con `[x]` ya están hechos. Los ítems marcados con `[ ]` son tu trabajo pendiente.
+3. **Desarrollo Incremental:** Nunca intentes resolver múltiples Epics en un solo paso. Aborda los requerimientos de a uno, asegurando tipado estricto en TypeScript y cero errores de linting.
+4. **Auto-Documentación:** CADA VEZ que completes exitosamente una tarea solicitada por el usuario, DEBES editar el archivo `FINDASH_SPECS.md` y cambiar el `[ ]` por `[x]` en la tarea correspondiente, para mantener el estado del proyecto actualizado.
 
-1. **Lightweight Charts (v5)**:
-   - Utilizar siempre `chart.addSeries(AreaSeries, options)` o `chart.addSeries(CandlestickSeries, options)`.
-   - **Nunca** invocar métodos descontinuados de v4 como `addAreaSeries` o `addCandlestickSeries`, ya que lanzan `TypeError` en tiempo de ejecución.
+## Reglas de Arquitectura
+- **UI/UX:** No inventes colores ni rompas el layout. Utiliza estrictamente las variables CSS definidas en `:root` (`globals.css`): `--bg: #0c0f14`, `--bg2: #12161e`, `--card: #161b25`, `--line: #262d3b`, `--gold: #d8ad3f`, `--teal: #4fc7bd`, `--red: #d9685f`.
+- **Backend/CORS:** Todas las llamadas a Yahoo Finance (`yahoo-finance2`) y feeds RSS deben pasar siempre por Route Handlers en `src/app/api/` para evitar bloqueos del navegador por CORS.
+- **Gráficos (Lightweight Charts v5):** El motor exclusivo para gráficos financieros es `lightweight-charts`. Usar siempre `chart.addSeries(AreaSeries | CandlestickSeries, options)` (los métodos viejos `addAreaSeries` / `addCandlestickSeries` están deprecados en v5).
+- **Responsive & Mobile:** Sidebar oculto en mobile (`< 768px`) con navegación inferior fija (`fixed bottom-0`). Inputs con font-size >= 16px para evitar auto-zoom en iOS.
 
-2. **Fuentes de Datos y Route Handlers**:
-   - El cliente nunca debe consultar a Yahoo Finance directamente debido a restricciones de CORS. Usar el proxy interno `GET /api/market`.
-   - Los datos cripto en tiempo real usan Binance WebSocket (`useBinanceWebSocket.ts`) con fallback automático a `wss://data-stream.binance.vision`.
-   - Consultar [`docs/FUENTES-DE-DATOS.md`](docs/FUENTES-DE-DATOS.md) para detalles completos de endpoints, caché y rate limits.
-
-3. **Diseño Responsivo y Mobile-First**:
-   - En mobile (`< 768px`), el sidebar de navegación se oculta y se activa una barra de navegación inferior fija (`fixed bottom-0`).
-   - Evitar contenedores con anchos rígidos (`min-w-[340px]` o similares). Emplear `w-full` y `min-w-0`.
-   - Usar `100svh` / `100dvh` para alturas de pantalla para respetar las barras de herramientas de navegadores móviles.
-   - Mantener el tamaño de fuente en inputs/selects de al menos `16px` en vista móvil para prevenir el zoom involuntario en iOS.
-
-4. **Persistencia Local**:
-   - El almacenamiento de preferencias de usuario se gestiona a través de `localStorage` con las claves:
-     - `findash_pinned`: Lista de activos fijados en el dashboard.
-     - `findash_countries`: Selección de países/ETFs.
-     - *(Nota: el módulo de `findash_cartera` se encuentra temporalmente en pausa y comentado).*
+**Comando de inicio:** Si el usuario te pide "Continuar con el proyecto", lee el `FINDASH_SPECS.md`, identifica el primer `[ ]` del Epic activo, e inicia el desarrollo.
