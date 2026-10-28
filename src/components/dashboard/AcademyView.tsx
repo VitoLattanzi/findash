@@ -26,11 +26,13 @@ import {
   AcademyModule,
   ProfileRecommendation,
 } from '@/data/academyData';
+import { UpdatesModal } from '@/components/common/UpdatesModal';
 
 export const AcademyView = () => {
   const [activeCategory, setActiveCategory] = useState<string>('Todas');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const [showUpdatesModal, setShowUpdatesModal] = useState(false);
 
   // Estado del Test de Perfil de Riesgo
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState<number>(0);
@@ -104,24 +106,35 @@ export const AcademyView = () => {
           </p>
         </div>
 
-        {/* Buscador de conceptos */}
-        <div className="relative w-full sm:w-72">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar concepto (ej: CEDEAR, PER)..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-card border border-line text-[13px] text-text placeholder-dim/60 focus:outline-none focus:border-gold transition-colors"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-dim hover:text-text text-[11px]"
-            >
-              ×
-            </button>
-          )}
+        {/* Buscador de conceptos y botón de novedades */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+          <button
+            onClick={() => setShowUpdatesModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card hover:bg-bg2 border border-line hover:border-gold/50 text-[12px] font-medium text-dim hover:text-text transition-colors shadow-sm whitespace-nowrap"
+            title="Ver últimas novedades y notas de versión de FinDash"
+          >
+            <Sparkles size={13} className="text-gold" />
+            <span>Novedades v2.4</span>
+          </button>
+
+          <div className="relative flex-1 sm:w-64">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar concepto (ej: CEDEAR, PER)..."
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-card border border-line text-[13px] text-text placeholder-dim/60 focus:outline-none focus:border-gold transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-dim hover:text-text text-[11px]"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -408,6 +421,11 @@ export const AcademyView = () => {
           <span>El rendimiento pasado no garantiza resultados futuros.</span>
         </div>
       </footer>
+
+      <UpdatesModal
+        isOpen={showUpdatesModal}
+        onClose={() => setShowUpdatesModal(false)}
+      />
     </main>
   );
 };

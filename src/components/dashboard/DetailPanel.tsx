@@ -584,10 +584,27 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
                       </div>
 
                       <div className="p-3 bg-bg2 border border-line rounded-xl">
-                        <span className="text-[11px] text-dim block">Dividend Yield (Anual)</span>
-                        <span className="text-[16px] font-mono font-semibold text-teal mt-0.5 block">
-                          {m.dividendYield != null ? `${m.dividendYield.toFixed(2)}%` : '0.00%'}
-                        </span>
+                        <span className="text-[11px] text-dim block">Dividendos</span>
+                        {m.dividendYield != null && m.dividendYield > 0 ? (
+                          <>
+                            <span className="text-[16px] font-mono font-semibold text-teal mt-0.5 block">
+                              {m.dividendYield.toFixed(2)}%
+                            </span>
+                            <span className="text-[10.5px] text-dim font-medium block mt-0.5 truncate">
+                              {m.dividendFrequency || 'Trimestral'}
+                              {m.dividendRate != null ? ` · $${m.dividendRate.toFixed(2)}/acc` : ''}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-[15px] font-mono font-medium text-dim mt-0.5 block">
+                              No distribuye
+                            </span>
+                            <span className="text-[10.5px] text-dim/60 block mt-0.5">
+                              Reinvierte ganancias
+                            </span>
+                          </>
+                        )}
                       </div>
 
                       <div className="p-3 bg-bg2 border border-line rounded-xl">

@@ -108,8 +108,8 @@ const MARKETS: MarketDef[] = [
     name: 'Cripto 24/7',
     flag: '🌐',
     city: 'Global',
-    indexName: 'Bitcoin (BTC)',
-    indexSymbol: 'BTC-USD',
+    indexName: 'Top 10 Altcoins',
+    indexSymbol: 'ALT10-INDEX',
     timeZone: 'UTC',
     tzAbbr: 'UTC',
     alwaysOpen: true,
@@ -228,13 +228,26 @@ export const MarketStatusWidget = () => {
     return () => clearInterval(clockTimer);
   }, []);
 
-  // Fetch de índices representativos de cada mercado
+  // Fetch de índices representativos de cada mercado + Top 10 Altcoins
   useEffect(() => {
     let cancelled = false;
-    const symbols = MARKETS.map((m) => m.indexSymbol).join(',');
+    const traditionalSymbols = MARKETS.filter((m) => m.id !== 'crypto').map((m) => m.indexSymbol);
+    const topAltcoins = [
+      'ETH-USD',
+      'BNB-USD',
+      'SOL-USD',
+      'XRP-USD',
+      'ADA-USD',
+      'DOGE-USD',
+      'AVAX-USD',
+      'LINK-USD',
+      'DOT-USD',
+      'NEAR-USD',
+    ];
+    const allSymbols = [...traditionalSymbols, ...topAltcoins].join(',');
 
     setLoadingBenchmarks(true);
-    fetch(`/api/market?tickers=${encodeURIComponent(symbols)}`)
+    fetch(`/api/market?tickers=${encodeURIComponent(allSymbols)}`)
       .then((r) => r.json())
       .then((data) => {
         if (!cancelled && Array.isArray(data)) {
@@ -248,6 +261,22 @@ export const MarketStatusWidget = () => {
               };
             }
           }
+
+          // Calcular el Índice de las 10 Altcoins de mayor capitalización
+          const altQuotes = topAltcoins
+            .map((sym) => map[sym])
+            .filter((q): q is BenchmarkQuote => !!q && typeof q.change === 'number');
+
+          if (altQuotes.length > 0) {
+            const avgChange =
+              altQuotes.reduce((acc, q) => acc + (q.change || 0), 0) / altQuotes.length;
+            map['ALT10-INDEX'] = {
+              symbol: 'ALT10-INDEX',
+              price: null,
+              change: avgChange,
+            };
+          }
+
           setBenchmarks(map);
         }
       })
@@ -511,6 +540,11 @@ export const MarketStatusWidget = () => {
 
                           <div className="flex items-center gap-2 text-[11px] text-dim mt-0.5 flex-wrap">
                             <span className="text-dim/90 font-medium">Índice: {m.indexName}</span>
+                            {m.id === 'crypto' && (
+                              <span className="text-[10px] text-dim/70 font-mono">
+                                (ETH, SOL, BNB, XRP, ADA, DOGE, AVAX, LINK, DOT, NEAR)
+                              </span>
+                            )}
                             {q?.price != null && (
                               <span className="font-mono text-text">
                                 ${formatPrice(q.price)}

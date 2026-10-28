@@ -23,6 +23,9 @@ export interface FundamentalData {
     forwardPe: number | null;
     marketCap: number | null;
     dividendYield: number | null; // en porcentaje (ej 0.015 -> 1.5%)
+    dividendRate: number | null; // monto anual en USD por acción
+    dividendFrequency: string | null; // 'Trimestral' | 'Mensual' | 'Semestral' | 'Anual' | 'No distribuye'
+    dividendDate: string | null;
     targetPrice: number | null;
     targetHigh: number | null;
     targetLow: number | null;
@@ -102,6 +105,43 @@ export async function GET(request: NextRequest) {
         ? sd.trailingAnnualDividendYield * 100
         : null;
 
+    const dividendRateVal =
+      typeof sd?.dividendRate === 'number'
+        ? sd.dividendRate
+        : typeof sd?.trailingAnnualDividendRate === 'number'
+        ? sd.trailingAnnualDividendRate
+        : null;
+
+    // Determinación de la frecuencia de pago de dividendos
+    const MONTHLY_SYMBOLS = new Set(['O', 'MAIN', 'STAG', 'JEPI', 'JEPQ', 'AGNC', 'PSEC', 'HRZN', 'LTC', 'EPR', 'GOOD', 'GAIN']);
+    const cleanSym = symbol.toUpperCase().split('.')[0];
+    let dividendFreq: string = 'No distribuye';
+
+    if (dividendYieldPercent && dividendYieldPercent > 0) {
+      if (MONTHLY_SYMBOLS.has(cleanSym)) {
+        dividendFreq = 'Mensual';
+      } else if (ap?.country === 'Argentina' || cleanSym.endsWith('.BA')) {
+        dividendFreq = 'Anual';
+      } else if (ap?.country === 'United Kingdom' || ap?.country === 'Spain' || ap?.country === 'France' || ap?.country === 'Germany') {
+        dividendFreq = 'Semestral';
+      } else {
+        dividendFreq = 'Trimestral';
+      }
+    }
+
+    let dividendDateStr: string | null = null;
+    if (ce?.dividendDate) {
+      try {
+        dividendDateStr = new Date(ce.dividendDate).toLocaleDateString('es-AR', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        });
+      } catch {
+        dividendDateStr = null;
+      }
+    }
+
     const result: FundamentalData = {
       symbol,
       name: ap?.shortName || ap?.longName || null,
@@ -124,6 +164,9 @@ export async function GET(request: NextRequest) {
         forwardPe: typeof sd?.forwardPE === 'number' ? sd.forwardPE : null,
         marketCap: typeof sd?.marketCap === 'number' ? sd.marketCap : null,
         dividendYield: dividendYieldPercent,
+        dividendRate: dividendRateVal,
+        dividendFrequency: dividendFreq,
+        dividendDate: dividendDateStr,
         targetPrice: typeof fd?.targetMeanPrice === 'number' ? fd.targetMeanPrice : null,
         targetHigh: typeof fd?.targetHighPrice === 'number' ? fd.targetHighPrice : null,
         targetLow: typeof fd?.targetLowPrice === 'number' ? fd.targetLowPrice : null,

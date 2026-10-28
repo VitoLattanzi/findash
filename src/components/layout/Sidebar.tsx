@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   Coins,
@@ -10,8 +10,10 @@ import {
   Briefcase,
   Landmark,
   GraduationCap,
+  Sparkles,
 } from 'lucide-react';
 import { MarketStatusWidget } from '@/components/layout/MarketStatusWidget';
+import { UpdatesModal } from '@/components/common/UpdatesModal';
 
 const navItems = [
   { name: 'Dashboard', icon: LayoutDashboard, target: 'dashboard' },
@@ -26,11 +28,22 @@ const navItems = [
 ];
 
 export const Sidebar = ({ activeView, setActiveView }: { activeView: string, setActiveView: (v: string) => void }) => {
+  const [showUpdates, setShowUpdates] = useState(false);
+
   return (
     <>
       <aside className="hidden md:flex w-[var(--sidebar-w)] flex-shrink-0 bg-bg2 border-r border-line p-[18px_10px] sticky top-9 h-[calc(100dvh-36px)] flex-col z-20">
-        <div className="font-display font-semibold text-[18px] p-[4px_10px_18px] tracking-tight">
-          <span className="text-gold">◆</span> FinDash
+        <div className="font-display font-semibold text-[18px] p-[4px_10px_18px] tracking-tight flex items-center justify-between">
+          <span>
+            <span className="text-gold">◆</span> FinDash
+          </span>
+          <button
+            onClick={() => setShowUpdates(true)}
+            className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gold/15 text-gold border border-gold/30 hover:bg-gold hover:text-bg transition-colors"
+            title="Ver últimas novedades de la plataforma"
+          >
+            v2.4
+          </button>
         </div>
         <nav className="flex flex-col gap-0.5">
           {navItems.map((item) => (
@@ -49,8 +62,23 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
           ))}
         </nav>
 
+        {/* Botón Novedades & Changelog */}
+        <button
+          onClick={() => setShowUpdates(true)}
+          className="flex items-center justify-between w-full px-2.5 py-2 my-2 rounded-lg bg-card/60 hover:bg-card border border-line hover:border-gold/50 text-[11.5px] text-dim hover:text-text transition-all group shadow-sm"
+          title="Ver qué hay de nuevo en FinDash"
+        >
+          <span className="flex items-center gap-1.5 font-medium">
+            <Sparkles size={13} className="text-gold group-hover:scale-110 transition-transform" />
+            <span>Novedades</span>
+          </span>
+          <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse" />
+        </button>
+
         <MarketStatusWidget />
       </aside>
+
+      <UpdatesModal isOpen={showUpdates} onClose={() => setShowUpdates(false)} />
 
       <nav
         aria-label="Navegación principal"

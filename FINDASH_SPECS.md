@@ -20,7 +20,7 @@
 - [x] **Crosshair Tooltip:** Implementar `chart.subscribeCrosshairMove` para mostrar O, H, L, C, Vol y Fecha exactos al pasar el cursor sobre el gráfico.
 - [x] **Pre/Post Market:** Modificar la cabecera del panel para mostrar el precio de pre-market o after-market en gris (`text-dim`) si el mercado está cerrado.
 - [x] **Widget de Mercados Globales Dinámico:** Rotador inferior en Sidebar con estados en vivo (Verde = abierto, Amarillo = cierra pronto, Azul = abre pronto, Rojo = cerrado) para EE.UU., Argentina, Londres, Tokio, Hong Kong y Cripto 24/7 con hora local y selector.
-- [x] **Menú Desplegable de Sentimiento Mundial:** Popover/modal interactivo al clickear el widget de mercados, mostrando si cada plaza cotiza **Alcista** (`TrendingUp`) o **Bajista** (`TrendingDown`) según su índice representativo (S&P 500, Merval, FTSE 100, Nikkei 225, Hang Seng, Bitcoin) con barra de balance diario.
+- [x] **Menú Desplegable de Sentimiento Mundial:** Popover/modal interactivo al clickear el widget de mercados, mostrando si cada plaza cotiza **Alcista** (`TrendingUp`) o **Bajista** (`TrendingDown`) según su índice representativo (S&P 500, Merval, FTSE 100, Nikkei 225, Hang Seng, y el **Índice Top 10 Altcoins líderes por capitalización**: ETH, SOL, BNB, XRP, ADA, DOGE, AVAX, LINK, DOT, NEAR) con barra de balance diario.
 
 ### Epic 3: Análisis Fundamental (Requerimientos de Pepo)
 - [x] **Detail Modal Card:** Modal central espacioso tipo Popup en Desktop (`max-w-4xl`, backdrop blur) y pantalla completa dedicada en Mobile con botón "Volver" y gesto swipe.
@@ -45,6 +45,7 @@
   - Horizonte temporal y volatilidad.
 - [x] **Test Interactivo de Perfil de Riesgo (`<RiskProfiler />`):** Cuestionario interactivo secuencial de 3 preguntas que calcula el puntaje y categoriza al inversor en Conservador, Moderado o Agresivo, recomendando instrumentos específicos de FinDash.
 - [x] **Aviso Legal, Exactitud y Reserva de Derechos (Disclaimer):** Bloque legal formal en FinDash Academy, footer permanente en el DetailPanel y documentación en README deslindando responsabilidad por demoras o inexactitudes de fuentes públicas de terceros, aclarando el propósito puramente educativo y la reserva de derechos de software.
+- [x] **Centro de Novedades & Actualizaciones (Changelog / Release Notes):** Modal interactivo (`UpdatesModal`) y botón en Sidebar/Academy con el historial cronológico de versiones (v2.1 a v2.4), destacando nuevas funciones, mejoras y correcciones.
 
 ### Epic 5: Noticias, Multigráficos y Cartera
 - [x] **Noticias:** Completar `/api/news` y `<NewsFeed />` categorizado (Macro, Política, Fintech, Cripto, IA) conectando a RSS reales con análisis de sentimiento.
