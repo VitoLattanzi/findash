@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
+  Info,
 } from 'lucide-react';
 import {
   ACADEMY_MODULES,
@@ -147,7 +148,7 @@ export const AcademyView = () => {
       {/* SECCIÓN INTERACTIVA: TEST DE PERFIL DE RIESGO */}
       {(activeCategory === 'Todas' || activeCategory === 'Test de Perfil') && (
         <section className="bg-card border border-line rounded-2xl p-4 sm:p-6 shadow-xl relative overflow-hidden">
-          <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-2">
               <span className="p-1.5 rounded-lg bg-teal/15 text-teal border border-teal/30">
                 <ShieldCheck size={18} />
@@ -157,7 +158,7 @@ export const AcademyView = () => {
                   Descubre tu Perfil de Inversor
                 </h2>
                 <p className="text-[12px] text-dim">
-                  Responde 3 preguntas rápidas para saber qué instrumentos se adaptan a tu tolerancia al riesgo.
+                  Responde 3 preguntas rápidas para orientar tu seguimiento analítico de instrumentos.
                 </p>
               </div>
             </div>
@@ -171,6 +172,16 @@ export const AcademyView = () => {
                 <span>Reiniciar</span>
               </button>
             )}
+          </div>
+
+          {/* Recordatorio de plataforma informativa */}
+          <div className="mb-4 p-2.5 rounded-lg bg-bg2/90 border border-line text-[11.5px] text-dim flex items-center gap-2">
+            <Info size={14} className="text-gold flex-shrink-0" />
+            <span>
+              <strong className="text-text font-medium">FinDash es 100% informativa:</strong> Es
+              una herramienta analítica y de consulta; no es un broker, no custodia dinero ni
+              permite comprar, vender o transferir fondos.
+            </span>
           </div>
 
           {!testCompleted ? (

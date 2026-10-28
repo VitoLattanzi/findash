@@ -78,27 +78,27 @@ export const ACADEMY_MODULES: AcademyModule[] = [
 
 export const RISK_TEST_QUESTIONS: RiskQuestion[] = [
   {
-    question: '¿Cuándo vas a necesitar la plata que estás invirtiendo?',
+    question: 'En tu planificación financiera personal, ¿cuál es tu horizonte temporal habitual?',
     options: [
-      { text: 'En menos de 1 año (para unas vacaciones, gastos o un auto).', points: 1 },
-      { text: 'Entre 2 y 5 años (para comprar una propiedad o proyecto medio).', points: 2 },
-      { text: 'En más de 5 años (para mi jubilación o construir patrimonio a largo plazo).', points: 3 },
+      { text: 'Corto plazo (menos de 1 año: busco instrumentos de bajo riesgo y liquidez).', points: 1 },
+      { text: 'Mediano plazo (entre 2 y 5 años: busco equilibrio entre rendimiento y estabilidad).', points: 2 },
+      { text: 'Largo plazo (más de 5 años: busco maximizar el crecimiento patrimonial).', points: 3 },
     ]
   },
   {
-    question: 'Si el mercado cae un 20% en un mes y tu cartera está en rojo, ¿qué hacés?',
+    question: 'Cuando observas que un activo cae un 20% en un mes en el mercado, ¿cómo reaccionas?',
     options: [
-      { text: 'Me asusto, vendo todo y saco la plata para no perder más.', points: 1 },
-      { text: 'No hago nada, mantengo la calma y espero a que se recupere.', points: 2 },
-      { text: 'Compro más. Las empresas excelentes están de oferta.', points: 3 },
+      { text: 'Me genera mucha inquietud; prefiero monitorear solo activos estables sin sobresaltos.', points: 1 },
+      { text: 'Entiendo que la volatilidad es natural y prefiero esperar su evolución con calma.', points: 2 },
+      { text: 'Lo analizo como una oportunidad atractiva de compra a precios de descuento.', points: 3 },
     ]
   },
   {
-    question: '¿Cuál es tu objetivo principal al usar FinDash?',
+    question: '¿Cuál es tu objetivo principal de consulta y seguimiento en FinDash?',
     options: [
-      { text: 'Proteger mis ahorros de la inflación sin arriesgar el capital inicial.', points: 1 },
-      { text: 'Ganarle un poco a la inflación asumiendo una volatilidad moderada.', points: 2 },
-      { text: 'Hacer crecer mi capital al máximo, aunque haya momentos de alta volatilidad.', points: 3 },
+      { text: 'Seguir instrumentos de cobertura (Dólares, Bonos conservadores e inflación).', points: 1 },
+      { text: 'Analizar índices líderes mundiales (S&P 500) y empresas consolidadas.', points: 2 },
+      { text: 'Monitorear activos de alto crecimiento, empresas tecnológicas y el mercado cripto.', points: 3 },
     ]
   }
 ];
@@ -123,18 +123,18 @@ export const PROFILE_RECOMMENDATIONS: Record<'conservador' | 'moderado' | 'agres
     color: 'text-teal',
     badgeBg: 'bg-teal/15 border-teal/30 text-teal',
     description:
-      'Tu prioridad es la preservación del capital y la previsibilidad. No tolerás caídas pronunciadas en tu saldo y preferís cobrar rentas periódicas garantizadas.',
+      'Tu prioridad es la preservación del capital y la previsibilidad. Prefieres instrumentos de renta fija con cronogramas claros de cobro y baja volatilidad.',
     suggestedAssets: [
       {
-        category: 'Renta Fija en USD',
+        category: 'Renta Fija en USD (Para monitoreo)',
         items: ['Obligaciones Negociables (ONs de YPF, Pampa, Telecom)', 'Bonos del Tesoro de EE.UU. (^TNX)'],
       },
       {
-        category: 'Mercado Local',
-        items: ['Dólar MEP / CCL para cobertura cambiaria', 'Lecaps cortas y Bonos CER para ganarle a la inflación'],
+        category: 'Mercado Local & Cobertura',
+        items: ['Dólar MEP / CCL para seguimiento cambiario', 'Lecaps cortas y Bonos CER para inflación'],
       },
     ],
-    tips: 'En FinDash, tu sección clave es "Arg / CEDEARs" (pestañas Dólares y Bonos) y "Países" para monitorear tasas.',
+    tips: 'En FinDash podés consultar la sección "Arg / CEDEARs" (pestañas Dólares y Bonos) y "Países". Recuerda que FinDash es 100% informativa: para operar deberás utilizar tu broker autorizado.',
   },
   moderado: {
     name: 'Perfil Moderado',
@@ -142,10 +142,10 @@ export const PROFILE_RECOMMENDATIONS: Record<'conservador' | 'moderado' | 'agres
     color: 'text-gold',
     badgeBg: 'bg-gold/15 border-gold/30 text-gold',
     description:
-      'Buscás un equilibrio sano entre rentabilidad y estabilidad. Aceptás fluctuaciones en el corto plazo a cambio de ganarle con margen a la inflación en un plazo de 2 a 5 años.',
+      'Buscas un equilibrio sano entre rendimiento y estabilidad. Aceptas fluctuaciones en el corto plazo a cambio de ganarle a la inflación en un plazo de 2 a 5 años.',
     suggestedAssets: [
       {
-        category: 'ETFs de Índices Mundiales',
+        category: 'ETFs de Índices Mundiales (Para análisis)',
         items: ['SPY (S&P 500 - Las 500 mayores empresas de EE.UU.)', 'DIA (Dow Jones Industrial)'],
       },
       {
@@ -154,10 +154,10 @@ export const PROFILE_RECOMMENDATIONS: Record<'conservador' | 'moderado' | 'agres
       },
       {
         category: 'Cripto Blue-Chips',
-        items: ['Bitcoin (BTC) en una porción chica (5% - 10%) como reserva de valor'],
+        items: ['Bitcoin (BTC) en una porción reducida (5% - 10%) como reserva de valor'],
       },
     ],
-    tips: 'En FinDash, mirá la vista "Bolsa" filtrando por SPY y CEDEARs defensivos, complementando con el ticker superior.',
+    tips: 'En FinDash puedes analizar la vista "Bolsa" filtrando por SPY y CEDEARs defensivos. Recuerda que FinDash es informativa y no gestiona transacciones ni custodia fondos.',
   },
   agresivo: {
     name: 'Perfil Agresivo',
@@ -165,7 +165,7 @@ export const PROFILE_RECOMMENDATIONS: Record<'conservador' | 'moderado' | 'agres
     color: 'text-red',
     badgeBg: 'bg-red/15 border-red/30 text-red',
     description:
-      'Tenés un horizonte mayor a 5 años y tu objetivo es multiplicar el capital. Las caídas del 20% o 30% no te quitan el sueño; las ves como oportunidades de compra para acumular activos de alto crecimiento.',
+      'Tu horizonte es de largo plazo (+5 años) y buscas maximizar el crecimiento. La volatilidad no te altera y entiendes los ciclos de los activos de mayor riesgo.',
     suggestedAssets: [
       {
         category: 'Acciones Tecnológicas de Crecimiento',
@@ -176,10 +176,10 @@ export const PROFILE_RECOMMENDATIONS: Record<'conservador' | 'moderado' | 'agres
         items: ['Bitcoin (BTC)', 'Ethereum (ETH)', 'Solana (SOL)', 'Tokens líderes del ecosistema'],
       },
       {
-        category: 'Acciones & Bonos Argentinos de Alto Rendimiento',
+        category: 'Renta Variable Local de Alto Rendimiento',
         items: ['ADRs de Energía (YPF, Vista Energy VIST)', 'Bonos soberanos AL30 / GD30'],
       },
     ],
-    tips: 'En FinDash, tus vistas de cabecera son "Cripto" (con WebSocket en vivo) y "Multigráficos" para comparar tendencias.',
+    tips: 'En FinDash aprovecha la vista "Cripto" (con cotizaciones WebSocket en vivo) y "Multigráficos". FinDash es una plataforma exclusivamente analítica y de consulta.',
   },
 };
