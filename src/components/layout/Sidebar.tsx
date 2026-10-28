@@ -1,11 +1,12 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, Coins, TrendingUp, Globe, Newspaper, BarChart3, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Coins, TrendingUp, Globe, Newspaper, BarChart3, Briefcase, Landmark } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', icon: LayoutDashboard, target: 'dashboard' },
   { name: 'Cripto', icon: Coins, target: 'cripto' },
   { name: 'Bolsa', icon: TrendingUp, target: 'bolsa' },
+  { name: 'Arg / CEDEARs', icon: Landmark, target: 'cedears' },
   { name: 'Países', icon: Globe, target: 'paises' },
   { name: 'Noticias', icon: Newspaper, target: 'noticias' },
   { name: 'Multigráficos', icon: BarChart3, target: 'multi' },
@@ -70,7 +71,7 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
         aria-label="Navegación principal"
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-bg2/95 backdrop-blur border-t border-line safe-bottom"
       >
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-8">
           {navItems.map((item) => (
             <button
               key={item.target}
@@ -81,8 +82,8 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
                 activeView === item.target ? 'text-gold' : 'text-dim active:text-text'
               }`}
             >
-              <item.icon size={18} />
-              <span className="text-[8.5px] leading-none truncate w-full text-center">{item.name}</span>
+              <item.icon size={16} />
+              <span className="text-[7.5px] leading-tight truncate w-full text-center">{item.name}</span>
             </button>
           ))}
         </div>

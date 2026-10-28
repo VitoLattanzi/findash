@@ -10,7 +10,7 @@ FinDash es una terminal diseñada para seguir mercados, activos y noticias en ti
 *   **Data Engine:** Yahoo Finance (Acciones/ETFs) + Binance (WebSocket Real-time + Historial 10 años)
 *   **Noticias:** Agregador RSS con análisis de sentimiento automático (Buenas/Malas)
 *   **Gráficos:** Lightweight Charts v5 (Zoom por selección, Watermarks, Leyendas dinámicas)
-*   **UI/UX:** Atajos de teclado (1-7), modo Responsivo (Mobile-first), tema Dark fluido.
+*   **UI/UX:** Atajos de teclado (1-8), modo Responsivo (Mobile-first), tema Dark fluido.
 
 ## ¿Cómo usarlo? 🚀
 
@@ -55,10 +55,11 @@ Navegá toda la terminal sin despegar las manos del teclado (los atajos funciona
 | `1` | **Dashboard** | Resumen general, activos fijados (S&P 500, bonos), sparklines y Fear & Greed. |
 | `2` | **Cripto** | Precios en vivo vía WebSocket de Binance y análisis de velas con historial. |
 | `3` | **Bolsa** | Acciones líderes de EE.UU. (S&P 500) y ADRs argentinos con tablas ordenables. |
-| `4` | **Países** | ETFs de economías clave, cotizaciones de divisas (Blue, MEP, CCL) y Riesgo País. |
-| `5` | **Noticias** | Feeds RSS financieros en tiempo real con análisis automático de sentimiento. |
-| `6` | **Multigráficos** | Vista simultánea de múltiples activos para comparar tendencias. |
-| `7` | **Mi Cartera** | Seguimiento de posiciones y valuación en tiempo real (100% offline/local). |
+| `4` | **Arg / CEDEARs** | Dólares (Blue, MEP, CCL), ratios de CEDEARs, curva de bonos (AL30/GD30) y calculadoras. |
+| `5` | **Países** | ETFs de economías clave, divisas globales y comparador macroeconómico. |
+| `6` | **Noticias** | Feeds RSS financieros clasificados por categorías (con apartado de Política) y análisis de sentimiento. |
+| `7` | **Multigráficos** | Vista simultánea de múltiples activos para comparar tendencias. |
+| `8` | **Mi Cartera** | Seguimiento de posiciones y valuación en tiempo real (100% offline/local). |
 
 ---
 
@@ -67,6 +68,12 @@ Navegá toda la terminal sin despegar las manos del teclado (los atajos funciona
 *   **Dashboard Principal:** Vista integral con el horario y estado del mercado de Wall Street (ET) en vivo, índice Fear & Greed, activos destacados y gráficos rápidos con selector de temporalidades.
 *   **Criptomercado en Vivo:** Conexión continua a Binance WebSocket con fallback automático a endpoints alternativos para evitar restricciones geográficas.
 *   **Bolsa & ADRs:** Catálogo curado de las 100 principales acciones del S&P 500, materias primas (oro, plata, petróleo, soja) y ADRs argentinos, con sparklines y métricas de rendimiento.
+*   **Mercado Argentino (CEDEARs, Bonos & Dólares):** Módulo dedicado al nicho financiero de Argentina:
+    *   *Monitoreo cambiario:* Dólar Blue, MEP (Bolsa), CCL (Cable) y Oficial con cálculo en vivo de brechas y tasa de canje.
+    *   *CEDEARs BYMA:* Ratios oficiales de conversión (SPY, QQQ, NVDA, AAPL, MELI, VIST, etc.), precio subyacente en USD y valor teórico en pesos al CCL.
+    *   *Curva Soberana en USD:* Bonos Bonares vs Globales (AL30, GD30, AL35, GD35, AE38, GD38) con legislación, paridad, cupones y explicación operativa de parking.
+    *   *Deuda en Pesos & BCRA:* Análisis de Lecaps (estrategia de carry trade / tasa en pesos), Bonos CER (cobertura inflacionaria) y Bopreales.
+    *   *Calculadoras financieras:* Conversor de capital en pesos a cantidad de CEDEARs y simulador de liquidación neta de Dólar MEP.
 *   **Macro & Países:** Monitoreo global mediante ETFs representativos de las principales economías mundiales e indicadores macroeconómicos locales de Argentina (Riesgo País y dólar en todas sus cotizaciones).
 *   **Agregador de Noticias:** Cobertura de medios locales e internacionales con clasificación por categorías (Macro, Política, Fintech, IA, Cripto) e inferencia de sentimiento (positivo/negativo/neutro).
 *   **Multigráficos:** Comparador visual basado en `lightweight-charts` v5 con selector de rango temporal (de 1h a más de 10 años de datos).

@@ -41,12 +41,13 @@ Proxy interno: `GET /api/news?category=todas|macro|politica|fintech|ia|cripto`
 - Fuentes: Google News RSS (búsqueda por categoría en `es-419`/AR), Ámbito (`ambito.com/rss/economia.xml`, `ambito.com/rss/politica.xml`), iProUP (`ipro-up.com/rss`), Cointelegraph (`cointelegraph.com/rss/tag/bitcoin`).
 - Respuesta: `[{ title, link, pubDate, source, category }]`, deduplicada por link y ordenada por fecha.
 
-## 4. Indicadores Argentina
+## 4. Indicadores Argentina y Mercado Local
 
 Llamadas directas desde el cliente (CORS permitido):
 
-- `https://dolarapi.com/v1/dolares` → oficial, blue, MEP (`bolsa`), CCL (`contadoconliqui`).
-- `https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo` → último riesgo país.
+- `https://dolarapi.com/v1/dolares` → oficial, blue, MEP (`bolsa`), CCL (`contadoconliqui`), mayorista, cripto.
+- `https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo` → último riesgo país (EMBI+).
+- **Módulo CEDEARs & Bonos**: Los precios de los activos subyacentes se consultan vía `GET /api/market` y se combinan con los ratios oficiales de BYMA y el Dólar CCL en vivo para calcular el valor teórico en ARS (`src/lib/argentina.ts`).
 
 ## 5. Persistencia (localStorage)
 

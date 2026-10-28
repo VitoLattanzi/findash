@@ -30,6 +30,10 @@ const argentinaSymbols = [
   'MELI', 'YPF', 'GGAL', 'PAM', 'BMA', 'TGS', 'CRESY', 'LOMA', 'SUPV', 'EDN', 'TEO', 'DESP', 'BIOX',
 ];
 
+const cedearSymbols = [
+  'AAPL.BA', 'MSFT.BA', 'NVDA.BA', 'AMZN.BA', 'GOOGL.BA', 'KO.BA', 'DIS.BA', 'GGAL.BA', 'YPFD.BA', 'MELI.BA',
+];
+
 const commoditySymbols = ['GC=F', 'SI=F', 'CL=F', 'NG=F', 'ZS=F', 'HG=F'];
 
 const indexList: Array<[string, string]> = [
@@ -59,6 +63,7 @@ export const CATALOG: CatalogItem[] = [
   ...indexList.map(([symbol, label]) => ({ symbol, label, type: 'stock' as const, group: 'indices' as const })),
   ...sp500Symbols.map((symbol) => ({ symbol, label: symbol, type: 'stock' as const, group: 'sp500' as const })),
   ...argentinaSymbols.map((symbol) => ({ symbol, label: symbol, type: 'stock' as const, group: 'argentina' as const })),
+  ...cedearSymbols.map((symbol) => ({ symbol, label: symbol, type: 'stock' as const, group: 'argentina' as const })),
   ...commoditySymbols.map((symbol) => ({ symbol, label: symbol, type: 'stock' as const, group: 'commodities' as const })),
   ...cryptoList.map(([symbol, label]) => ({ symbol, label, type: 'crypto' as const, group: 'crypto' as const })),
 ];
@@ -72,7 +77,7 @@ export const CATALOG_GROUPS = [
 ] as const;
 
 export const SP500_TICKERS = sp500Symbols.join(',');
-export const ARGENTINA_TICKERS = argentinaSymbols.join(',');
+export const ARGENTINA_TICKERS = [...argentinaSymbols, ...cedearSymbols].join(',');
 export const COMMODITY_TICKERS = commoditySymbols.join(',');
 
 export const DEFAULT_PINNED: PinnedAsset[] = [
