@@ -4,6 +4,7 @@ import { X, ExternalLink } from 'lucide-react';
 import { Asset } from '@/types';
 import { useSeriesData } from '@/hooks/useSeriesData';
 import { PriceChart } from '@/components/common/PriceChart';
+import { AssetIcon } from '@/components/common/AssetIcon';
 import { formatPrice } from '@/lib/format';
 import { getTradingViewUrl } from '@/lib/tradingview';
 
@@ -69,7 +70,10 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
         </button>
 
         <div className="mb-4 pr-8">
-          <div className="text-[22px] font-display font-semibold">{asset.name}</div>
+          <div className="flex items-center gap-2.5">
+            <AssetIcon symbol={symbol} name={asset.name} type={asset.type} size="md" />
+            <div className="text-[22px] font-display font-semibold truncate">{asset.name}</div>
+          </div>
           <div className="text-[20px] font-display font-semibold mt-1">${formatPrice(asset.price)}</div>
           <div className={`text-[13px] ${asset.change >= 0 ? 'text-teal' : 'text-red'}`}>
             {asset.change >= 0 ? '+' : ''}

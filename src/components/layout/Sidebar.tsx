@@ -10,7 +10,7 @@ const navItems = [
   { name: 'Países', icon: Globe, target: 'paises' },
   { name: 'Noticias', icon: Newspaper, target: 'noticias' },
   { name: 'Multigráficos', icon: BarChart3, target: 'multi' },
-  { name: 'Mi Cartera', icon: Briefcase, target: 'cartera' },
+  // { name: 'Mi Cartera', icon: Briefcase, target: 'cartera' }, // Pausado temporalmente
 ];
 
 const isUsMarketOpen = (date: Date) => {
@@ -36,7 +36,7 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
 
   return (
     <>
-      <aside className="hidden md:flex w-[var(--sidebar-w)] flex-shrink-0 bg-bg2 border-r border-line p-[18px_10px] sticky top-9 h-[calc(100dvh-36px)] flex-col">
+      <aside className="hidden md:flex w-[var(--sidebar-w)] flex-shrink-0 bg-bg2 border-r border-line p-[18px_10px] sticky top-9 h-[calc(100dvh-36px)] flex-col z-20">
         <div className="font-display font-semibold text-[18px] p-[4px_10px_18px] tracking-tight">
           <span className="text-gold">◆</span> FinDash
         </div>
@@ -71,7 +71,7 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
         aria-label="Navegación principal"
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-bg2/95 backdrop-blur border-t border-line safe-bottom"
       >
-        <div className="grid grid-cols-8">
+        <div className="grid grid-cols-7">
           {navItems.map((item) => (
             <button
               key={item.target}

@@ -4,14 +4,14 @@ import { DashboardView } from '@/components/dashboard/DashboardView';
 import { CryptoView } from '@/components/dashboard/CryptoView';
 import { BolsaView } from '@/components/dashboard/BolsaView';
 import { CountryView } from '@/components/dashboard/CountryView';
-import { PortfolioView } from '@/components/dashboard/PortfolioView';
+// import { PortfolioView } from '@/components/dashboard/PortfolioView'; // En pausa temporalmente
 import { MultiChartView } from '@/components/dashboard/MultiChartView';
 import { NewsFeed } from '@/components/dashboard/NewsFeed';
 import { ArgentinaView } from '@/components/dashboard/ArgentinaView';
 import { Ticker } from '@/components/layout/Ticker';
 import { Sidebar } from '@/components/layout/Sidebar';
 
-const VIEW_ORDER = ['dashboard', 'cripto', 'bolsa', 'cedears', 'paises', 'noticias', 'multi', 'cartera'];
+const VIEW_ORDER = ['dashboard', 'cripto', 'bolsa', 'cedears', 'paises', 'noticias', 'multi'];
 
 export default function Dashboard() {
   const [activeView, setActiveView] = useState('dashboard');
@@ -37,7 +37,7 @@ export default function Dashboard() {
       case 'bolsa': return <BolsaView />;
       case 'cedears': return <ArgentinaView />;
       case 'paises': return <CountryView />;
-      case 'cartera': return <PortfolioView />;
+      // case 'cartera': return <PortfolioView />;
       case 'multi': return <MultiChartView />;
       case 'noticias': return <NewsFeed />;
       default: return <DashboardView />;

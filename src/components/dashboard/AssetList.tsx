@@ -1,6 +1,7 @@
 import React from 'react';
 import { Asset } from '@/types';
 import { Sparkline } from '@/components/common/Sparkline';
+import { AssetIcon } from '@/components/common/AssetIcon';
 import { formatPercent, formatPrice } from '@/lib/format';
 
 interface AssetListProps {
@@ -27,14 +28,17 @@ export const AssetList = ({ assets, view, onAssetClick, onRemove }: AssetListPro
           }
           onClick={() => onAssetClick(a)}
         >
-          <div className="min-w-0 flex-1">
-            <b className="text-[13.5px]">{a.name}</b>
-            <div className="text-dim text-[12px]">${formatPrice(a.price)}</div>
-            {view === 'card' && (
-              <div className="mt-2 h-[30px]">
-                <Sparkline data={a.bars} change={a.change} width={140} height={30} />
-              </div>
-            )}
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <AssetIcon symbol={a.symbol ?? a.name} type={a.type} size="md" />
+            <div className="min-w-0 flex-1">
+              <b className="text-[13.5px] truncate block">{a.name}</b>
+              <div className="text-dim text-[12px]">${formatPrice(a.price)}</div>
+              {view === 'card' && (
+                <div className="mt-2 h-[30px]">
+                  <Sparkline data={a.bars} change={a.change} width={140} height={30} />
+                </div>
+              )}
+            </div>
           </div>
 
           {view === 'list' && (

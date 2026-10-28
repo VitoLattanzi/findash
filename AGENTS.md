@@ -33,7 +33,7 @@ FinDash es una terminal financiera desktop-first (con soporte móvil adaptativo)
    - Mantener el tamaño de fuente en inputs/selects de al menos `16px` en vista móvil para prevenir el zoom involuntario en iOS.
 
 4. **Persistencia Local**:
-   - El almacenamiento de preferencias de usuario y datos de portafolio se gestiona a través de `localStorage` con las claves:
+   - El almacenamiento de preferencias de usuario se gestiona a través de `localStorage` con las claves:
      - `findash_pinned`: Lista de activos fijados en el dashboard.
      - `findash_countries`: Selección de países/ETFs.
-     - `findash_cartera`: Portafolio y transacciones de tenencias personales.
+     - *(Nota: el módulo de `findash_cartera` se encuentra temporalmente en pausa y comentado).*

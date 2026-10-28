@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useBinanceWebSocket } from '@/hooks/useBinanceWebSocket';
 import { PriceChart } from '@/components/common/PriceChart';
 import { Sparkline } from '@/components/common/Sparkline';
+import { AssetIcon } from '@/components/common/AssetIcon';
 import { formatPercent, formatPrice, formatVolume } from '@/lib/format';
 
 const MAIN = ['btcusdt', 'ethusdt', 'bnbusdt', 'solusdt'];
@@ -110,7 +111,10 @@ export const CryptoView = () => {
                     className={`cursor-pointer ${isActive ? 'bg-[#1d2330]' : 'hover:bg-[#1a2030]'}`}
                   >
                     <td className={`p-[9px_10px] border-b border-line font-bold ${isActive ? 'text-gold' : ''}`}>
-                      {r.name}
+                      <div className="flex items-center gap-2">
+                        <AssetIcon symbol={r.name} type="crypto" size="sm" />
+                        <span>{r.name}</span>
+                      </div>
                     </td>
                     <td className="p-[9px_10px] border-b border-line">${formatPrice(r.price)}</td>
                     <td className={`p-[9px_10px] border-b border-line ${r.change >= 0 ? 'text-teal' : 'text-red'}`}>
@@ -143,7 +147,10 @@ export const CryptoView = () => {
           <div className="bg-card border border-line rounded-[6px] p-4">
             <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
               <div>
-                <div className="text-[16px] font-display font-semibold">{selected}</div>
+                <div className="flex items-center gap-2 mb-1">
+                  <AssetIcon symbol={selected} type="crypto" size="md" />
+                  <div className="text-[17px] font-display font-semibold">{selected}</div>
+                </div>
                 <div className="text-[20px] font-display font-semibold">${formatPrice(selectedPrice)}</div>
                 <div className={`text-[12.5px] ${selectedChange >= 0 ? 'text-teal' : 'text-red'}`}>
                   {formatPercent(selectedChange)} hoy

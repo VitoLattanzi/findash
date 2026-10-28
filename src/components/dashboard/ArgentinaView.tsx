@@ -9,6 +9,7 @@ import {
   calculateCedearArs,
 } from '@/lib/argentina';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
+import { AssetIcon } from '@/components/common/AssetIcon';
 import { Asset } from '@/types';
 import { formatPercent, formatPrice } from '@/lib/format';
 import { Search, Calculator, ArrowRightLeft, ShieldAlert, Sparkles, TrendingUp, HelpCircle, ExternalLink } from 'lucide-react';
@@ -332,8 +333,11 @@ export const ArgentinaView = () => {
                         className="hover:bg-[#1a2030] transition-colors cursor-pointer"
                         onClick={() => openCedearChart(item)}
                       >
-                        <td className="p-3 font-mono font-semibold text-text flex items-center gap-2">
-                          <span className="text-gold font-bold">{item.ticker}</span>
+                        <td className="p-3 font-mono font-semibold text-text">
+                          <div className="flex items-center gap-2">
+                            <AssetIcon symbol={item.underlying} name={item.name} type="stock" size="sm" />
+                            <span className="text-gold font-bold">{item.ticker}</span>
+                          </div>
                         </td>
                         <td className="p-3 text-dim truncate max-w-[180px]">{item.name}</td>
                         <td className="p-3 text-center font-mono text-[11.5px]">
@@ -459,7 +463,12 @@ export const ArgentinaView = () => {
                 <tbody className="divide-y divide-line">
                   {BONOS_SOBERANOS.map((b) => (
                     <tr key={b.ticker} className="hover:bg-[#1a2030] transition-colors">
-                      <td className="p-3 font-mono font-bold text-gold">{b.ticker}</td>
+                      <td className="p-3 font-mono font-bold text-gold">
+                        <div className="flex items-center gap-2">
+                          <AssetIcon symbol={b.ticker} size="sm" />
+                          <span>{b.ticker}</span>
+                        </div>
+                      </td>
                       <td className="p-3 text-[12px]">
                         <span
                           className={`px-1.5 py-0.5 rounded text-[10.5px] font-mono ${

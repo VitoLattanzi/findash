@@ -4,6 +4,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { ARGENTINA_TICKERS, COMMODITY_TICKERS, DEFAULT_PINNED, PinnedAsset, SP500_TICKERS, labelFor } from '@/lib/catalog';
 import { formatPercent, formatPrice } from '@/lib/format';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
+import { AssetIcon } from '@/components/common/AssetIcon';
 import { Asset } from '@/types';
 
 interface Quote {
@@ -208,7 +209,12 @@ export const BolsaView = () => {
                       }
                       className="hover:bg-[#1a2030] cursor-pointer"
                     >
-                      <td className="p-[9px_10px] border-b border-line font-bold">{q.symbol}</td>
+                      <td className="p-[9px_10px] border-b border-line font-bold">
+                        <div className="flex items-center gap-2">
+                          <AssetIcon symbol={q.symbol} name={q.name ?? undefined} type="stock" size="sm" />
+                          <span>{q.symbol}</span>
+                        </div>
+                      </td>
                       <td className="p-[9px_10px] border-b border-line text-dim truncate max-w-[220px] hidden sm:table-cell">
                         {q.name || '—'}
                       </td>

@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useBinanceWebSocket } from '@/hooks/useBinanceWebSocket';
+import { AssetIcon } from '@/components/common/AssetIcon';
 
 const SYMBOLS = ['btcusdt', 'ethusdt', 'solusdt'];
 
@@ -82,18 +83,20 @@ export const Ticker = () => {
 
   if (items.length === 0) {
     return (
-      <div className="bg-bg2 border-b border-line p-2 text-center text-dim text-[12.5px]">
+      <div className="sticky top-0 z-30 bg-bg2 border-b border-line p-2 text-center text-dim text-[12.5px] h-9 flex items-center justify-center">
         Conectando datos de mercado...
       </div>
     );
   }
 
   return (
-    <div className="bg-bg2 border-b border-line overflow-hidden whitespace-nowrap">
+    <div className="sticky top-0 z-30 bg-bg2 border-b border-line overflow-hidden whitespace-nowrap h-9 flex items-center">
       <div className="inline-flex animate-scroll py-2 hover:[animation-play-state:paused]">
         {[...items, ...items].map((d, i) => (
-          <span key={`${d.label}-${i}`} className="px-5 text-[12.5px] text-dim border-r border-line">
-            {d.label} <b className="text-text font-semibold">{d.value}</b>
+          <span key={`${d.label}-${i}`} className="inline-flex items-center gap-1.5 px-4 text-[12.5px] text-dim border-r border-line">
+            <AssetIcon symbol={d.label} size="xs" />
+            <span>{d.label}</span>
+            <b className="text-text font-semibold">{d.value}</b>
             {d.change && <i className={d.up ? 'text-teal' : 'text-red'}> {d.change}</i>}
           </span>
         ))}

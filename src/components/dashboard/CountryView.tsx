@@ -5,6 +5,7 @@ import { Country } from '@/types';
 import { formatPercent, formatPrice } from '@/lib/format';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { PriceChart } from '@/components/common/PriceChart';
+import { CountryFlag } from '@/components/common/CountryFlag';
 import { Asset } from '@/types';
 import { X } from 'lucide-react';
 
@@ -275,11 +276,14 @@ export const CountryView = () => {
                 className="group bg-card border border-line rounded-[8px] p-4 cursor-pointer transition-colors hover:border-[#3a4356] flex flex-col"
               >
                 <header className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-[17px] font-display font-semibold leading-tight truncate">{c.name}</h3>
-                    <div className="text-[11px] font-mono text-dim mt-0.5">
-                      {c.etf}
-                      {code && <span className="text-gold"> · {code === 'USD' ? 'base USD' : `USD/${code}`}</span>}
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <CountryFlag country={c.name} size="md" />
+                    <div className="min-w-0">
+                      <h3 className="text-[17px] font-display font-semibold leading-tight truncate">{c.name}</h3>
+                      <div className="text-[11px] font-mono text-dim mt-0.5">
+                        {c.etf}
+                        {code && <span className="text-gold"> · {code === 'USD' ? 'base USD' : `USD/${code}`}</span>}
+                      </div>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">

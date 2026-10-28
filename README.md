@@ -10,7 +10,8 @@ FinDash es una terminal diseñada para seguir mercados, activos y noticias en ti
 *   **Data Engine:** Yahoo Finance (Acciones/ETFs) + Binance (WebSocket Real-time + Historial 10 años)
 *   **Noticias:** Agregador RSS con análisis de sentimiento automático (Buenas/Malas)
 *   **Gráficos:** Lightweight Charts v5 (Zoom por selección, Watermarks, Leyendas dinámicas)
-*   **UI/UX:** Atajos de teclado (1-8), modo Responsivo (Mobile-first), tema Dark fluido.
+*   **UI/UX:** Atajos de teclado (1-7), modo Responsivo (Mobile-first), tema Dark fluido.
+*   **Identidad Visual:** Logos vectoriales para cripto, favicons en alta resolución para acciones/CEDEARs y banderas SVG para países, estructurados en formato `[logo] - nombre` con fallback garantizado.
 
 ## ¿Cómo usarlo? 🚀
 
@@ -44,6 +45,8 @@ Resumen de los cambios implementados para adaptar el diseño a dispositivos móv
 | **Importante** | Inputs <16px causaban zoom automático en iOS | Regla global de `font-size: 16px` en mobile para inputs/selects (sin bloquear zoom general). |
 | **Menor** | Cards de activos, países y gráficos | Grid responsivo (`grid-cols-1 sm:grid-cols-2`), padding y fuentes ajustadas. |
 | **Menor** | Sidebar y accesibilidad visual | Interfaz limpia sin indicadores numéricos rígidos, preservando listeners de teclado. |
+| **Menor** | Identidad Visual y Reconocimiento Rápido | Sistema modular de logos corporativos, cripto y banderas circulares SVG en formato `[logo] - nombre`. |
+| **Menor** | Layout Fijo y Scroll Independiente | Barra superior (Ticker) fijada en `sticky top-0 z-30` acoplada al panel lateral izquierdo (`sticky top-9 z-20`), manteniendo el flujo de datos siempre a la vista al hacer scroll. |
 
 ---
 
@@ -59,7 +62,6 @@ Navegá toda la terminal sin despegar las manos del teclado (los atajos funciona
 | `5` | **Países** | ETFs de economías clave, divisas globales y comparador macroeconómico. |
 | `6` | **Noticias** | Feeds RSS financieros clasificados por categorías (con apartado de Política) y análisis de sentimiento. |
 | `7` | **Multigráficos** | Vista simultánea de múltiples activos para comparar tendencias. |
-| `8` | **Mi Cartera** | Seguimiento de posiciones y valuación en tiempo real (100% offline/local). |
 
 ---
 
@@ -77,7 +79,7 @@ Navegá toda la terminal sin despegar las manos del teclado (los atajos funciona
 *   **Macro & Países:** Monitoreo global mediante ETFs representativos de las principales economías mundiales e indicadores macroeconómicos locales de Argentina (Riesgo País y dólar en todas sus cotizaciones).
 *   **Agregador de Noticias:** Cobertura de medios locales e internacionales con clasificación por categorías (Macro, Política, Fintech, IA, Cripto) e inferencia de sentimiento (positivo/negativo/neutro).
 *   **Multigráficos:** Comparador visual basado en `lightweight-charts` v5 con selector de rango temporal (de 1h a más de 10 años de datos).
-*   **Mi Cartera:** Gestión de posiciones personales con almacenamiento seguro en tu navegador.
+*   **Mi Cartera (En Pausa):** Módulo temporalmente desactivado para una posterior implementación con sincronización óptima.
 
 ---
 
@@ -114,7 +116,7 @@ FinDash utiliza una arquitectura distribuida de **Server Route Handlers** (Next.
 
 ## Privacidad y Persistencia 🔒
 Tu información financiera te pertenece. FinDash no utiliza bases de datos remotas ni servicios de tracking:
-*   Toda tu configuración (activos fijados, países elegidos y posiciones de tu cartera) se almacena de forma exclusiva en el `localStorage` de tu navegador (`findash_pinned`, `findash_countries`, `findash_cartera`).
+*   Toda tu configuración personalizada (activos fijados y países elegidos) se almacena de forma exclusiva en el `localStorage` de tu navegador (`findash_pinned`, `findash_countries`).
 
 ---
 
