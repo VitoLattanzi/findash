@@ -17,10 +17,22 @@ export const PLATFORM_UPDATES: ReleaseUpdate[] = [
   {
     version: 'v2.4',
     date: 'Octubre 2026',
-    title: 'FinDash Academy, Perfiles de Inversor y Top 10 Altcoins',
+    title: 'FinDash Academy, Buscador Global y Top 10 Altcoins',
     isLatest: true,
-    highlight: 'Educación financiera sin tecnicismos en 0ms y medición del mercado cripto por las 10 altcoins líderes.',
+    highlight: 'Búsqueda ilimitada en todo el mercado global, educación financiera en 0ms y medición cripto por las 10 altcoins líderes.',
     items: [
+      {
+        type: 'nuevo',
+        title: 'Buscador Global Universal (Ctrl + K)',
+        description:
+          'Command Palette flotante estilo Spotlight para buscar y abrir cualquier acción, bono, ETF o criptomoneda del mundo al instante con precios en vivo.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Búsqueda Ilimitada en Bolsa (vía /api/search)',
+        description:
+          'Se superó la limitación de los 100 activos fijos: ahora puedes buscar y operar con cualquier ticker internacional (TSM, BABA, ARM, SMCI, etc.) en tiempo real.',
+      },
       {
         type: 'nuevo',
         title: 'FinDash Academy (Sección Aprender)',
@@ -38,12 +50,6 @@ export const PLATFORM_UPDATES: ReleaseUpdate[] = [
         title: 'Índice Top 10 Altcoins Líderes',
         description:
           'El mercado cripto ahora se mide a través del promedio ponderado en tiempo real de las 10 altcoins con mayor capitalización (ETH, SOL, BNB, XRP, ADA, DOGE, AVAX, LINK, DOT, NEAR).',
-      },
-      {
-        type: 'mejora',
-        title: 'Deslinde de Responsabilidad y Reserva de Derechos',
-        description:
-          'Marco legal formal aclarando que FinDash es una herramienta 100% informativa y analítica, sin custodia de fondos ni operaciones transaccionales.',
       },
     ],
   },

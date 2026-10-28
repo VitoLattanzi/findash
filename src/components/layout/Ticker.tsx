@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useBinanceWebSocket } from '@/hooks/useBinanceWebSocket';
 import { AssetIcon } from '@/components/common/AssetIcon';
+import { Search } from 'lucide-react';
 
 const SYMBOLS = ['btcusdt', 'ethusdt', 'solusdt'];
 
@@ -33,7 +34,7 @@ const FX_META: Array<{ key: keyof FxRates; label: string; prefix: string; decima
 const nf = (decimals: number) =>
   new Intl.NumberFormat('es-AR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
-export const Ticker = () => {
+export const Ticker = ({ onOpenSearch }: { onOpenSearch?: () => void }) => {
   const cryptoPrices = useBinanceWebSocket(SYMBOLS);
   const [fx, setFx] = useState<FxRates | null>(null);
 
@@ -90,17 +91,33 @@ export const Ticker = () => {
   }
 
   return (
-    <div className="sticky top-0 z-30 bg-bg2 border-b border-line overflow-hidden whitespace-nowrap h-9 flex items-center">
-      <div className="inline-flex animate-scroll py-2 hover:[animation-play-state:paused]">
-        {[...items, ...items].map((d, i) => (
-          <span key={`${d.label}-${i}`} className="inline-flex items-center gap-1.5 px-4 text-[12.5px] text-dim border-r border-line">
-            <AssetIcon symbol={d.label} size="xs" />
-            <span>{d.label}</span>
-            <b className="text-text font-semibold">{d.value}</b>
-            {d.change && <i className={d.up ? 'text-teal' : 'text-red'}> {d.change}</i>}
-          </span>
-        ))}
+    <div className="sticky top-0 z-30 bg-bg2 border-b border-line overflow-hidden whitespace-nowrap h-9 flex items-center justify-between">
+      <div className="overflow-hidden flex-1 relative">
+        <div className="inline-flex animate-scroll py-2 hover:[animation-play-state:paused]">
+          {[...items, ...items].map((d, i) => (
+            <span key={`${d.label}-${i}`} className="inline-flex items-center gap-1.5 px-4 text-[12.5px] text-dim border-r border-line">
+              <AssetIcon symbol={d.label} size="xs" />
+              <span>{d.label}</span>
+              <b className="text-text font-semibold">{d.value}</b>
+              {d.change && <i className={d.up ? 'text-teal' : 'text-red'}> {d.change}</i>}
+            </span>
+          ))}
+        </div>
       </div>
+
+      {onOpenSearch && (
+        <button
+          onClick={onOpenSearch}
+          className="flex-shrink-0 flex items-center gap-2 px-3 h-full bg-card hover:bg-bg border-l border-line text-[11.5px] text-dim hover:text-text transition-colors z-10 shadow-sm"
+          title="Buscar cualquier activo (Ctrl + K)"
+        >
+          <Search size={13} className="text-gold" />
+          <span className="hidden sm:inline">Buscar activo</span>
+          <kbd className="hidden md:inline-block text-[9.5px] font-mono px-1.5 py-0.2 rounded bg-bg2 border border-line text-dim">
+            Ctrl K
+          </kbd>
+        </button>
+      )}
     </div>
   );
 };

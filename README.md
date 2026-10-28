@@ -64,6 +64,7 @@ Navegá toda la terminal sin despegar las manos del teclado (los atajos funciona
 | `6` | **Noticias** | Feeds RSS financieros clasificados por categorías (con apartado de Política) y análisis de sentimiento. |
 | `7` | **Multigráficos** | Vista simultánea de múltiples activos para comparar tendencias. |
 | `8` | **Aprender** | FinDash Academy: conceptos en criollo (Acciones vs Bonos, CEDEARs, FCF, PER) y Test de Perfil de Riesgo interactivo. |
+| `Ctrl + K` / `/` | **Buscador Global** | Command Palette Spotlight para buscar cualquier acción, bono, ETF o cripto del mundo al instante. |
 
 ---
 
@@ -79,7 +80,8 @@ Navegá toda la terminal sin despegar las manos del teclado (los atajos funciona
     *   *Perfil Corporativo:* Resumen de la empresa, CEO, Sector, Industria, Empleados, Sede y enlace oficial a su sitio web.
 *   **Pre/Post Market en Tiempo Real:** Soporte para cotizaciones extendidas (Pre-Market y After-Hours) en gris atenuado si el mercado regular se encuentra cerrado.
 *   **Criptomercado en Vivo:** Conexión continua a Binance WebSocket con fallback automático a endpoints alternativos para evitar restricciones geográficas.
-*   **Bolsa & ADRs:** Catálogo curado de las 100 principales acciones del S&P 500, materias primas (oro, plata, petróleo, soja) y ADRs argentinos, con sparklines y métricas de rendimiento.
+*   **Bolsa & ADRs (Búsqueda Global Ilimitada):** Catálogo curado del S&P 500, materias primas (oro, plata, petróleo, soja) y ADRs argentinos, potenciado con un **motor de búsqueda híbrido en tiempo real** que consulta toda la base de datos bursátil mundial vía `/api/search` para encontrar cualquier ticker internacional (TSM, BABA, ARM, SMCI, etc.) más allá del catálogo fijo.
+*   **Buscador Universal Global (`Ctrl + K` / `Cmd + K`):** Barra de búsqueda Spotlight flotante accesible desde cualquier pantalla para localizar y abrir al instante el gráfico y análisis fundamental de cualquier acción, bono soberano o criptomoneda.
 *   **Mercado Argentino (CEDEARs, Bonos & Dólares):** Módulo dedicado al nicho financiero de Argentina:
     *   *Monitoreo cambiario:* Dólar Blue, MEP (Bolsa), CCL (Cable) y Oficial con cálculo en vivo de brechas y tasa de canje.
     *   *CEDEARs BYMA:* Ratios oficiales de conversión (SPY, QQQ, NVDA, AAPL, MELI, VIST, etc.), precio subyacente en USD y valor teórico en pesos al CCL.

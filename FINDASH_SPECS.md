@@ -46,6 +46,7 @@
 - [x] **Test Interactivo de Perfil de Riesgo (`<RiskProfiler />`):** Cuestionario interactivo secuencial de 3 preguntas que calcula el puntaje y categoriza al inversor en Conservador, Moderado o Agresivo, recomendando instrumentos específicos de FinDash.
 - [x] **Aviso Legal, Exactitud y Reserva de Derechos (Disclaimer):** Bloque legal formal en FinDash Academy, footer permanente en el DetailPanel y documentación en README deslindando responsabilidad por demoras o inexactitudes de fuentes públicas de terceros, aclarando el propósito puramente educativo y la reserva de derechos de software.
 - [x] **Centro de Novedades & Actualizaciones (Changelog / Release Notes):** Modal interactivo (`UpdatesModal`) y botón en Sidebar/Academy con el historial cronológico de versiones (v2.1 a v2.4), destacando nuevas funciones, mejoras y correcciones.
+- [x] **Buscador Global Universal & Búsqueda Híbrida en Bolsa:** Endpoint `/api/search` para buscar cualquier acción, ETF, bono o cripto mundial en tiempo real (más allá del catálogo base de 100). Command Palette flotante accesible globalmente con `Ctrl + K` / `Cmd + K` o botón en Ticker, y buscador enriquecido en `BolsaView` con resultados de mercado en vivo.
 
 ### Epic 5: Noticias, Multigráficos y Cartera
 - [x] **Noticias:** Completar `/api/news` y `<NewsFeed />` categorizado (Macro, Política, Fintech, Cripto, IA) conectando a RSS reales con análisis de sentimiento.
