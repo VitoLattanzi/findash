@@ -1,10 +1,11 @@
 'use client';
 import React, { useMemo, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, ExternalLink } from 'lucide-react';
 import { Asset } from '@/types';
 import { useSeriesData } from '@/hooks/useSeriesData';
 import { PriceChart } from '@/components/common/PriceChart';
 import { formatPrice } from '@/lib/format';
+import { getTradingViewUrl } from '@/lib/tradingview';
 
 interface DetailPanelProps {
   asset: Asset | null;
@@ -76,18 +77,31 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
           </div>
         </div>
 
-        <div className="flex gap-1.5 mb-3">
-          {(['area', 'velas'] as const).map((type) => (
-            <button
-              key={type}
-              onClick={() => setChartType(type)}
-              className={`px-[10px] py-1 text-[11.5px] rounded-full border border-line ${
-                chartType === type ? 'bg-gold text-bg' : 'text-dim'
-              }`}
-            >
-              {type === 'area' ? 'Área' : 'Velas'}
-            </button>
-          ))}
+        <div className="flex items-center justify-between gap-1.5 mb-3 flex-wrap">
+          <div className="flex gap-1.5">
+            {(['area', 'velas'] as const).map((type) => (
+              <button
+                key={type}
+                onClick={() => setChartType(type)}
+                className={`px-[10px] py-1 text-[11.5px] rounded-full border border-line ${
+                  chartType === type ? 'bg-gold text-bg' : 'text-dim'
+                }`}
+              >
+                {type === 'area' ? 'Área' : 'Velas'}
+              </button>
+            ))}
+          </div>
+
+          <a
+            href={getTradingViewUrl(symbol, asset.type)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded-full border border-line bg-bg2 text-dim hover:text-gold hover:border-gold transition-colors font-medium"
+            title="Abrir este gráfico completo en TradingView"
+          >
+            <span>TradingView</span>
+            <ExternalLink size={11} />
+          </a>
         </div>
 
         <div className="mb-3">

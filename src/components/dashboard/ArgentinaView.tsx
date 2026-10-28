@@ -11,7 +11,8 @@ import {
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { Asset } from '@/types';
 import { formatPercent, formatPrice } from '@/lib/format';
-import { Search, Calculator, ArrowRightLeft, ShieldAlert, Sparkles, TrendingUp, HelpCircle } from 'lucide-react';
+import { Search, Calculator, ArrowRightLeft, ShieldAlert, Sparkles, TrendingUp, HelpCircle, ExternalLink } from 'lucide-react';
+import { getTradingViewUrl } from '@/lib/tradingview';
 
 interface Quote {
   symbol: string;
@@ -25,6 +26,7 @@ type TabMode = 'cedears' | 'bonos' | 'calculadora';
 export const ArgentinaView = () => {
   const [tab, setTab] = useState<TabMode>('cedears');
   const [dolares, setDolares] = useState<Record<string, DolarRate>>({});
+  const [fx, setFx] = useState<any>(null);
   const [riskCountry, setRiskCountry] = useState<number | null>(null);
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [loadingQuotes, setLoadingQuotes] = useState(true);
@@ -49,6 +51,11 @@ export const ArgentinaView = () => {
         }
         setDolares(map);
       })
+      .catch(() => {});
+
+    fetch('/api/fx')
+      .then((res) => res.json())
+      .then((data) => data?.rates && setFx(data.rates))
       .catch(() => {});
 
     fetch('https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo')
@@ -79,10 +86,10 @@ export const ArgentinaView = () => {
   }, []);
 
   // Referencias de dólares
-  const cclPrice = dolares['contadoconliqui']?.venta || dolares['bolsa']?.venta || 1200;
-  const mepPrice = dolares['bolsa']?.venta || 1150;
-  const bluePrice = dolares['blue']?.venta || 1200;
-  const oficialPrice = dolares['oficial']?.venta || 1050;
+  const cclPrice = dolares['contadoconliqui']?.venta || 0;
+  const mepPrice = dolares['bolsa']?.venta || 0;
+  const bluePrice = dolares['blue']?.venta || 0;
+  const oficialPrice = dolares['oficial']?.venta || 0;
 
   // Cálculos de brechas cambiarias
   const brechaCcl = oficialPrice > 0 ? ((cclPrice - oficialPrice) / oficialPrice) * 100 : 0;
@@ -354,15 +361,29 @@ export const ArgentinaView = () => {
                           </span>
                         </td>
                         <td className="p-3 text-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openCedearChart(item);
-                            }}
-                            className="text-[11px] bg-bg2 hover:bg-card border border-line hover:border-gold px-2 py-0.5 rounded text-dim hover:text-gold transition-colors"
-                          >
-                            Ver vela
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openCedearChart(item);
+                              }}
+                              className="text-[11px] bg-bg2 hover:bg-card border border-line hover:border-gold px-2 py-0.5 rounded text-dim hover:text-gold transition-colors"
+                              title="Ver gráfico en panel lateral"
+                            >
+                              Vela
+                            </button>
+                            <a
+                              href={getTradingViewUrl(item.underlying, 'stock')}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[11px] bg-bg2 hover:bg-card border border-line hover:border-gold px-2 py-0.5 rounded text-dim hover:text-gold transition-colors inline-flex items-center gap-0.5 font-mono"
+                              title={`Ver ${item.ticker} en TradingView`}
+                            >
+                              <span>TV</span>
+                              <ExternalLink size={9} />
+                            </a>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -432,6 +453,7 @@ export const ArgentinaView = () => {
                     <th className="p-3 text-right">Paridad Ref.</th>
                     <th className="p-3 text-right">TIR Estimada</th>
                     <th className="p-3">Uso Principal en la City</th>
+                    <th className="p-3 text-center">Gráfico</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -454,6 +476,18 @@ export const ArgentinaView = () => {
                       <td className="p-3 text-right font-mono font-semibold text-text">{b.paridadRef}%</td>
                       <td className="p-3 text-right font-mono font-semibold text-teal">{b.tirRef}%</td>
                       <td className="p-3 text-dim text-[12px]">{b.useCase}</td>
+                      <td className="p-3 text-center">
+                        <a
+                          href={getTradingViewUrl(b.ticker)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] bg-bg2 hover:bg-card border border-line hover:border-gold px-2 py-0.5 rounded text-dim hover:text-gold transition-colors inline-flex items-center gap-1 font-mono"
+                          title={`Abrir ${b.ticker} en TradingView`}
+                        >
+                          <span>TV</span>
+                          <ExternalLink size={10} />
+                        </a>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

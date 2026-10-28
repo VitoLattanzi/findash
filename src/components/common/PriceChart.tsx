@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { createChart, ColorType, AreaSeries, CandlestickSeries, IChartApi, Time } from 'lightweight-charts';
 import { useSeriesData, CandlePoint } from '@/hooks/useSeriesData';
 import { AssetType, SeriesPoint } from '@/types';
+import { getTradingViewUrl } from '@/lib/tradingview';
 
 interface PriceChartProps {
   symbol?: string;
@@ -265,7 +266,20 @@ export const PriceChart = ({
         </div>
       )}
       {!compact && (
-        <div className="text-[10px] text-dim mt-1">Arrastrá sobre el gráfico para ampliar · doble click para resetear</div>
+        <div className="flex items-center justify-between text-[10px] text-dim mt-1 px-0.5">
+          <span>Arrastrá sobre el gráfico para ampliar · doble click para resetear</span>
+          {symbol && (
+            <a
+              href={getTradingViewUrl(symbol, type)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-dim/80 hover:text-gold transition-colors inline-flex items-center gap-1 font-mono hover:underline"
+              title={`Abrir ${symbol} en TradingView`}
+            >
+              <span>TradingView ↗</span>
+            </a>
+          )}
+        </div>
       )}
     </div>
   );

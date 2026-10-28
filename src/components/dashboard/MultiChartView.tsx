@@ -1,8 +1,10 @@
 'use client';
 import React, { useState } from 'react';
+import { ExternalLink } from 'lucide-react';
 import { PriceChart } from '@/components/common/PriceChart';
 import { CATALOG } from '@/lib/catalog';
 import { AssetType } from '@/types';
+import { getTradingViewUrl } from '@/lib/tradingview';
 
 const OPTIONS = CATALOG;
 
@@ -13,7 +15,19 @@ const ChartCell = ({ symbol, type }: { symbol: string; type: AssetType }) => {
     <div className="bg-card border border-line rounded-[6px] p-[12px]">
       <PriceChart symbol={symbol} type={type} chartType={chartType} height={150} />
       <div className="flex justify-between items-center mt-2">
-        <span className="text-[11.5px] text-dim">{symbol}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11.5px] font-mono font-medium text-text">{symbol}</span>
+          <a
+            href={getTradingViewUrl(symbol, type)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-dim hover:text-gold inline-flex items-center gap-0.5"
+            title={`Abrir ${symbol} en TradingView`}
+          >
+            <span>TV</span>
+            <ExternalLink size={9} />
+          </a>
+        </div>
         <div className="flex border border-line rounded-[4px] overflow-hidden">
           <button
             onClick={() => setChartType('area')}
