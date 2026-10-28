@@ -45,7 +45,11 @@ export const PriceChart = ({
     if (!el) return;
 
     const chart: IChartApi = createChart(el, {
-      layout: { background: { type: ColorType.Solid, color: '#161b25' }, textColor: '#8d97a8' },
+      layout: {
+        background: { type: ColorType.Solid, color: '#161b25' },
+        textColor: '#8d97a8',
+        attributionLogo: false,
+      },
       width: el.clientWidth || 360,
       height,
       grid: { vertLines: { color: '#202632' }, horzLines: { color: '#202632' } },

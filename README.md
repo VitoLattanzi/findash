@@ -101,8 +101,13 @@ FinDash utiliza una arquitectura distribuida de **Server Route Handlers** (Next.
 *   **RSS Aggregator:** Uso de `rss-parser` en endpoints centralizados (`/api/news`, `/api/country-news`) que consultan feeds de Google News (economía, política, fintech, IA, cripto) y medios especializados como Ámbito Financiero (economía y política), Cointelegraph e iProUP.
 *   **Análisis de Sentimiento:** Motor ligero en `lib/sentiment.ts` basado en detección de keywords que clasifica cada titular como "Buenas" o "Malas" (positivo/negativo) en tiempo real al consumir los feeds.
 
-### 4. Motor Gráfico
+### 4. Motor Gráfico & TradingView
 *   **Lightweight Charts:** Renderizado acelerado por hardware diseñado para series temporales densas. La carga de datos se desacopla del motor mediante el hook `useSeriesData`, que normaliza los formatos de Binance y Yahoo antes de alimentar el motor de renderizado.
+*   **Redirección Dinámica a TradingView:** Botones de acceso directo al gráfico interactivo oficial de TradingView (`tradingview.com/chart`), resolviendo automáticamente el ticker y exchange correspondiente:
+    *   *Criptomonedas:* `BINANCE:BTCUSDT`, `BINANCE:ETHUSDT`, etc.
+    *   *Bonos Soberanos Argentinos:* `BCBA:AL30`, `BCBA:GD30`, etc.
+    *   *Acciones y ETFs:* `NASDAQ:AAPL`, `SP:SPX`, etc.
+    *   *Commodities:* `TVC:GOLD`, `TVC:SILVER`, `TVC:USOIL`, etc.
 
 
 ---
