@@ -29,7 +29,7 @@ export const AssetList = ({ assets, view, onAssetClick, onRemove }: AssetListPro
           onClick={() => onAssetClick(a)}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <AssetIcon symbol={a.symbol ?? a.name} type={a.type} size="md" />
+            <AssetIcon symbol={a.symbol} name={a.name} type={a.type} size="md" />
             <div className="min-w-0 flex-1">
               <b className="text-[13.5px] truncate block">{a.name}</b>
               <div className="text-dim text-[12px]">${formatPrice(a.price)}</div>
