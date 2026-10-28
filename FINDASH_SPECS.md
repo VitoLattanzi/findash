@@ -23,14 +23,16 @@
 - [x] **Menú Desplegable de Sentimiento Mundial:** Popover/modal interactivo al clickear el widget de mercados, mostrando si cada plaza cotiza **Alcista** (`TrendingUp`) o **Bajista** (`TrendingDown`) según su índice representativo (S&P 500, Merval, FTSE 100, Nikkei 225, Hang Seng, Bitcoin) con barra de balance diario.
 
 ### Epic 3: Análisis Fundamental (Requerimientos de Pepo)
-- [ ] **Sistema de Pestañas en DetailPanel:** Dividir la información inferior en tres tabs: `[ Gráfico ]`, `[ Fundamentales ]`, `[ Perfil ]`.
-- [ ] **Tab 'Perfil':** Mostrar descripción de la empresa, nombre del CEO, sector y sitio web (extraído de `yahoo-finance2` module `assetProfile`).
-- [ ] **Tab 'Fundamentales':** Diseñar una grilla de métricas contables:
-  - Beneficio por Acción (BPA / Trailing EPS) y PER.
+- [x] **Detail Modal Card:** Modal central espacioso tipo Popup en Desktop (`max-w-4xl`, backdrop blur) y pantalla completa dedicada en Mobile con botón "Volver" y gesto swipe.
+- [x] **Sistema de Pestañas en DetailPanel:** Dividir la información en tres tabs: `[ Gráfico ]`, `[ Fundamentales ]`, `[ Perfil ]`.
+- [x] **Gesto Mobile Swipe-to-Close:** Deslizar con el dedo desde la izquierda hacia la derecha para volver atrás y cerrar el panel de forma nativa en celulares.
+- [x] **Tab 'Perfil':** Mostrar descripción de la empresa, nombre del CEO, sector, industria, empleados y sitio web oficial (extraído de `yahoo-finance2` vía `/api/fundamentals`).
+- [x] **Tab 'Fundamentales':** Diseñar una grilla de métricas contables:
+  - Beneficio por Acción (BPA / Trailing EPS) y PER (Trailing y Forward).
   - Capitalización de Mercado y Rendimiento del Dividendo (Dividend Yield).
-  - Fecha del próximo Balance (Earnings Date) e Informes.
-  - Expectativas del Mercado: Precio Objetivo (Target Mean Price).
-- [ ] **Deuda y Liquidez (FCF y CAPEX):** Incluir métricas de Free Cash Flow (FCE), Cash Flow Operativo (FCC) y CAPEX (Inversión en activos fijos). Mostrar un mini-gráfico o barra comparativa de Deuda Total vs. Liquidez (Total Cash).
+  - Fecha del próximo Balance (Earnings Date) y Consenso de analistas de Wall Street.
+  - Expectativas del Mercado: Precio Objetivo (Target Mean Price) con porcentaje de upside/downside proyectado.
+- [x] **Deuda y Liquidez (FCF y CAPEX):** Métricas de Free Cash Flow (FCE), Cash Flow Operativo (FCC) y barra visual comparativa de Deuda Total vs. Liquidez (Total Cash). Rango de 52 semanas relativo.
 
 ### Epic 4: Instrumentos Adicionales y Educación (FinDash Academy)
 - [x] **Ampliación de Activos:** Asegurar soporte en `/api/market` para Bonos (ej. US10Y `^TNX`, AL30, GD30) y CEDEARs con ratios de conversión oficiales BYMA.

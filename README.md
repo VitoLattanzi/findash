@@ -47,6 +47,7 @@ Resumen de los cambios implementados para adaptar el diseño a dispositivos móv
 | **Menor** | Sidebar y accesibilidad visual | Interfaz limpia sin indicadores numéricos rígidos, preservando listeners de teclado. |
 | **Menor** | Identidad Visual y Reconocimiento Rápido | Sistema modular de logos corporativos, cripto y banderas circulares SVG en formato `[logo] - nombre`. |
 | **Menor** | Layout Fijo y Scroll Independiente | Barra superior (Ticker) fijada en `sticky top-0 z-30` acoplada al panel lateral izquierdo (`sticky top-9 z-20`), manteniendo el flujo de datos siempre a la vista al hacer scroll. |
+| **UX Mobile** | Volver atrás en celulares | Gesto nativo de deslizamiento (*Swipe right to close*): al arrastrar el panel hacia la derecha con el dedo, se cierra fluidamente volviendo al dashboard. |
 
 ---
 
@@ -68,7 +69,11 @@ Navegá toda la terminal sin despegar las manos del teclado (los atajos funciona
 ## Módulos y Funcionalidades 🧭
 
 *   **Dashboard Principal:** Vista integral con rotador dinámico de los mercados más relevantes del mundo (Wall St, BCBA/BYMA, Londres, Tokio, Hong Kong y Cripto 24/7 con estados en vivo: Abierto, Cierra pronto, Abre pronto, Cerrado), menú desplegable interactivo con diagnóstico de tendencia diaria (**Alcista / Bajista** por índice representativo y barra de balance global), índice Fear & Greed, activos destacados y gráficos rápidos con selector de temporalidades.
-*   **Panel de Detalle Extendido (Pre/Post Market):** Soporte en tiempo real para sesiones extendidas de negociación (Pre-Market y After-Hours) en acciones y bonos al cerrarse el mercado regular, mostrando variaciones y cotizaciones atenuadas.
+*   **Panel de Detalle y Análisis Fundamental (Modal Card & Pantalla Dedicada):** Al seleccionar cualquier activo, se abre una tarjeta modal central tipo popup en desktop (`max-w-4xl`) y una pantalla completa dedicada en mobile con botón "Volver" y navegación en tres solapas:
+    *   *Gráfico:* Lightweight Charts con switch entre Área y Velas japonesas, mayor altura y resolución visual, timeframes de 1h a ALL y redirección oficial a TradingView.
+    *   *Fundamentales:* Extracción de balances contables vía `/api/fundamentals`: PER (Trailing y Forward), Beneficio por Acción (BPA/EPS), Capitalización de Mercado, Rendimiento de Dividendos, Próxima fecha de balance (Earnings Date), Precio Objetivo medio de analistas con potencial de suba (*Upside*) y comparativa visual de Deuda Total vs. Liquidez (Caja) y Flujo de Caja Libre (FCF).
+    *   *Perfil Corporativo:* Resumen de la empresa, CEO, Sector, Industria, Empleados, Sede y enlace oficial a su sitio web.
+*   **Pre/Post Market en Tiempo Real:** Soporte para cotizaciones extendidas (Pre-Market y After-Hours) en gris atenuado si el mercado regular se encuentra cerrado.
 *   **Criptomercado en Vivo:** Conexión continua a Binance WebSocket con fallback automático a endpoints alternativos para evitar restricciones geográficas.
 *   **Bolsa & ADRs:** Catálogo curado de las 100 principales acciones del S&P 500, materias primas (oro, plata, petróleo, soja) y ADRs argentinos, con sparklines y métricas de rendimiento.
 *   **Mercado Argentino (CEDEARs, Bonos & Dólares):** Módulo dedicado al nicho financiero de Argentina:

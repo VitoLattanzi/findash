@@ -39,8 +39,20 @@ export function formatPercent(value?: number | null): string {
 
 export function formatVolume(vol?: number | null): string {
   if (vol == null || !Number.isFinite(vol) || vol <= 0) return '—';
+  if (vol >= 1_000_000_000_000) return `$${(vol / 1_000_000_000_000).toFixed(2)}T`;
   if (vol >= 1_000_000_000) return `$${(vol / 1_000_000_000).toFixed(1)}B`;
   if (vol >= 1_000_000) return `$${(vol / 1_000_000).toFixed(1)}M`;
   if (vol >= 1_000) return `$${(vol / 1_000).toFixed(1)}K`;
   return `$${vol.toFixed(0)}`;
+}
+
+export function formatCompactNumber(val?: number | null): string {
+  if (val == null || !Number.isFinite(val)) return '—';
+  const abs = Math.abs(val);
+  const sign = val < 0 ? '-' : '';
+  if (abs >= 1_000_000_000_000) return `${sign}$${(abs / 1_000_000_000_000).toFixed(2)}T`;
+  if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(2)}B`;
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}K`;
+  return `${sign}$${abs.toFixed(2)}`;
 }
