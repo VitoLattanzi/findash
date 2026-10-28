@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Info,
   ArrowLeft,
+  AlertTriangle,
 } from 'lucide-react';
 import { Asset } from '@/types';
 import { useSeriesData } from '@/hooks/useSeriesData';
@@ -820,6 +821,17 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Footer del Modal con Disclaimer y Reserva de Derechos */}
+          <div className="px-4 py-2.5 sm:px-6 bg-bg2/80 border-t border-line text-[11px] text-dim/80 flex items-center justify-between flex-wrap gap-2 flex-shrink-0">
+            <span className="flex items-center gap-1.5">
+              <AlertTriangle size={12} className="text-gold flex-shrink-0" />
+              <span>
+                Fines exclusivamente informativos. La información puede contener demoras o inexactitudes técnicas.
+              </span>
+            </span>
+            <span className="font-mono text-[10px] text-dim/60">© FinDash · Derechos reservados</span>
           </div>
         </div>
       </div>

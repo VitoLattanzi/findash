@@ -63,10 +63,13 @@ Navegá toda la terminal sin despegar las manos del teclado (los atajos funciona
 | `5` | **Países** | ETFs de economías clave, divisas globales y comparador macroeconómico. |
 | `6` | **Noticias** | Feeds RSS financieros clasificados por categorías (con apartado de Política) y análisis de sentimiento. |
 | `7` | **Multigráficos** | Vista simultánea de múltiples activos para comparar tendencias. |
+| `8` | **Aprender** | FinDash Academy: conceptos en criollo (Acciones vs Bonos, CEDEARs, FCF, PER) y Test de Perfil de Riesgo interactivo. |
 
 ---
 
 ## Módulos y Funcionalidades 🧭
+
+*   **FinDash Academy (Educación Financiera en 0ms):** Centro de aprendizaje estático local (sin scraping ni latencia) con explicaciones simples, analogías de la vida real (resaltadas en `--teal`) y un **Test de Perfil de Riesgo** interactivo secuencial que clasifica al usuario en Conservador, Moderado o Agresivo recomendando activos específicos de la plataforma.
 
 *   **Dashboard Principal:** Vista integral con rotador dinámico de los mercados más relevantes del mundo (Wall St, BCBA/BYMA, Londres, Tokio, Hong Kong y Cripto 24/7 con estados en vivo: Abierto, Cierra pronto, Abre pronto, Cerrado), menú desplegable interactivo con diagnóstico de tendencia diaria (**Alcista / Bajista** por índice representativo y barra de balance global), índice Fear & Greed, activos destacados y gráficos rápidos con selector de temporalidades.
 *   **Panel de Detalle y Análisis Fundamental (Modal Card & Pantalla Dedicada):** Al seleccionar cualquier activo, se abre una tarjeta modal central tipo popup en desktop (`max-w-4xl`) y una pantalla completa dedicada en mobile con botón "Volver" y navegación en tres solapas:
@@ -127,5 +130,7 @@ Tu información financiera te pertenece. FinDash no utiliza bases de datos remot
 
 ---
 
-## Disclaimer ⚠️
-FinDash es un proyecto diseñado con fines educativos y de consulta personal. La información provista proviene de fuentes públicas y no representa asesoramiento financiero, de inversión ni recomendación de compra o venta de ningún activo.
+## Disclaimer & Términos Legales ⚠️
+*   **Fines Educativos e Informativos:** FinDash es una plataforma diseñada exclusivamente con propósitos educativos, ilustrativos y de consulta personal. Ningún análisis, cálculo, ratio o cotización provisto constituye recomendación de inversión, asesoramiento financiero ni oferta de compra o venta de ningún instrumento financiero.
+*   **Exactitud de la Información y Demoras:** Los datos de mercado provienen de fuentes públicas, feeds RSS y APIs de terceros sujetas a fluctuaciones, demoras (*delayed market data*) o posibles inexactitudes técnicas. FinDash no garantiza la exactitud, integridad ni actualidad de la información, y no asume responsabilidad alguna por decisiones comerciales o financieras tomadas en base a ella.
+*   **Reserva de Derechos:** FinDash se reserva el derecho de modificar, actualizar o discontinuar cualquier componente, activo o funcionalidad sin previo aviso. Todos los derechos de autor, identidad visual y diseño de software están reservados. El rendimiento histórico de los activos no garantiza rendimientos futuros.

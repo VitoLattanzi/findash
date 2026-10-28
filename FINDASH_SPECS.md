@@ -36,11 +36,15 @@
 
 ### Epic 4: Instrumentos Adicionales y Educación (FinDash Academy)
 - [x] **Ampliación de Activos:** Asegurar soporte en `/api/market` para Bonos (ej. US10Y `^TNX`, AL30, GD30) y CEDEARs con ratios de conversión oficiales BYMA.
-- [ ] **Sección 'Aprender' (FinDash Academy):** Crear una nueva vista en el Sidebar.
-- [ ] Diseñar grilla de tarjetas educativas (explicadas de forma simple, para principiantes):
-  - ¿Qué es una Acción y un Bono?
-  - ¿Qué es el CAPEX y el FCE (Flujo de Caja Libre)?
-  - Tipos de perfiles de riesgo.
+- [x] **Sección 'Aprender' (FinDash Academy):** Crear una nueva vista en el Sidebar con tecla rápida '8'.
+- [x] **Diseñar grilla de tarjetas educativas** (explicadas de forma simple, para principiantes con datos locales en 0ms):
+  - ¿Qué es una Acción y un Bono? (Diferencia entre dueño y prestamista).
+  - ¿Qué son los CEDEARs? (Comprar acciones de Wall St en pesos con cobertura CCL).
+  - ¿Qué es el CAPEX y el FCF (Flujo de Caja Libre)? (Inversión en fierros vs caja libre).
+  - PER y BPA / EPS (¿Cómo saber si una acción está cara o barata?).
+  - Horizonte temporal y volatilidad.
+- [x] **Test Interactivo de Perfil de Riesgo (`<RiskProfiler />`):** Cuestionario interactivo secuencial de 3 preguntas que calcula el puntaje y categoriza al inversor en Conservador, Moderado o Agresivo, recomendando instrumentos específicos de FinDash.
+- [x] **Aviso Legal, Exactitud y Reserva de Derechos (Disclaimer):** Bloque legal formal en FinDash Academy, footer permanente en el DetailPanel y documentación en README deslindando responsabilidad por demoras o inexactitudes de fuentes públicas de terceros, aclarando el propósito puramente educativo y la reserva de derechos de software.
 
 ### Epic 5: Noticias, Multigráficos y Cartera
 - [x] **Noticias:** Completar `/api/news` y `<NewsFeed />` categorizado (Macro, Política, Fintech, Cripto, IA) conectando a RSS reales con análisis de sentimiento.

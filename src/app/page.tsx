@@ -8,10 +8,11 @@ import { CountryView } from '@/components/dashboard/CountryView';
 import { MultiChartView } from '@/components/dashboard/MultiChartView';
 import { NewsFeed } from '@/components/dashboard/NewsFeed';
 import { ArgentinaView } from '@/components/dashboard/ArgentinaView';
+import { AcademyView } from '@/components/dashboard/AcademyView';
 import { Ticker } from '@/components/layout/Ticker';
 import { Sidebar } from '@/components/layout/Sidebar';
 
-const VIEW_ORDER = ['dashboard', 'cripto', 'bolsa', 'cedears', 'paises', 'noticias', 'multi'];
+const VIEW_ORDER = ['dashboard', 'cripto', 'bolsa', 'cedears', 'paises', 'noticias', 'multi', 'aprender'];
 
 export default function Dashboard() {
   const [activeView, setActiveView] = useState('dashboard');
@@ -40,6 +41,7 @@ export default function Dashboard() {
       // case 'cartera': return <PortfolioView />;
       case 'multi': return <MultiChartView />;
       case 'noticias': return <NewsFeed />;
+      case 'aprender': return <AcademyView />;
       default: return <DashboardView />;
     }
   };

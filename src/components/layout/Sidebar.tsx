@@ -1,6 +1,16 @@
 'use client';
 import React from 'react';
-import { LayoutDashboard, Coins, TrendingUp, Globe, Newspaper, BarChart3, Briefcase, Landmark } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Coins,
+  TrendingUp,
+  Globe,
+  Newspaper,
+  BarChart3,
+  Briefcase,
+  Landmark,
+  GraduationCap,
+} from 'lucide-react';
 import { MarketStatusWidget } from '@/components/layout/MarketStatusWidget';
 
 const navItems = [
@@ -11,6 +21,7 @@ const navItems = [
   { name: 'Países', icon: Globe, target: 'paises' },
   { name: 'Noticias', icon: Newspaper, target: 'noticias' },
   { name: 'Multigráficos', icon: BarChart3, target: 'multi' },
+  { name: 'Aprender', icon: GraduationCap, target: 'aprender' },
   // { name: 'Mi Cartera', icon: Briefcase, target: 'cartera' }, // Pausado temporalmente
 ];
 
@@ -45,7 +56,7 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
         aria-label="Navegación principal"
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-bg2/95 backdrop-blur border-t border-line safe-bottom"
       >
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-8">
           {navItems.map((item) => (
             <button
               key={item.target}
