@@ -40,7 +40,7 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
           <span className="text-gold">◆</span> FinDash
         </div>
         <nav className="flex flex-col gap-0.5">
-          {navItems.map((item, i) => (
+          {navItems.map((item) => (
             <button
               key={item.target}
               onClick={() => setActiveView(item.target)}
@@ -52,15 +52,6 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
             >
               <item.icon size={16} className={activeView === item.target ? 'text-gold' : ''} />
               <span>{item.name}</span>
-              <kbd
-                className={`ml-auto text-[9.5px] font-mono px-1 rounded-[3px] border ${
-                  activeView === item.target
-                    ? 'border-line text-gold'
-                    : 'border-transparent text-dim/60 group-hover:border-line'
-                }`}
-              >
-                {i + 1}
-              </kbd>
             </button>
           ))}
         </nav>
@@ -71,7 +62,7 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
             <span className="text-dim">Wall St {open ? 'abierto' : 'cerrado'}</span>
           </div>
           <div className="px-2.5 text-[11px] text-dim font-mono tabular-nums">{etTime} ET</div>
-          <div className="px-2.5 text-[10px] text-dim/60">Cripto 24/7 · 1–7 navegar</div>
+          <div className="px-2.5 text-[10px] text-dim/60">Cripto 24/7</div>
         </div>
       </aside>
 

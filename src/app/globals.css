@@ -116,10 +116,6 @@ body {
   animation: view-in 0.22s ease-out;
 }
 
-html, body {
-  max-width: 100%;
-}
-
 @media (max-width: 767px) {
   input,
   select,
