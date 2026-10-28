@@ -16,7 +16,7 @@ export interface Asset {
 }
 
 export interface News {
-  cat: "todas" | "macro" | "fintech" | "ia" | "cripto";
+  cat: "todas" | "macro" | "politica" | "fintech" | "ia" | "cripto";
   text: string;
   src: string;
 }

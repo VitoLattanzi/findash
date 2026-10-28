@@ -52,7 +52,7 @@ export const NewsFeed = () => {
       </div>
       <div className="bg-card border border-line rounded-[6px] p-4">
         <div className="mb-4">
-          {['todas', 'macro', 'fintech', 'ia', 'cripto'].map((cat) => (
+          {['todas', 'macro', 'politica', 'fintech', 'ia', 'cripto'].map((cat) => (
             <button
               key={cat}
               onClick={() => setCategory(cat)}

@@ -68,7 +68,7 @@ Navegá toda la terminal sin despegar las manos del teclado (los atajos funciona
 *   **Criptomercado en Vivo:** Conexión continua a Binance WebSocket con fallback automático a endpoints alternativos para evitar restricciones geográficas.
 *   **Bolsa & ADRs:** Catálogo curado de las 100 principales acciones del S&P 500, materias primas (oro, plata, petróleo, soja) y ADRs argentinos, con sparklines y métricas de rendimiento.
 *   **Macro & Países:** Monitoreo global mediante ETFs representativos de las principales economías mundiales e indicadores macroeconómicos locales de Argentina (Riesgo País y dólar en todas sus cotizaciones).
-*   **Agregador de Noticias:** Cobertura de medios locales e internacionales con clasificación por categorías e inferencia de sentimiento (positivo/negativo/neutro).
+*   **Agregador de Noticias:** Cobertura de medios locales e internacionales con clasificación por categorías (Macro, Política, Fintech, IA, Cripto) e inferencia de sentimiento (positivo/negativo/neutro).
 *   **Multigráficos:** Comparador visual basado en `lightweight-charts` v5 con selector de rango temporal (de 1h a más de 10 años de datos).
 *   **Mi Cartera:** Gestión de posiciones personales con almacenamiento seguro en tu navegador.
 
@@ -91,7 +91,7 @@ FinDash utiliza una arquitectura distribuida de **Server Route Handlers** (Next.
 *   **Estrategia de Caché:** Implementamos headers `Cache-Control` (`public, s-maxage=..., stale-while-revalidate=...`) aprovechando el CDN de Vercel. Esto reduce drásticamente las llamadas directas a las APIs gratuitas y acelera la carga para el usuario final.
 
 ### 3. Agregación y Análisis (NLP)
-*   **RSS Aggregator:** Uso de `rss-parser` en endpoints centralizados (`/api/news`, `/api/country-news`) que consultan feeds de Google News y medios especializados.
+*   **RSS Aggregator:** Uso de `rss-parser` en endpoints centralizados (`/api/news`, `/api/country-news`) que consultan feeds de Google News (economía, política, fintech, IA, cripto) y medios especializados como Ámbito Financiero (economía y política), Cointelegraph e iProUP.
 *   **Análisis de Sentimiento:** Motor ligero en `lib/sentiment.ts` basado en detección de keywords que clasifica cada titular como "Buenas" o "Malas" (positivo/negativo) en tiempo real al consumir los feeds.
 
 ### 4. Motor Gráfico

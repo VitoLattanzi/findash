@@ -14,6 +14,7 @@ const gnews = (q: string) =>
 
 const FEEDS: Record<string, string[]> = {
   macro: [gnews('economía Argentina'), 'https://www.ambito.com/rss/economia.xml'],
+  politica: [gnews('política Argentina'), 'https://www.ambito.com/rss/politica.xml'],
   fintech: [gnews('fintech Argentina'), 'https://www.ipro-up.com/rss'],
   ia: [gnews('inteligencia artificial')],
   cripto: [gnews('bitcoin criptomonedas'), 'https://cointelegraph.com/rss/tag/bitcoin'],

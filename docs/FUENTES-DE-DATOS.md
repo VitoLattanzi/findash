@@ -35,10 +35,10 @@ Universos incluidos en `src/lib/catalog.ts`:
 
 ## 3. Noticias — RSS públicos
 
-Proxy interno: `GET /api/news?category=todas|macro|fintech|ia|cripto`
+Proxy interno: `GET /api/news?category=todas|macro|politica|fintech|ia|cripto`
 
 - `rss-parser` con `Promise.allSettled` (si un feed cae, el resto sigue).
-- Fuentes: Google News RSS (búsqueda por categoría en `es-419`/AR), Ámbito (`ambito.com/rss/economia.xml`), iProUP (`ipro-up.com/rss`), Cointelegraph (`cointelegraph.com/rss/tag/bitcoin`).
+- Fuentes: Google News RSS (búsqueda por categoría en `es-419`/AR), Ámbito (`ambito.com/rss/economia.xml`, `ambito.com/rss/politica.xml`), iProUP (`ipro-up.com/rss`), Cointelegraph (`cointelegraph.com/rss/tag/bitcoin`).
 - Respuesta: `[{ title, link, pubDate, source, category }]`, deduplicada por link y ordenada por fecha.
 
 ## 4. Indicadores Argentina
