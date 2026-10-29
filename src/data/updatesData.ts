@@ -15,7 +15,7 @@ export interface ReleaseUpdate {
 
 export const PLATFORM_UPDATES: ReleaseUpdate[] = [
   {
-    version: 'v2.4',
+    version: 'v1.4',
     date: 'Octubre 2026',
     title: 'FinDash Academy, Buscador Global y Top 10 Altcoins',
     isLatest: true,
@@ -54,7 +54,7 @@ export const PLATFORM_UPDATES: ReleaseUpdate[] = [
     ],
   },
   {
-    version: 'v2.3',
+    version: 'v1.3',
     date: 'Octubre 2026',
     title: 'Análisis Fundamental Corporativo y UX Mobile Nativa',
     highlight: 'Métricas de balance (PER, BPA, Deuda vs Caja) y navegación táctil en celulares.',
@@ -86,7 +86,7 @@ export const PLATFORM_UPDATES: ReleaseUpdate[] = [
     ],
   },
   {
-    version: 'v2.2',
+    version: 'v1.2',
     date: 'Octubre 2026',
     title: 'Modal Central Cinemático y Rotador de Mercados Mundiales',
     highlight: 'Visualización ampliada de gráficos y estado en vivo de las principales bolsas del mundo.',
@@ -118,7 +118,7 @@ export const PLATFORM_UPDATES: ReleaseUpdate[] = [
     ],
   },
   {
-    version: 'v2.1',
+    version: 'v1.1',
     date: 'Octubre 2026',
     title: 'Identidad Visual, Micro-Precios y Enlaces a TradingView',
     highlight: 'Logos oficiales de activos, formato de fracciones microscópicas y navegación fluida.',
@@ -146,6 +146,44 @@ export const PLATFORM_UPDATES: ReleaseUpdate[] = [
         title: 'Barra Superior Ticker y Sidebar Sticky',
         description:
           'La barra de cotizaciones y el panel lateral se mantienen siempre a la vista al hacer scroll en cualquier pantalla.',
+      },
+    ],
+  },
+  {
+    version: 'v1.0b',
+    date: 'Octubre 2026',
+    title: 'Lanzamiento Inicial FinDash Beta',
+    highlight: 'Dashboard financiero integral con datos en tiempo real de cripto, bolsa argentina e internacional y divisas.',
+    items: [
+      {
+        type: 'nuevo',
+        title: 'Dashboard Cripto 24/7 en Vivo',
+        description:
+          'Cotizaciones y libros de órdenes conectadas a Binance vía WebSocket nativo con latencia ultrabaja.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Catálogo de Bolsa & CEDEARs',
+        description:
+          'Monitor de acciones del S&P 500, CEDEARs de empresas globales y bonos soberanos con cotizaciones de Yahoo Finance.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Monitoreo Cambiario Argentino',
+        description:
+          'Seguimiento en vivo del Dólar Blue, MEP, Contado con Liquidación (CCL), Oficial y Cripto con cálculo de brecha cambiaria.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Gráficos Interactivos Profesionales',
+        description:
+          'Motor financiero de Lightweight Charts v5 con series de velas y áreas, rangos temporales (1D a 5A) y selector de escala.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Agregador de Noticias Financieras',
+        description:
+          'Feeds RSS de portales líderes económicos y cripto con análisis de sentimiento en tiempo real.',
       },
     ],
   },

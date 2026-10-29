@@ -114,7 +114,7 @@ export const AcademyView = () => {
             title="Ver últimas novedades y notas de versión de FinDash"
           >
             <Sparkles size={13} className="text-gold" />
-            <span>Novedades v2.4</span>
+            <span>Novedades v1.4</span>
           </button>
 
           <div className="relative flex-1 sm:w-64">

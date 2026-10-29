@@ -42,7 +42,7 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
             className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gold/15 text-gold border border-gold/30 hover:bg-gold hover:text-bg transition-colors"
             title="Ver últimas novedades de la plataforma"
           >
-            v2.4
+            v1.4
           </button>
         </div>
         <nav className="flex flex-col gap-0.5">
