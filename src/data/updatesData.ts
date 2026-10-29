@@ -15,10 +15,48 @@ export interface ReleaseUpdate {
 
 export const PLATFORM_UPDATES: ReleaseUpdate[] = [
   {
+    version: 'v1.5',
+    date: 'Octubre 2026',
+    title: 'Criptomercado 2.0: Altcoins, Memecoins y Radar de Ballenas',
+    isLatest: true,
+    highlight: 'Tablero dual en 2 columnas, análisis fundamental y perfil de red para cripto, noticias dedicadas y radar de ballenas en tiempo real vía WebSocket.',
+    items: [
+      {
+        type: 'nuevo',
+        title: 'Monitor Dual Cripto (2 Columnas: Altcoins & Memecoins)',
+        description:
+          'Estructura organizada en dos columnas paralelas para seguir simultáneamente las mayores Altcoins de capa 1 y las principales Memecoins del mercado con precios y variación en tiempo real.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Modal de Detalle Completo, Fundamentales y Perfil Cripto',
+        description:
+          'Al tocar cualquier moneda se abre el panel interactivo con gráfico de velas/área, métricas de red (ATH, Supply circulante/total, Capitalización, Rango 24h) y ficha técnica (red base, consenso, creador y descripción en criollo).',
+      },
+      {
+        type: 'nuevo',
+        title: 'Radar de Ballenas en Vivo (Whale Tracker)',
+        description:
+          'Detector de transacciones masivas conectado al stream @aggTrade de Binance, identificando en tiempo real compras y ventas superiores a $50k/$100k USD con medidor de presión de mercado.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Noticias Criptomercado con Análisis de Sentimiento',
+        description:
+          'Card integrada con los últimos artículos de Cointelegraph y medios económicos especializados, clasificados con etiquetas de sentimiento alcista, bajista o neutral.',
+      },
+      {
+        type: 'mejora',
+        title: 'Buscador Integrado y Personalización de Listas',
+        description:
+          'Filtro en vivo por ticker o red blockchain, con opción de agregar nuevos pares de Binance o quitar activos según tus preferencias, guardándose en tu navegador de forma persistente.',
+      },
+    ],
+  },
+  {
     version: 'v1.4',
     date: 'Octubre 2026',
     title: 'FinDash Academy, Buscador Global y Top 10 Altcoins',
-    isLatest: true,
     highlight: 'Búsqueda ilimitada en todo el mercado global, educación financiera en 0ms y medición cripto por las 10 altcoins líderes.',
     items: [
       {

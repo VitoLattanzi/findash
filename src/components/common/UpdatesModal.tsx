@@ -152,7 +152,7 @@ export const UpdatesModal = ({ isOpen, onClose }: UpdatesModalProps) => {
               <Rocket size={13} className="text-gold" />
               <span>FinDash evoluciona constantemente</span>
             </span>
-            <span className="font-mono text-[10.5px]">v1.4 Live</span>
+            <span className="font-mono text-[10.5px]">v1.5 Live</span>
           </div>
         </div>
       </div>

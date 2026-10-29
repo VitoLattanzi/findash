@@ -25,6 +25,7 @@ import { AssetIcon } from '@/components/common/AssetIcon';
 import { formatCompactNumber, formatPrice } from '@/lib/format';
 import { getTradingViewUrl } from '@/lib/tradingview';
 import { FundamentalData } from '@/app/api/fundamentals/route';
+import { getCryptoProfile } from '@/data/cryptoData';
 
 interface DetailPanelProps {
   asset: Asset | null;
@@ -67,6 +68,11 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
 
   const symbol = asset?.symbol ?? asset?.name;
   const isIntraday = timeframe in INTRADAY;
+
+  const cryptoProfile = useMemo(() => {
+    if (!asset || asset.type !== 'crypto') return null;
+    return getCryptoProfile(asset.symbol || asset.name);
+  }, [asset]);
 
   const [extendedQuote, setExtendedQuote] = useState<{
     marketState?: string | null;
@@ -502,41 +508,90 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
                     <p className="text-[13px]">Consultando balance y métricas contables oficiales...</p>
                   </div>
                 ) : asset.type === 'crypto' ? (
-                  /* Fallback enriquecido para Criptomonedas */
+                  /* Métricas Cripto Enriquecidas */
                   <div className="space-y-3.5">
-                    <div className="p-3.5 bg-bg2 border border-line rounded-xl text-[12.5px] text-dim flex items-center gap-2.5">
-                      <Info size={18} className="text-gold flex-shrink-0" />
-                      <span>
-                        Las criptomonedas no presentan balances societarios tradicionales. A
-                        continuación sus métricas clave de red y mercado.
-                      </span>
+                    <div className="p-3.5 bg-bg2 border border-line rounded-xl text-[12.5px] text-dim flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <Info size={18} className="text-gold flex-shrink-0" />
+                        <span>
+                          Métricas fundamentales de red, tokenomics y mercado descentralizado 24/7.
+                        </span>
+                      </div>
+                      {cryptoProfile && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-card border border-line text-[11px] font-mono text-gold">
+                          <Layers size={12} />
+                          {cryptoProfile.network}
+                        </span>
+                      )}
                     </div>
+
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className="p-3.5 bg-bg2 border border-line rounded-xl">
                         <span className="text-[11px] text-dim block">Máximo Histórico (ATH)</span>
                         <span className="text-[16px] font-mono font-semibold text-text mt-0.5 block">
-                          ${formatPrice(asset.ath)}
+                          ${formatPrice(asset.ath || cryptoProfile?.ath || 0)}
                         </span>
+                        {asset.price > 0 && (asset.ath || cryptoProfile?.ath) && (
+                          <span className="text-[10.5px] font-mono text-red block mt-0.5">
+                            {(
+                              ((asset.price - (asset.ath || cryptoProfile!.ath)) /
+                                (asset.ath || cryptoProfile!.ath)) *
+                              100
+                            ).toFixed(1)}
+                            % vs ATH
+                          </span>
+                        )}
                       </div>
                       <div className="p-3.5 bg-bg2 border border-line rounded-xl">
                         <span className="text-[11px] text-dim block">Capitalización</span>
                         <span className="text-[16px] font-mono font-semibold text-text mt-0.5 block">
                           {asset.cap || '—'}
                         </span>
+                        {cryptoProfile?.rank && (
+                          <span className="text-[10.5px] font-mono text-gold block mt-0.5">
+                            Rank #{cryptoProfile.rank}{' '}
+                            {cryptoProfile.category === 'memecoin' ? 'Meme' : 'Cripto'}
+                          </span>
+                        )}
                       </div>
                       <div className="p-3.5 bg-bg2 border border-line rounded-xl">
                         <span className="text-[11px] text-dim block">Volumen 24h</span>
                         <span className="text-[16px] font-mono font-semibold text-text mt-0.5 block">
                           {asset.vol || '—'}
                         </span>
+                        <span className="text-[10.5px] text-dim block mt-0.5">Mercado Spot</span>
                       </div>
                       <div className="p-3.5 bg-bg2 border border-line rounded-xl">
                         <span className="text-[11px] text-dim block">Negociación</span>
                         <span className="text-[15px] font-mono text-teal font-semibold mt-0.5 block">
                           24/7 Global
                         </span>
+                        <span className="text-[10.5px] text-teal/80 block mt-0.5">
+                          Sin corte de mercado
+                        </span>
                       </div>
                     </div>
+
+                    {/* Suministro y Tokenomics */}
+                    {cryptoProfile && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="p-3.5 bg-bg2 border border-line rounded-xl">
+                          <span className="text-[11px] text-dim block">Suministro en Circulación</span>
+                          <span className="text-[15px] font-mono text-text font-semibold mt-0.5 block">
+                            {cryptoProfile.circulatingSupply}
+                          </span>
+                        </div>
+                        <div className="p-3.5 bg-bg2 border border-line rounded-xl">
+                          <span className="text-[11px] text-dim block">Emisión y Suministro Total</span>
+                          <span
+                            className="text-[13.5px] font-mono text-dim font-medium mt-0.5 block truncate"
+                            title={cryptoProfile.totalSupply}
+                          >
+                            {cryptoProfile.totalSupply}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : fundamentalsError || !m ? (
                   <div className="py-12 text-center text-dim bg-bg2 rounded-xl border border-line p-5">
@@ -754,6 +809,69 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
                   <div className="py-16 text-center text-dim space-y-2.5">
                     <div className="w-7 h-7 border-2 border-gold border-t-transparent rounded-full animate-spin mx-auto" />
                     <p className="text-[13px]">Cargando perfil corporativo e institucional...</p>
+                  </div>
+                ) : asset.type === 'crypto' && cryptoProfile ? (
+                  <div className="space-y-4">
+                    {/* Ficha técnica cripto en 2 columnas */}
+                    <div className="p-4 bg-bg2 border border-line rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12.5px]">
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-card/50">
+                        <span className="text-dim">Red / Ecosistema</span>
+                        <span className="text-gold font-medium font-mono">{cryptoProfile.network}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-card/50">
+                        <span className="text-dim">Categoría</span>
+                        <span className="text-text font-medium capitalize">
+                          {cryptoProfile.category === 'memecoin' ? 'Meme Coin' : 'Altcoin / Capa 1'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-card/50">
+                        <span className="text-dim">Consenso / Estándar</span>
+                        <span className="text-text font-medium">{cryptoProfile.consensus}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-card/50">
+                        <span className="text-dim">Creador / Equipo</span>
+                        <span className="text-text font-medium">{cryptoProfile.creator}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-card/50">
+                        <span className="text-dim">Año de Lanzamiento</span>
+                        <span className="text-text font-mono font-medium">{cryptoProfile.launchYear}</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-card/50">
+                        <span className="text-dim">Sitio Web Oficial</span>
+                        <a
+                          href={cryptoProfile.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-gold hover:underline text-[12px] font-medium"
+                        >
+                          <span>{cryptoProfile.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+                      <div className="flex items-center justify-between p-2 rounded-lg bg-card/50 sm:col-span-2">
+                        <span className="text-dim">Explorador de Bloques</span>
+                        <a
+                          href={cryptoProfile.explorer}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-teal hover:underline text-[12px] font-medium truncate max-w-[340px]"
+                        >
+                          <span>{cryptoProfile.explorer.replace(/^https?:\/\//, '').split('/')[0]}</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Descripción de la Criptomoneda */}
+                    <div className="p-4 bg-bg2 border border-line rounded-xl">
+                      <h4 className="text-[12px] font-semibold text-text mb-2 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                        <Building2 size={13} className="text-gold" />
+                        <span>Acerca del Proyecto ({cryptoProfile.name})</span>
+                      </h4>
+                      <p className="text-[13px] text-dim leading-relaxed whitespace-pre-line">
+                        {cryptoProfile.description}
+                      </p>
+                    </div>
                   </div>
                 ) : !prof ? (
                   <div className="py-12 text-center text-dim bg-bg2 rounded-xl border border-line p-5">

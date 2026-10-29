@@ -1,4 +1,4 @@
-# FinDash — Master Specification & Roadmap (v1.4)
+# FinDash — Master Specification & Roadmap (v1.5)
 
 ## 1. Identidad Visual y UI/UX (Estricto)
 - **Regla de Oro:** Respetar la paleta oscura: `--bg: #0c0f14`, `--bg2: #12161e`, `--card: #161b25`, `--line: #262d3b`, `--gold: #d8ad3f`, `--teal: #4fc7bd`, `--red: #d9685f`.
@@ -45,10 +45,17 @@
   - Horizonte temporal y volatilidad.
 - [x] **Test Interactivo de Perfil de Riesgo (`<RiskProfiler />`):** Cuestionario interactivo secuencial de 3 preguntas que calcula el puntaje y categoriza al inversor en Conservador, Moderado o Agresivo, recomendando instrumentos específicos de FinDash.
 - [x] **Aviso Legal, Exactitud y Reserva de Derechos (Disclaimer):** Bloque legal formal en FinDash Academy, footer permanente en el DetailPanel y documentación en README deslindando responsabilidad por demoras o inexactitudes de fuentes públicas de terceros, aclarando el propósito puramente educativo y la reserva de derechos de software.
-- [x] **Centro de Novedades & Actualizaciones (Changelog / Release Notes):** Modal interactivo (`UpdatesModal`) y botón en Sidebar/Academy con el historial cronológico de versiones estructurado desde la versión inicial `v1.0b` (Beta) hasta `v1.4` (máximo 5 mejoras por versión), destacando nuevas funciones, mejoras y correcciones.
+- [x] **Centro de Novedades & Actualizaciones (Changelog / Release Notes):** Modal interactivo (`UpdatesModal`) y botón en Sidebar/Academy con el historial cronológico de versiones estructurado desde la versión inicial `v1.0b` (Beta) hasta `v1.5` (máximo 5 mejoras por versión), destacando nuevas funciones, mejoras y correcciones.
 - [x] **Buscador Global Universal & Búsqueda Híbrida en Bolsa:** Endpoint `/api/search` para buscar cualquier acción, ETF, bono o cripto mundial en tiempo real (más allá del catálogo base de 100). Command Palette flotante accesible globalmente con `Ctrl + K` / `Cmd + K` o botón en Ticker, y buscador enriquecido en `BolsaView` con resultados de mercado en vivo.
 
 ### Epic 5: Noticias, Multigráficos y Cartera
 - [x] **Noticias:** Completar `/api/news` y `<NewsFeed />` categorizado (Macro, Política, Fintech, Cripto, IA) conectando a RSS reales con análisis de sentimiento.
 - [x] **Multigráficos:** Vista con grilla 2x2 y 4x4 para ver hasta 4 instancias de `lightweight-charts` en simultáneo.
 - [ ] **Mi Cartera:** CRUD local (localStorage `findash_cartera`) para agregar tenencias manuales, calculando total invertido vs valor actual (módulo en pausa temporal).
+
+### Epic 6: Criptomercado 2.0 (v1.5)
+- [x] **Monitor Dual en 2 Columnas (Altcoins vs Meme Coins):** Layout paralelo con tablas en tiempo real conectadas a Binance WebSocket (`MiniTicker`) con sparklines de 48h, variación 24h y volumen.
+- [x] **Modal de Detalle Completo para Cripto:** Gráficos interactivos de Lightweight Charts, métricas fundamentales de red (ATH, Supply circulante/total, Market Cap, Rango 24h) y perfil de red (Ethereum, Solana, Base, etc. con creador y descripción en criollo).
+- [x] **Radar de Ballenas en Tiempo Real (Whale Tracker):** Stream WebSocket `@aggTrade` de Binance para capturar transacciones masivas $\ge \$50.000$ USD en vivo con indicador de balance de presión compradora vs vendedora.
+- [x] **Noticias Cripto Dedicadas:** Card inferior con feed RSS de Cointelegraph y medios económicos con análisis de sentimiento.
+- [x] **Buscador y Personalización de Listas:** Búsqueda en vivo por ticker/red y selector para sumar o quitar monedas con persistencia en `localStorage`.
