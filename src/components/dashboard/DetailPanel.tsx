@@ -52,8 +52,18 @@ const TF_DAYS: Record<string, number> = {
 export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('grafico');
   const [chartType, setChartType] = useState<'area' | 'velas'>('area');
-  const [timeframe, setTimeframe] = useState('1a');
+  const [timeframe, setTimeframe] = useState('3m');
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
+  const symbol = asset?.symbol ?? asset?.name;
+  const isIntraday = timeframe in INTRADAY;
+
+  // Cada vez que se abre el panel o cambia de activo, parte desde 3 meses ('3m')
+  useEffect(() => {
+    if (isOpen) {
+      setTimeframe('3m');
+    }
+  }, [isOpen, symbol]);
 
   // Fundamentales & Perfil
   const [fundamentals, setFundamentals] = useState<FundamentalData | null>(null);
@@ -65,9 +75,6 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
   const touchStartY = useRef<number | null>(null);
   const [dragOffset, setDragOffset] = useState<number>(0);
   const isDragging = useRef<boolean>(false);
-
-  const symbol = asset?.symbol ?? asset?.name;
-  const isIntraday = timeframe in INTRADAY;
 
   const cryptoProfile = useMemo(() => {
     if (!asset || asset.type !== 'crypto') return null;

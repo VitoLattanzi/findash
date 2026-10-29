@@ -17,6 +17,7 @@ interface PriceChartProps {
   loading?: boolean;
   error?: string | null;
   compact?: boolean;
+  days?: number;
 }
 
 export const PriceChart = ({
@@ -30,14 +31,15 @@ export const PriceChart = ({
   loading: loadingProp,
   error: errorProp,
   compact,
+  days = 90, // Por defecto todos los gráficos parten desde 3 meses (90 días)
 }: PriceChartProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const useExternal = Array.isArray(pointsProp) && Array.isArray(candlesProp);
   const fetched = useSeriesData(useExternal ? undefined : symbol, type);
 
-  const points = useExternal ? (pointsProp as SeriesPoint[]) : fetched.points;
-  const candles = useExternal ? (candlesProp as CandlePoint[]) : fetched.candles;
+  const points = useExternal ? (pointsProp as SeriesPoint[]) : fetched.points.slice(-days);
+  const candles = useExternal ? (candlesProp as CandlePoint[]) : fetched.candles.slice(-days);
   const loading = useExternal ? !!loadingProp : fetched.loading;
   const error = useExternal ? (errorProp ?? null) : fetched.error;
 

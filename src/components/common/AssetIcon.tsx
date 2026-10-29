@@ -343,9 +343,10 @@ export const AssetIcon = ({
     );
   }
 
-  // 4. Criptomonedas (Logos oficiales de CoinGecko)
-  const cryptoUrl = CRYPTO_LOGOS[clean];
-  if (cryptoUrl && !imgError) {
+  // 4. Criptomonedas (CoinCap CDN oficial con fallback garantizado)
+  const isCrypto = type === 'crypto' || CRYPTO_LOGOS[clean] != null;
+  if (isCrypto && !imgError) {
+    const cryptoUrl = `https://assets.coincap.io/assets/icons/${clean.toLowerCase()}@2x.png`;
     return (
       <span
         aria-hidden

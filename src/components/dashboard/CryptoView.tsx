@@ -17,6 +17,7 @@ import {
 import { useBinanceWebSocket } from '@/hooks/useBinanceWebSocket';
 import { Sparkline } from '@/components/common/Sparkline';
 import { AssetIcon } from '@/components/common/AssetIcon';
+import { CryptoIcon } from '@/components/common/CryptoIcon';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { WhaleTracker } from '@/components/dashboard/WhaleTracker';
 import { CryptoNewsCard } from '@/components/dashboard/CryptoNewsCard';
@@ -307,19 +308,16 @@ export const CryptoView = () => {
                     }
                     className="cursor-pointer hover:bg-bg2/70 transition-colors group"
                   >
-                    {/* Activo + Red */}
+                    {/* Activo + Nombre */}
                     <td className="py-2.5 px-2">
                       <div className="flex items-center gap-2.5">
-                        <AssetIcon symbol={r.sym} type="crypto" size="sm" />
+                        <CryptoIcon symbol={r.sym} size={24} />
                         <div>
-                          <div className="font-semibold text-text group-hover:text-gold transition-colors flex items-center gap-1.5">
+                          <div className="font-semibold text-text group-hover:text-gold transition-colors">
                             <span>{r.sym}</span>
-                            <span className="text-[10px] font-normal text-dim font-mono hidden xs:inline">
-                              {r.name}
-                            </span>
                           </div>
-                          <span className="text-[10px] text-dim block truncate max-w-[120px]">
-                            {r.network.split(' ')[0]}
+                          <span className="text-[10.5px] text-dim block truncate max-w-[130px]">
+                            {r.name}
                           </span>
                         </div>
                       </div>
@@ -496,7 +494,7 @@ export const CryptoView = () => {
                       onClick={() => handleAddCoin(p.symbol, addCategory)}
                       className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg2 hover:bg-line border border-line text-[11.5px] text-text hover:text-gold transition-colors"
                     >
-                      <AssetIcon symbol={p.symbol} type="crypto" size="sm" />
+                      <CryptoIcon symbol={p.symbol} size={20} />
                       <span className="font-semibold">{p.symbol}</span>
                       <span className="text-[10px] text-dim">{p.name}</span>
                     </button>

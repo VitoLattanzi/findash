@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Radio, ArrowUpRight, ArrowDownRight, Filter, ShieldAlert, Sparkles } from 'lucide-react';
 import { AssetIcon } from '@/components/common/AssetIcon';
+import { CryptoIcon } from '@/components/common/CryptoIcon';
 import { formatPrice } from '@/lib/format';
 
 export interface WhaleTrade {
@@ -267,7 +268,7 @@ export const WhaleTracker = () => {
               >
                 {/* Activo + Tipo */}
                 <div className="flex items-center gap-2.5 min-w-[120px]">
-                  <AssetIcon symbol={t.symbol} type="crypto" size="sm" />
+                  <CryptoIcon symbol={t.symbol} size={22} />
                   <div>
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-text">{t.symbol}</span>
