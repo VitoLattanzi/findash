@@ -8,6 +8,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useBinanceWebSocket } from '@/hooks/useBinanceWebSocket';
 import { Asset } from '@/types';
 import { CATALOG, CATALOG_GROUPS, DEFAULT_PINNED, PinnedAsset } from '@/lib/catalog';
+import { ChangeTimeframe, getTimeframeOption } from '@/lib/timeframe';
 
 interface QuoteResponse {
   symbol: string;
@@ -15,6 +16,13 @@ interface QuoteResponse {
   change: number | null;
   bars: number[] | null;
   marketCap?: number | null;
+  volume?: number | null;
+}
+
+interface CryptoKlineSeries {
+  firstOpen: number;
+  lastClose: number;
+  bars: number[];
 }
 
 interface DollarQuote {
@@ -47,9 +55,10 @@ const FNG_LABEL: Record<string, string> = {
 export const DashboardView = () => {
   const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned_v2', DEFAULT_PINNED);
   const [view, setView] = useState<'list' | 'card' | 'map'>('list');
+  const [timeframe, setTimeframe] = useState<ChangeTimeframe>('24h');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [quotes, setQuotes] = useState<Record<string, QuoteResponse>>({});
-  const [klines, setKlines] = useState<Record<string, number[]>>({});
+  const [klines, setKlines] = useState<Record<string, CryptoKlineSeries>>({});
   const [loadingStocks, setLoadingStocks] = useState(false);
   const [dollars, setDollars] = useState<DollarQuote[]>([]);
   const [risk, setRisk] = useState<number | null>(null);
@@ -75,7 +84,9 @@ export const DashboardView = () => {
     let cancelled = false;
     setLoadingStocks(true);
 
-    fetch(`/api/market?tickers=${encodeURIComponent(stockPinned.join(','))}&spark=1`)
+    fetch(
+      `/api/market?tickers=${encodeURIComponent(stockPinned.join(','))}&spark=1&timeframe=${encodeURIComponent(timeframe)}`
+    )
       .then((res) => res.json())
       .then((data) => {
         if (cancelled || !Array.isArray(data)) return;
@@ -91,7 +102,7 @@ export const DashboardView = () => {
     return () => {
       cancelled = true;
     };
-  }, [stockPinned.join(',')]);
+  }, [stockPinned.join(','), timeframe]);
 
   useEffect(() => {
     if (cryptoPinned.length === 0) {
@@ -100,15 +111,21 @@ export const DashboardView = () => {
     }
     let cancelled = false;
     const pairs = cryptoPinned.map((c) => c.toUpperCase()).join(',');
+    const opt = getTimeframeOption(timeframe);
 
-    fetch(`/api/klines?symbols=${pairs}&interval=1h&limit=48`)
+    fetch(`/api/klines?symbols=${pairs}&interval=${opt.binanceInterval}&limit=${opt.binanceLimit}`)
       .then((res) => res.json())
       .then((data) => {
         if (cancelled || !data) return;
-        const map: Record<string, number[]> = {};
+        const map: Record<string, CryptoKlineSeries> = {};
         for (const key of Object.keys(data)) {
           const candles = data[key];
-          if (Array.isArray(candles)) map[key] = candles.map((c: { close: number }) => c.close);
+          if (Array.isArray(candles) && candles.length > 0) {
+            const firstOpen = Number(candles[0].open) || Number(candles[0].close) || 0;
+            const bars = candles.map((c: { close: number }) => Number(c.close));
+            const lastClose = bars[bars.length - 1] ?? 0;
+            map[key] = { firstOpen, lastClose, bars };
+          }
         }
         setKlines(map);
       })
@@ -117,7 +134,7 @@ export const DashboardView = () => {
     return () => {
       cancelled = true;
     };
-  }, [cryptoPinned.join(',')]);
+  }, [cryptoPinned.join(','), timeframe]);
 
   useEffect(() => {
     fetch('https://dolarapi.com/v1/dolares')
@@ -179,16 +196,30 @@ export const DashboardView = () => {
       if (p.type === 'crypto') {
         const pair = `${p.symbol.toUpperCase()}USDT`;
         const t = liveCrypto[pair];
-        const price = t ? parseFloat(t.c) : 0;
-        const open = t ? parseFloat(t.o) : 0;
-        const change = t && open ? ((price - open) / open) * 100 : 0;
+        const kline = klines[pair];
+        const livePrice = t ? parseFloat(t.c) : 0;
+        const price = livePrice || kline?.lastClose || 0;
+        const open24h = t ? parseFloat(t.o) : 0;
+        const liveChange24h = t && open24h ? ((price - open24h) / open24h) * 100 : 0;
+
+        let change = liveChange24h;
+        if (kline && kline.firstOpen > 0 && price > 0) {
+          change = ((price - kline.firstOpen) / kline.firstOpen) * 100;
+        }
+
+        const bars = kline
+          ? livePrice > 0
+            ? [...kline.bars.slice(0, -1), livePrice]
+            : kline.bars
+          : [];
+
         return {
           name: p.label || p.symbol,
           symbol: p.symbol,
           type: 'crypto' as const,
           price,
           change,
-          bars: klines[pair] ?? [],
+          bars,
         };
       }
       const q = quotes[p.symbol];
@@ -290,6 +321,8 @@ export const DashboardView = () => {
                 view={view === 'map' ? 'list' : view}
                 onAssetClick={(a) => setSelectedAsset(a)}
                 onRemove={(a) => unpin(a.symbol ?? a.name)}
+                timeframe={timeframe}
+                onTimeframeChange={setTimeframe}
               />
             )}
           </div>

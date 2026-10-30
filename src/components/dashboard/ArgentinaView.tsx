@@ -10,9 +10,12 @@ import {
 } from '@/lib/argentina';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { AssetIcon } from '@/components/common/AssetIcon';
+import { Sparkline } from '@/components/common/Sparkline';
+import { TimeframeControl } from '@/components/common/TimeframeHeader';
+import { ChangeTimeframe } from '@/lib/timeframe';
 import { Asset } from '@/types';
-import { formatPercent, formatPrice } from '@/lib/format';
-import { Search, Calculator, ArrowRightLeft, ShieldAlert, Sparkles, TrendingUp, HelpCircle, ExternalLink } from 'lucide-react';
+import { formatPercent } from '@/lib/format';
+import { Search, Calculator, ArrowRightLeft, ShieldAlert, Sparkles, TrendingUp, ExternalLink } from 'lucide-react';
 import { getTradingViewUrl } from '@/lib/tradingview';
 
 interface Quote {
@@ -20,19 +23,31 @@ interface Quote {
   price: number | null;
   change: number | null;
   name: string | null;
+  bars?: number[] | null;
+  volume?: number | null;
 }
 
 type TabMode = 'cedears' | 'bonos' | 'calculadora';
+type CedearSortField = 'ticker' | 'name' | 'usd' | 'ars' | 'change' | 'volume';
+
+const formatVolumeCompact = (v?: number | null) => {
+  if (v == null || v <= 0) return '—';
+  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`;
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
+  return String(v);
+};
 
 export const ArgentinaView = () => {
   const [tab, setTab] = useState<TabMode>('cedears');
   const [dolares, setDolares] = useState<Record<string, DolarRate>>({});
-  const [fx, setFx] = useState<any>(null);
   const [riskCountry, setRiskCountry] = useState<number | null>(null);
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [loadingQuotes, setLoadingQuotes] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'etf' | 'tech' | 'latam' | 'value'>('all');
+  const [timeframe, setTimeframe] = useState<ChangeTimeframe>('24h');
+  const [sort, setSort] = useState<{ field: CedearSortField; dir: 1 | -1 }>({ field: 'ticker', dir: 1 });
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
   // Estados de calculadora
@@ -54,11 +69,6 @@ export const ArgentinaView = () => {
       })
       .catch(() => {});
 
-    fetch('/api/fx')
-      .then((res) => res.json())
-      .then((data) => data?.rates && setFx(data.rates))
-      .catch(() => {});
-
     fetch('https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo')
       .then((res) => res.json())
       .then((data) => {
@@ -67,15 +77,16 @@ export const ArgentinaView = () => {
       .catch(() => {});
   }, []);
 
-  // Carga de cotizaciones de acciones subyacentes de CEDEARs desde Yahoo Finance
+  // Carga de cotizaciones de acciones subyacentes de CEDEARs desde Yahoo Finance con el rango elegido
   useEffect(() => {
+    let cancelled = false;
     const underlyings = Array.from(new Set(CEDEARS_LIST.map((c) => c.underlying))).join(',');
     setLoadingQuotes(true);
 
-    fetch(`/api/market?tickers=${encodeURIComponent(underlyings)}`)
+    fetch(`/api/market?tickers=${encodeURIComponent(underlyings)}&timeframe=${encodeURIComponent(timeframe)}&spark=1`)
       .then((res) => res.json())
       .then((data) => {
-        if (!Array.isArray(data)) return;
+        if (cancelled || !Array.isArray(data)) return;
         const map: Record<string, Quote> = {};
         for (const q of data) {
           if (q?.symbol) map[q.symbol] = q;
@@ -83,8 +94,14 @@ export const ArgentinaView = () => {
         setQuotes(map);
       })
       .catch(() => {})
-      .finally(() => setLoadingQuotes(false));
-  }, []);
+      .finally(() => {
+        if (!cancelled) setLoadingQuotes(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [timeframe]);
 
   // Referencias de dólares
   const cclPrice = dolares['contadoconliqui']?.venta || 0;
@@ -97,15 +114,38 @@ export const ArgentinaView = () => {
   const brechaBlue = oficialPrice > 0 ? ((bluePrice - oficialPrice) / oficialPrice) * 100 : 0;
   const canjeRate = mepPrice > 0 ? ((cclPrice - mepPrice) / mepPrice) * 100 : 0;
 
-  // Filtrado de CEDEARs
+  const toggleSort = (field: CedearSortField) => {
+    setSort((prev) =>
+      prev.field === field
+        ? { field, dir: prev.dir === 1 ? -1 : 1 }
+        : { field, dir: field === 'ticker' || field === 'name' ? 1 : -1 }
+    );
+  };
+
+  // Filtrado y ordenamiento de CEDEARs
   const filteredCedears = useMemo(() => {
-    return CEDEARS_LIST.filter((item) => {
+    const base = CEDEARS_LIST.filter((item) => {
       if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return item.ticker.toLowerCase().includes(q) || item.name.toLowerCase().includes(q);
     });
-  }, [categoryFilter, search]);
+
+    return [...base].sort((a, b) => {
+      const qa = quotes[a.underlying];
+      const qb = quotes[b.underlying];
+      if (sort.field === 'ticker') return a.ticker.localeCompare(b.ticker, 'es') * sort.dir;
+      if (sort.field === 'name') return a.name.localeCompare(b.name, 'es') * sort.dir;
+      if (sort.field === 'usd') return ((qa?.price ?? 0) - (qb?.price ?? 0)) * sort.dir;
+      if (sort.field === 'ars') {
+        const arsA = calculateCedearArs(qa?.price ?? 0, a.ratio, cclPrice);
+        const arsB = calculateCedearArs(qb?.price ?? 0, b.ratio, cclPrice);
+        return (arsA - arsB) * sort.dir;
+      }
+      if (sort.field === 'volume') return ((qa?.volume ?? 0) - (qb?.volume ?? 0)) * sort.dir;
+      return ((qa?.change ?? 0) - (qb?.change ?? 0)) * sort.dir;
+    });
+  }, [categoryFilter, search, quotes, sort, cclPrice]);
 
   // Selección de CEDEAR para la calculadora
   const selectedCalcCedear = useMemo(() => {
@@ -131,9 +171,12 @@ export const ArgentinaView = () => {
       type: 'stock',
       price: q?.price ?? 0,
       change: q?.change ?? 0,
-      bars: [],
+      bars: q?.bars ?? [],
     });
   };
+
+  const sortArrow = (field: CedearSortField) =>
+    sort.field === field ? (sort.dir === 1 ? '▲' : '▼') : '↕';
 
   return (
     <section className="space-y-6">
@@ -306,17 +349,62 @@ export const ArgentinaView = () => {
           </div>
 
           {/* Tabla de CEDEARs */}
-          <div className="bg-card border border-line rounded-[6px] overflow-hidden">
+          <div className="bg-card border border-line rounded-[6px]">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[12.5px] border-collapse">
                 <thead>
                   <tr className="bg-bg2 text-dim border-b border-line text-[11px] uppercase tracking-wider">
-                    <th className="p-3">CEDEAR</th>
-                    <th className="p-3">Nombre</th>
+                    <th
+                      onClick={() => toggleSort('ticker')}
+                      className={`p-3 cursor-pointer select-none hover:text-text ${
+                        sort.field === 'ticker' ? 'text-gold' : ''
+                      }`}
+                    >
+                      Activo / CEDEAR <span className="text-[9px] ml-0.5">{sortArrow('ticker')}</span>
+                    </th>
+                    <th
+                      onClick={() => toggleSort('name')}
+                      className={`p-3 cursor-pointer select-none hover:text-text ${
+                        sort.field === 'name' ? 'text-gold' : ''
+                      }`}
+                    >
+                      Nombre <span className="text-[9px] ml-0.5">{sortArrow('name')}</span>
+                    </th>
                     <th className="p-3 text-center">Ratio BYMA</th>
-                    <th className="p-3 text-right">Subyacente (USD)</th>
-                    <th className="p-3 text-right">Teórico ARS (al CCL)</th>
-                    <th className="p-3 text-right">Var % (Día)</th>
+                    <th
+                      onClick={() => toggleSort('usd')}
+                      className={`p-3 text-right cursor-pointer select-none hover:text-text ${
+                        sort.field === 'usd' ? 'text-gold' : ''
+                      }`}
+                    >
+                      Precio (USD) <span className="text-[9px] ml-0.5">{sortArrow('usd')}</span>
+                    </th>
+                    <th
+                      onClick={() => toggleSort('ars')}
+                      className={`p-3 text-right cursor-pointer select-none hover:text-text ${
+                        sort.field === 'ars' ? 'text-gold' : ''
+                      }`}
+                    >
+                      Teórico ARS (CCL) <span className="text-[9px] ml-0.5">{sortArrow('ars')}</span>
+                    </th>
+                    <th className="p-3 text-right">
+                      <TimeframeControl
+                        timeframe={timeframe}
+                        onTimeframeChange={setTimeframe}
+                        sortActive={sort.field === 'change'}
+                        sortDir={sort.dir}
+                        onSortClick={() => toggleSort('change')}
+                        align="right"
+                      />
+                    </th>
+                    <th
+                      onClick={() => toggleSort('volume')}
+                      className={`p-3 text-right cursor-pointer select-none hover:text-text hidden lg:table-cell ${
+                        sort.field === 'volume' ? 'text-gold' : ''
+                      }`}
+                    >
+                      Volumen <span className="text-[9px] ml-0.5">{sortArrow('volume')}</span>
+                    </th>
                     <th className="p-3 text-center">Gráfico</th>
                   </tr>
                 </thead>
@@ -364,8 +452,12 @@ export const ArgentinaView = () => {
                             {formatPercent(change)}
                           </span>
                         </td>
+                        <td className="p-3 text-right font-mono text-dim text-[11.5px] hidden lg:table-cell">
+                          {formatVolumeCompact(q?.volume)}
+                        </td>
                         <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                          <div className="flex items-center justify-center gap-2">
+                            <Sparkline data={q?.bars ?? []} change={change} width={68} height={22} />
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -432,7 +524,7 @@ export const ArgentinaView = () => {
             <div className="bg-card border border-line p-4 rounded-[6px]">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="text-teal" size={18} />
-                <h3 className="font-semibold text-[14px]">Dólar CCL vs MEP (El "Canje" o Cable)</h3>
+                <h3 className="font-semibold text-[14px]">Dólar CCL vs MEP (El &quot;Canje&quot; o Cable)</h3>
               </div>
               <p className="text-[12px] text-dim leading-relaxed">
                 El <b>Dólar CCL</b> (Contado con Liquidación) se opera con bonos ley extranjera (como <b>GD30 / GD30C</b>) o CEDEARs y permite enviar divisas a cuentas bancarias del exterior (o ingresarlas). El diferencial de precio entre el dólar cable (CCL) y el dólar MEP se conoce como <b>tasa de canje</b> (actualmente <span className="text-gold font-mono font-semibold">{canjeRate.toFixed(2)}%</span>).

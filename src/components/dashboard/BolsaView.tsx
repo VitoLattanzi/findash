@@ -5,6 +5,9 @@ import { ARGENTINA_TICKERS, COMMODITY_TICKERS, DEFAULT_PINNED, PinnedAsset, SP50
 import { formatPercent, formatPrice } from '@/lib/format';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { AssetIcon } from '@/components/common/AssetIcon';
+import { Sparkline } from '@/components/common/Sparkline';
+import { TimeframeControl } from '@/components/common/TimeframeHeader';
+import { ChangeTimeframe } from '@/lib/timeframe';
 import { Asset } from '@/types';
 import { SearchResultItem } from '@/app/api/search/route';
 import { Search, Globe, Loader2, X } from 'lucide-react';
@@ -15,16 +18,26 @@ interface Quote {
   price: number | null;
   change: number | null;
   name: string | null;
+  bars?: number[] | null;
   marketCap?: number | null;
+  volume?: number | null;
 }
 
 type Tab = 'sp500' | 'argentina' | 'commodities';
-type SortKey = 'symbol' | 'name' | 'price' | 'change';
+type SortKey = 'symbol' | 'name' | 'price' | 'change' | 'volume';
 
 const TAB_TICKERS: Record<Tab, string> = {
   sp500: SP500_TICKERS,
   argentina: ARGENTINA_TICKERS,
   commodities: COMMODITY_TICKERS,
+};
+
+const formatVolumeCompact = (v?: number | null) => {
+  if (v == null || v <= 0) return '—';
+  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`;
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
+  return String(v);
 };
 
 const SortHeader = ({
@@ -59,6 +72,7 @@ export const BolsaView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [timeframe, setTimeframe] = useState<ChangeTimeframe>('24h');
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'symbol', dir: 1 });
   const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned_v2', DEFAULT_PINNED);
   const [selected, setSelected] = useState<Asset | null>(null);
@@ -68,13 +82,13 @@ export const BolsaView = () => {
   const [globalResults, setGlobalResults] = useState<SearchResultItem[]>([]);
   const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
 
-  // Carga inicial del universo de la solapa activa
+  // Carga del universo de la solapa activa según temporalidad
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    fetch(`/api/market?tickers=${encodeURIComponent(TAB_TICKERS[tab])}`)
+    fetch(`/api/market?tickers=${encodeURIComponent(TAB_TICKERS[tab])}&timeframe=${encodeURIComponent(timeframe)}&spark=1`)
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return;
@@ -94,7 +108,7 @@ export const BolsaView = () => {
     return () => {
       cancelled = true;
     };
-  }, [tab]);
+  }, [tab, timeframe]);
 
   // Búsqueda en vivo en todo el mercado (Yahoo Finance search) con debounce
   useEffect(() => {
@@ -113,7 +127,6 @@ export const BolsaView = () => {
         .then((r) => r.json())
         .then((data) => {
           if (!cancelled && Array.isArray(data)) {
-            // Filtrar los que ya están en la lista visible local para no duplicar
             const localSymbols = new Set(quotes.map((item) => item.symbol.toUpperCase()));
             const notInLocal = data.filter((item) => !localSymbols.has(item.symbol.toUpperCase()));
             setGlobalResults(notInLocal);
@@ -146,6 +159,8 @@ export const BolsaView = () => {
           return item.price;
         case 'change':
           return item.change;
+        case 'volume':
+          return item.volume ?? null;
         case 'name':
           return item.name ?? item.symbol;
         default:
@@ -167,7 +182,7 @@ export const BolsaView = () => {
   }, [quotes, search, sort]);
 
   const toggleSort = (key: SortKey) =>
-    setSort((prev) => (prev.key === key ? { key, dir: prev.dir === 1 ? -1 : 1 } : { key, dir: 1 }));
+    setSort((prev) => (prev.key === key ? { key, dir: prev.dir === 1 ? -1 : 1 } : { key, dir: key === 'symbol' || key === 'name' ? 1 : -1 }));
 
   const togglePin = (symbol: string) => {
     const isPinned = pinned.some((p) => p.symbol === symbol);
@@ -215,46 +230,46 @@ export const BolsaView = () => {
           </span>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-          {/* Toggle Lista | Mapa */}
-          <div className="flex border border-line rounded-lg overflow-hidden flex-shrink-0">
-            {(
-              [
-                ['list', 'Lista'],
-                ['map', 'Mapa'],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setView(key)}
-                className={`px-3 py-1.5 text-[12px] transition-colors ${
-                  view === key ? 'bg-gold text-bg font-semibold' : 'bg-bg2 text-dim hover:text-text'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+            {/* Toggle Lista | Mapa */}
+            <div className="flex border border-line rounded-lg overflow-hidden flex-shrink-0">
+              {(
+                [
+                  ['list', 'Lista'],
+                  ['map', 'Mapa'],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setView(key)}
+                  className={`px-3 py-1.5 text-[12px] transition-colors ${
+                    view === key ? 'bg-gold text-bg font-semibold' : 'bg-bg2 text-dim hover:text-text'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
 
-          {/* Input de búsqueda ampliado */}
-          <div className="relative w-full sm:w-80">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar cualquier acción, ETF o bono mundial (ej: TSM, BABA, NVDA)..."
-              className="bg-bg2 border border-line text-text pl-9 pr-8 py-1.5 rounded-lg text-[12.5px] w-full focus:outline-none focus:border-gold transition-colors placeholder-dim/60"
-            />
-            {isSearchingGlobal ? (
-              <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gold animate-spin" />
-            ) : search ? (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-dim hover:text-text text-[13px]"
-              >
-                <X size={14} />
-              </button>
-            ) : null}
-          </div>
+            {/* Input de búsqueda ampliado */}
+            <div className="relative w-full sm:w-80">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar cualquier acción, ETF o bono mundial (ej: TSM, BABA, NVDA)..."
+                className="bg-bg2 border border-line text-text pl-9 pr-8 py-1.5 rounded-lg text-[12.5px] w-full focus:outline-none focus:border-gold transition-colors placeholder-dim/60"
+              />
+              {isSearchingGlobal ? (
+                <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gold animate-spin" />
+              ) : search ? (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-dim hover:text-text text-[13px]"
+                >
+                  <X size={14} />
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -302,7 +317,7 @@ export const BolsaView = () => {
             <table className="w-full text-left text-[13px] border-collapse">
               <thead>
                 <tr>
-                  <SortHeader label="Ticker" sortKey="symbol" sort={sort} onSort={toggleSort} />
+                  <SortHeader label="Activo" sortKey="symbol" sort={sort} onSort={toggleSort} />
                   <SortHeader
                     label="Nombre"
                     sortKey="name"
@@ -311,13 +326,36 @@ export const BolsaView = () => {
                     className="hidden sm:table-cell"
                   />
                   <SortHeader label="Precio" sortKey="price" align="right" sort={sort} onSort={toggleSort} />
-                  <SortHeader label="24h%" sortKey="change" align="right" sort={sort} onSort={toggleSort} />
-                  <th className="p-[8px_10px] border-b border-line w-10 text-center">Fijar</th>
+                  <th className="p-[8px_10px] border-b border-line text-right">
+                    <TimeframeControl
+                      timeframe={timeframe}
+                      onTimeframeChange={setTimeframe}
+                      sortActive={sort.key === 'change'}
+                      sortDir={sort.dir}
+                      onSortClick={() => toggleSort('change')}
+                      align="right"
+                    />
+                  </th>
+                  <SortHeader
+                    label="Volumen"
+                    sortKey="volume"
+                    align="right"
+                    sort={sort}
+                    onSort={toggleSort}
+                    className="hidden md:table-cell"
+                  />
+                  <th className="p-[8px_10px] border-b border-line text-right text-dim font-medium text-[11.5px] hidden lg:table-cell">
+                    Gráfico
+                  </th>
+                  <th className="p-[8px_10px] border-b border-line w-10 text-center text-dim font-medium text-[11.5px]">
+                    Fijar
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((q) => {
                   const isPinned = pinned.some((p) => p.symbol === q.symbol);
+                  const change = q.change ?? 0;
                   return (
                     <tr
                       key={q.symbol}
@@ -327,8 +365,8 @@ export const BolsaView = () => {
                           symbol: q.symbol,
                           type: 'stock',
                           price: q.price ?? 0,
-                          change: q.change ?? 0,
-                          bars: [],
+                          change,
+                          bars: q.bars ?? [],
                         })
                       }
                       className="hover:bg-bg2/80 cursor-pointer transition-colors border-b border-line/40 group"
@@ -347,10 +385,18 @@ export const BolsaView = () => {
                       </td>
                       <td
                         className={`p-[9px_10px] text-right font-mono font-medium ${
-                          (q.change ?? 0) >= 0 ? 'text-teal' : 'text-red'
+                          change >= 0 ? 'text-teal' : 'text-red'
                         }`}
                       >
                         {formatPercent(q.change)}
+                      </td>
+                      <td className="p-[9px_10px] text-right font-mono text-dim text-[12px] hidden md:table-cell">
+                        {formatVolumeCompact(q.volume)}
+                      </td>
+                      <td className="p-[9px_10px] text-right hidden lg:table-cell">
+                        <div className="inline-flex justify-end">
+                          <Sparkline data={q.bars ?? []} change={change} width={76} height={22} />
+                        </div>
                       </td>
                       <td className="p-[9px_10px] text-center">
                         <button
@@ -374,7 +420,7 @@ export const BolsaView = () => {
                 {search.length >= 2 && globalResults.length > 0 && (
                   <>
                     <tr className="bg-bg/80 border-t-2 border-line">
-                      <td colSpan={5} className="p-[8px_10px] text-[11px] font-mono text-gold uppercase tracking-wider">
+                      <td colSpan={7} className="p-[8px_10px] text-[11px] font-mono text-gold uppercase tracking-wider">
                         <span className="flex items-center gap-1.5 font-semibold">
                           <Globe size={12} />
                           Resultados de búsqueda global en todo el mercado (Yahoo Finance)
@@ -427,6 +473,10 @@ export const BolsaView = () => {
                           >
                             {r.change != null ? formatPercent(r.change) : '—'}
                           </td>
+                          <td className="p-[9px_10px] text-right font-mono text-dim text-[12px] hidden md:table-cell">
+                            —
+                          </td>
+                          <td className="p-[9px_10px] text-right hidden lg:table-cell text-dim">—</td>
                           <td className="p-[9px_10px] text-center">
                             <button
                               onClick={(e) => {
@@ -450,7 +500,7 @@ export const BolsaView = () => {
                 {/* Si no hay resultados locales ni globales */}
                 {filtered.length === 0 && globalResults.length === 0 && !isSearchingGlobal && (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-dim">
+                    <td colSpan={7} className="p-8 text-center text-dim">
                       No se encontraron activos para &quot;{search}&quot;. Prueba con otro ticker (ej: TSM, BABA, ARM, COIN).
                     </td>
                   </tr>

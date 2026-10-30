@@ -60,13 +60,19 @@
 - [x] **Noticias Cripto Dedicadas:** Card inferior con feed RSS de Cointelegraph y medios económicos con análisis de sentimiento.
 - [x] **Buscador y Personalización de Listas:** Búsqueda en vivo por ticker/red y selector para sumar o quitar monedas con persistencia en `localStorage`.
 
-### Epic 7: Mapa de Calor Financiero (Treemap Heatmap - v1.6)
-- [x] **Datos de Market Cap y Volumen:** Asegurar que `/api/market` devuelva `marketCap` desde `yahoo-finance2` y que el estado de Cripto calcule o reciba la capitalización aproximada (`estimateCryptoMarketCap`) para ponderar el tamaño de los bloques.
+### Epic 7: Mapa de Calor Financiero, Temporalidades & Ordenamiento (v1.6)
+- [x] **Datos de Market Cap y Volumen:** Asegurar que `/api/market` devuelva `marketCap` y `volume` desde `yahoo-finance2` y que el estado de Cripto calcule o reciba la capitalización aproximada (`estimateCryptoMarketCap`) para ponderar el tamaño de los bloques.
 - [x] **Componente `<MarketHeatmap />` (`src/components/common/MarketHeatmap.tsx`):**
   - Implementar algoritmo *Squarified Treemap* ligero en TypeScript sin librerías externas pesadas.
   - Soportar 3 modos de dimensionamiento (`sizeBy`): `'marketCap'` (por capitalización), `'equal'` (peso igualitario) y `'volatility'` (por magnitud de variación diaria para vistas mixtas con commodities/ETFs en el Dashboard).
   - Escala de color dinámica: interpolar tonos de `--teal` (`#2b9e93`) para subas y `--red` (`#c94a42`) para bajas según la magnitud del porcentaje (`change`), con `#161b25` para neutros.
   - Cada celda muestra centrados: Logo (`<CryptoIcon />` o `<AssetIcon />`), Ticker en bold, y porcentaje de cambio (`+X.XX%`), adaptando tipografía e ícono según el tamaño del bloque.
   - Al hacer clic en un bloque, disparar `onItemClick(asset)` para abrir el `<DetailPanel />`.
+- [x] **Nuevo Layout en la Sección Cripto (Mapa de Calor TradingView + Listas Scrolleables):**
+  - Columna izquierda (50%-55% en desktop): Widget oficial de Mapa de Calor de Criptomonedas de TradingView (`embed-widget-crypto-coins-heatmap.js`) en contenedor `bg-card border border-line rounded-[6px] h-[580px] overflow-hidden`.
+  - Columna derecha (45%-50% en desktop): 2 paneles apilados verticalmente (**Altcoins & Capa 1** ampliada + **Meme Coins Líderes**) con scroll interno (`max-h-[265px] overflow-y-auto`) y cabecera `sticky top-0 bg-card z-20`.
+- [x] **Menú Desplegable (Popover) de Temporalidades (`12h`, `24h`, `1sem`, `1 mes`, `3meses`) y Ordenamiento por Columnas:**
+  - En todas las tablas y listas de activos (Cripto, Dashboard, Bolsa, Arg/CEDEARs y Países), mostrar el rango activo con `ChevronDown` en el encabezado de `%` y abrir un popover flotante con las 5 temporalidades resaltando la activa en `--gold`, más botón de ordenamiento adyacente (`▲`/`▼`) y ordenamiento en `ACTIVO`, `PRECIO` y `VOLUMEN`.
+  - Actualización real de `%` y `<Sparkline />` según el rango elegido tanto en Cripto (`/api/klines` -> Binance `/api/v3/klines`) como en Bolsa, CEDEARs y Países (`/api/market?timeframe=...` con `yahoo-finance2`).
 - [x] **Integración en Vistas:**
-  - En **Dashboard**, **Cripto**, **Bolsa** y **Países**, actualizar el toggle de visualización a 3 opciones: `[ Lista | Cards | Mapa ]`.
+  - En **Dashboard**, **Cripto**, **Bolsa** y **Países**, actualizar el toggle de visualización a `[ Lista | Cards | Mapa ]`.

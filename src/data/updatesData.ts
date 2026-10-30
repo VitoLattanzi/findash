@@ -17,39 +17,39 @@ export const PLATFORM_UPDATES: ReleaseUpdate[] = [
   {
     version: 'v1.6',
     date: 'Octubre 2026',
-    title: 'Mapa de Calor Treemap (Heatmap Financiero)',
+    title: 'Mapas de Calor, Temporalidades Dinámicas y Ordenamiento',
     isLatest: true,
-    highlight: 'Visualización térmica interactiva estilo Finviz/TradingView en TypeScript puro, con escala adaptativa y ponderación por capitalización o volatilidad.',
+    highlight: 'Mapa de Calor oficial de TradingView en Cripto, Treemap nativo en Bolsa/Dashboard/Países y menú desplegable de 5 temporalidades (12h a 3 meses) con actualización real de % y Sparklines.',
     items: [
+      {
+        type: 'nuevo',
+        title: 'Nuevo Layout Cripto: Mapa de Calor TradingView + Listas Scrolleables',
+        description:
+          'Widget interactivo oficial de Mapa de Calor de Criptomonedas de TradingView a la izquierda (con zoom y bloques por Market Cap) y paneles apilados de Altcoins & Capa 1 (ampliado) y Meme Coins Líderes con scroll interno compacto a la derecha.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Popover de Temporalidades (12h, 24h, 1sem, 1 mes, 3meses)',
+        description:
+          'Menú desplegable flotante al tocar el encabezado de % en todas las tablas (Cripto, Dashboard, Bolsa, Arg/CEDEARs y Países) que recalcula en tiempo real el porcentaje de variación y redibuja las curvas Sparkline.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Ordenamiento Completo por Columnas',
+        description:
+          'Encabezados interactivos para ordenar cualquier tabla alfabéticamente por Activo (A-Z / Z-A) o numéricamente por Precio, Variación % (con botón rápido ▲/▼) y Volumen.',
+      },
       {
         type: 'nuevo',
         title: 'Componente Treemap Nativo (Squarified Heatmap)',
         description:
-          'Algoritmo matemático de partición de rectángulos proporcionales sin librerías externas pesadas, garantizando carga instantánea y fluidez visual en cualquier resolución.',
-      },
-      {
-        type: 'nuevo',
-        title: 'Escala Térmica Adaptativa FinDash',
-        description:
-          'Interpolación gradual de color desde rojo intenso (#c94a42) para caídas severas hasta verde azulado (#2b9e93) para subas fuertes, con bordes diferenciados y fondo neutro para cotizaciones estables.',
-      },
-      {
-        type: 'nuevo',
-        title: 'Ponderación Inteligente (3 Modos de Tamaño)',
-        description:
-          'Selector para dimensionar los bloques según Capitalización de Mercado (marketCap), Peso Igualitario o Volatilidad del día (|change|%), permitiendo comparar activos corporativos, divisas y commodities.',
-      },
-      {
-        type: 'nuevo',
-        title: 'Integración Multivista (Dashboard, Bolsa, Cripto y Países)',
-        description:
-          'Selector de visualización [ Lista | Cards | Mapa ] en todas las pantallas principales para analizar el pulso del mercado global de un solo vistazo.',
+          'Mapa de calor propio en TypeScript con escala térmica FinDash (--teal y --red) y 3 modos de tamaño (Cap. de Mercado, Peso Igualitario y Volatilidad) en Dashboard, Bolsa y Países.',
       },
       {
         type: 'mejora',
-        title: 'Interactividad Directa con DetailPanel',
+        title: 'Iconografía Resiliente (<CryptoIcon />) y Gráficos a 3 Meses',
         description:
-          'Bloques interactivos con logo, ticker dinámico y variación porcentual que abren al instante el panel central con gráficos de velas y fundamentales.',
+          'CDN de íconos cripto con fallback circular automático ante errores 404 y apertura por defecto en rango de 3 meses (3M) en todos los gráficos de la aplicación.',
       },
     ],
   },

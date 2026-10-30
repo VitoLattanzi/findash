@@ -6,6 +6,9 @@ import { formatPercent, formatPrice } from '@/lib/format';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { PriceChart } from '@/components/common/PriceChart';
 import { CountryFlag } from '@/components/common/CountryFlag';
+import { Sparkline } from '@/components/common/Sparkline';
+import { TimeframeControl } from '@/components/common/TimeframeHeader';
+import { ChangeTimeframe } from '@/lib/timeframe';
 import { MarketHeatmap } from '@/components/common/MarketHeatmap';
 import { Asset } from '@/types';
 import { X } from 'lucide-react';
@@ -69,6 +72,7 @@ interface Quote {
   name: string | null;
   bars: number[] | null;
   marketCap?: number | null;
+  volume?: number | null;
 }
 
 interface CountryNewsItem {
@@ -95,6 +99,16 @@ interface FxRates {
   MXN: number;
   INR: number;
 }
+
+type CountrySortField = 'name' | 'price' | 'change' | 'volume';
+
+const formatVolumeCompact = (v?: number | null) => {
+  if (v == null || v <= 0) return '—';
+  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`;
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
+  return String(v);
+};
 
 const volatility = (bars?: number[] | null): number | null => {
   if (!bars || bars.length < 6) return null;
@@ -125,7 +139,9 @@ export const CountryView = () => {
   const [news, setNews] = useState<Record<string, CountryNews>>({});
   const [newsLoading, setNewsLoading] = useState(true);
   const [riskAr, setRiskAr] = useState<number | null>(null);
-  const [view, setView] = useState<'card' | 'map'>('card');
+  const [view, setView] = useState<'list' | 'card' | 'map'>('card');
+  const [timeframe, setTimeframe] = useState<ChangeTimeframe>('24h');
+  const [sort, setSort] = useState<{ field: CountrySortField; dir: 1 | -1 }>({ field: 'name', dir: 1 });
 
   const tickers = countries.map((c) => c.etf).filter((t) => t && t !== '—');
   const names = useMemo(() => countries.map((c) => c.name), [countries]);
@@ -139,7 +155,9 @@ export const CountryView = () => {
     let cancelled = false;
     setLoading(true);
 
-    fetch(`/api/market?tickers=${encodeURIComponent(tickers.join(','))}&spark=1`)
+    fetch(
+      `/api/market?tickers=${encodeURIComponent(tickers.join(','))}&spark=1&timeframe=${encodeURIComponent(timeframe)}`
+    )
       .then((res) => res.json())
       .then((data) => {
         if (cancelled || !Array.isArray(data)) return;
@@ -155,7 +173,7 @@ export const CountryView = () => {
     return () => {
       cancelled = true;
     };
-  }, [tickers.join(',')]);
+  }, [tickers.join(','), timeframe]);
 
   useEffect(() => {
     fetch('/api/fx')
@@ -206,9 +224,28 @@ export const CountryView = () => {
     setInput('');
   };
 
-  const removeCountry = (index: number) => {
-    setCountries(countries.filter((_, i) => i !== index));
+  const removeCountryByEtf = (etf: string) => {
+    setCountries(countries.filter((c) => c.etf !== etf));
   };
+
+  const toggleSort = (field: CountrySortField) => {
+    setSort((prev) =>
+      prev.field === field
+        ? { field, dir: prev.dir === 1 ? -1 : 1 }
+        : { field, dir: field === 'name' ? 1 : -1 }
+    );
+  };
+
+  const sortedCountries = useMemo(() => {
+    return [...countries].sort((a, b) => {
+      const qa = quotes[a.etf];
+      const qb = quotes[b.etf];
+      if (sort.field === 'name') return a.name.localeCompare(b.name, 'es') * sort.dir;
+      if (sort.field === 'price') return ((qa?.price ?? 0) - (qb?.price ?? 0)) * sort.dir;
+      if (sort.field === 'volume') return ((qa?.volume ?? 0) - (qb?.volume ?? 0)) * sort.dir;
+      return ((qa?.change ?? 0) - (qb?.change ?? 0)) * sort.dir;
+    });
+  }, [countries, quotes, sort]);
 
   const currencyOf = (c: Country) =>
     CURRENCY_BY_ETF[c.etf.toUpperCase()] ?? CURRENCY_BY_NAME[c.name.trim().toLowerCase()] ?? null;
@@ -219,6 +256,9 @@ export const CountryView = () => {
     const rate = fx ? (fx as unknown as Record<string, number>)[code] ?? null : null;
     return { rate, symbol: CURRENCY_SYMBOL[code] ?? '' };
   };
+
+  const sortArrow = (field: CountrySortField) =>
+    sort.field === field ? (sort.dir === 1 ? '▲' : '▼') : '↕';
 
   return (
     <section>
@@ -232,6 +272,7 @@ export const CountryView = () => {
         <div className="flex border border-line rounded-[5px] overflow-hidden">
           {(
             [
+              ['list', 'Lista'],
               ['card', 'Cards'],
               ['map', 'Mapa'],
             ] as const
@@ -260,6 +301,42 @@ export const CountryView = () => {
         </button>
       </div>
 
+      {/* Barra de ordenamiento y temporalidad */}
+      <div className="bg-card border border-line rounded-[6px] px-3 py-2 mb-3 flex items-center justify-between flex-wrap gap-3 text-[11px] font-mono uppercase tracking-wider text-dim">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => toggleSort('name')}
+            className={`hover:text-text transition-colors ${sort.field === 'name' ? 'text-gold font-semibold' : ''}`}
+          >
+            ACTIVO / PAÍS <span className="text-[9px] ml-0.5">{sortArrow('name')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleSort('price')}
+            className={`hover:text-text transition-colors ${sort.field === 'price' ? 'text-gold font-semibold' : ''}`}
+          >
+            PRECIO <span className="text-[9px] ml-0.5">{sortArrow('price')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleSort('volume')}
+            className={`hover:text-text transition-colors ${sort.field === 'volume' ? 'text-gold font-semibold' : ''}`}
+          >
+            VOLUMEN <span className="text-[9px] ml-0.5">{sortArrow('volume')}</span>
+          </button>
+        </div>
+
+        <TimeframeControl
+          timeframe={timeframe}
+          onTimeframeChange={setTimeframe}
+          sortActive={sort.field === 'change'}
+          sortDir={sort.dir}
+          onSortClick={() => toggleSort('change')}
+          align="right"
+        />
+      </div>
+
       {loading ? (
         <div className="grid gap-3 grid-cols-1 xl:grid-cols-2">
           {[0, 1, 2, 3].map((i) => (
@@ -268,7 +345,7 @@ export const CountryView = () => {
         </div>
       ) : view === 'map' ? (
         <MarketHeatmap
-          items={countries
+          items={sortedCountries
             .filter((c) => quotes[c.etf]?.price != null)
             .map((c) => ({
               id: `${c.name}-${c.etf}`,
@@ -292,9 +369,108 @@ export const CountryView = () => {
             })
           }
         />
+      ) : view === 'list' ? (
+        <div className="bg-card border border-line rounded-[6px] overflow-x-auto">
+          <table className="w-full text-left text-[12.5px] border-collapse">
+            <thead>
+              <tr className="bg-bg2 text-dim border-b border-line text-[11px] uppercase tracking-wider">
+                <th
+                  onClick={() => toggleSort('name')}
+                  className={`p-3 cursor-pointer select-none hover:text-text ${
+                    sort.field === 'name' ? 'text-gold' : ''
+                  }`}
+                >
+                  Activo / País <span className="text-[9px] ml-0.5">{sortArrow('name')}</span>
+                </th>
+                <th className="p-3">ETF</th>
+                <th
+                  onClick={() => toggleSort('price')}
+                  className={`p-3 text-right cursor-pointer select-none hover:text-text ${
+                    sort.field === 'price' ? 'text-gold' : ''
+                  }`}
+                >
+                  Precio (USD) <span className="text-[9px] ml-0.5">{sortArrow('price')}</span>
+                </th>
+                <th className="p-3 text-right">
+                  <TimeframeControl
+                    timeframe={timeframe}
+                    onTimeframeChange={setTimeframe}
+                    sortActive={sort.field === 'change'}
+                    sortDir={sort.dir}
+                    onSortClick={() => toggleSort('change')}
+                    align="right"
+                  />
+                </th>
+                <th
+                  onClick={() => toggleSort('volume')}
+                  className={`p-3 text-right cursor-pointer select-none hover:text-text hidden md:table-cell ${
+                    sort.field === 'volume' ? 'text-gold' : ''
+                  }`}
+                >
+                  Volumen <span className="text-[9px] ml-0.5">{sortArrow('volume')}</span>
+                </th>
+                <th className="p-3 text-right">Gráfico</th>
+                <th className="p-3 text-center w-10">Quitar</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {sortedCountries.map((c) => {
+                const q = quotes[c.etf];
+                const change = q?.change ?? 0;
+                return (
+                  <tr
+                    key={c.etf}
+                    onClick={() =>
+                      setSelected({
+                        name: c.name,
+                        symbol: c.etf,
+                        type: 'stock',
+                        price: q?.price ?? 0,
+                        change,
+                        bars: q?.bars ?? [],
+                      })
+                    }
+                    className="hover:bg-[#1a2030] transition-colors cursor-pointer"
+                  >
+                    <td className="p-3 font-semibold">
+                      <div className="flex items-center gap-2">
+                        <CountryFlag country={c.name} size="sm" />
+                        <span>{c.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-3 font-mono text-gold font-semibold">{c.etf}</td>
+                    <td className="p-3 text-right font-mono">${formatPrice(q?.price)}</td>
+                    <td className={`p-3 text-right font-mono font-medium ${change >= 0 ? 'text-teal' : 'text-red'}`}>
+                      {formatPercent(q?.price == null ? null : change)}
+                    </td>
+                    <td className="p-3 text-right font-mono text-dim hidden md:table-cell">
+                      {formatVolumeCompact(q?.volume)}
+                    </td>
+                    <td className="p-3 text-right">
+                      <div className="inline-flex justify-end">
+                        <Sparkline data={q?.bars ?? []} change={change} width={76} height={22} />
+                      </div>
+                    </td>
+                    <td className="p-3 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeCountryByEtf(c.etf);
+                        }}
+                        className="text-dim hover:text-red"
+                      >
+                        <X size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <div className="grid gap-3 grid-cols-1 xl:grid-cols-2">
-          {countries.map((c, i) => {
+          {sortedCountries.map((c) => {
             const key = c.name;
             const q = quotes[c.etf];
             const change = q?.change ?? 0;
@@ -307,7 +483,7 @@ export const CountryView = () => {
 
             return (
               <article
-                key={`${c.etf}-${i}`}
+                key={c.etf}
                 onClick={() =>
                   setSelected({
                     name: c.name,
@@ -331,16 +507,19 @@ export const CountryView = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-[16px] font-semibold">${formatPrice(q?.price)}</div>
-                    <div className={`text-[11.5px] font-semibold ${change >= 0 ? 'text-teal' : 'text-red'}`}>
-                      {formatPercent(q?.price == null ? null : change)}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <Sparkline data={q?.bars ?? []} change={change} width={68} height={22} />
+                    <div className="text-right">
+                      <div className="text-[16px] font-semibold">${formatPrice(q?.price)}</div>
+                      <div className={`text-[11.5px] font-semibold ${change >= 0 ? 'text-teal' : 'text-red'}`}>
+                        {formatPercent(q?.price == null ? null : change)}
+                      </div>
                     </div>
                   </div>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeCountry(i);
+                      removeCountryByEtf(c.etf);
                     }}
                     className="text-dim hover:text-red flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                     aria-label={`Quitar ${c.name}`}

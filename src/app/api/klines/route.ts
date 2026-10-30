@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-
 export interface Candle {
   time: number; // epoch ms
   open: number;
@@ -28,7 +27,7 @@ export async function GET(request: NextRequest) {
         .map((s) => s.trim().toUpperCase())
         .filter(Boolean)
     )
-  ).slice(0, 20);
+  ).slice(0, 60);
 
   const result: Record<string, Candle[]> = {};
 
