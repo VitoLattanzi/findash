@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 
-export const revalidate = 60;
-
 export interface TopTraderPosition {
   symbol: string;
   longAccount: number; // % (0-100)
@@ -39,7 +37,7 @@ async function fetchJsonWithTimeout(url: string, timeoutMs = 4500): Promise<any>
     const res = await fetch(url, {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
-      next: { revalidate: 60 },
+      cache: 'no-store',
     });
     if (!res.ok) return null;
     return await res.json();
