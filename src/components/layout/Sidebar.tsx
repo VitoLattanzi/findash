@@ -34,9 +34,16 @@ export const Sidebar = ({ activeView, setActiveView }: { activeView: string, set
     <>
       <aside className="hidden md:flex w-[var(--sidebar-w)] flex-shrink-0 bg-bg2 border-r border-line p-[18px_10px] sticky top-9 h-[calc(100dvh-36px)] flex-col z-20">
         <div className="font-display font-semibold text-[18px] p-[4px_10px_18px] tracking-tight flex items-center justify-between">
-          <span>
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveView('dashboard');
+            }}
+            className="hover:text-gold transition-colors"
+          >
             <span className="text-gold">◆</span> FinDash
-          </span>
+          </a>
           <button
             onClick={() => setShowUpdates(true)}
             className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gold/15 text-gold border border-gold/30 hover:bg-gold hover:text-bg transition-colors"
