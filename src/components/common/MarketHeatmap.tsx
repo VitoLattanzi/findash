@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Maximize2, Minimize2, X } from 'lucide-react';
 import { AssetIcon } from '@/components/common/AssetIcon';
 import { CryptoIcon } from '@/components/common/CryptoIcon';
 import { formatPercent, formatPrice } from '@/lib/format';
@@ -144,8 +144,19 @@ export function MarketHeatmap<T extends HeatmapItem>({
   heightClassName = 'h-[380px] md:h-[460px]',
 }: MarketHeatmapProps<T>) {
   const [sizeBy, setSizeBy] = useState<HeatmapSizeBy>(defaultSizeBy);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ w: 0, h: 0 });
+
+  // Cerrar con tecla Escape cuando está en modo pantalla completa
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isFullscreen]);
 
   // Medición responsive del lienzo
   useEffect(() => {
@@ -156,7 +167,7 @@ export function MarketHeatmap<T extends HeatmapItem>({
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [isFullscreen]);
 
   const valid = useMemo(
     () => items.filter((it) => it.price > 0 || Number.isFinite(it.change)),
@@ -198,122 +209,175 @@ export function MarketHeatmap<T extends HeatmapItem>({
   const downs = valid.filter((it) => it.change < 0).length;
 
   return (
-    <div className="bg-card border border-line rounded-xl p-4 shadow-sm">
-      {/* Encabezado */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gold/15 border border-gold/30 text-gold flex items-center justify-center">
-            <LayoutGrid size={14} />
-          </div>
-          <div>
-            <h3 className="text-[14px] font-semibold text-text">{title}</h3>
-            <p className="text-[11px] text-dim font-mono">
-              {valid.length} activos · <span className="text-teal">{ups} ▲</span> ·{' '}
-              <span className="text-red">{downs} ▼</span>
-            </p>
-          </div>
-        </div>
+    <>
+      {isFullscreen && (
+        <div
+          className="fixed inset-0 z-[89] bg-black/80 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setIsFullscreen(false)}
+        />
+      )}
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] text-dim">Tamaño:</span>
-          <div className="flex border border-line rounded-lg overflow-hidden">
-            {SIZE_OPTIONS.map(([key, label]) => (
+      <div
+        className={
+          isFullscreen
+            ? 'fixed inset-2 sm:inset-5 z-[90] bg-card border border-line rounded-xl p-4 shadow-2xl flex flex-col overflow-hidden'
+            : 'bg-card border border-line rounded-xl p-4 shadow-sm'
+        }
+      >
+        {/* Encabezado */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gold/15 border border-gold/30 text-gold flex items-center justify-center">
+              <LayoutGrid size={14} />
+            </div>
+            <div>
+              <h3 className="text-[14px] font-semibold text-text">{title}</h3>
+              <p className="text-[11px] text-dim font-mono">
+                {valid.length} activos · <span className="text-teal">{ups} ▲</span> ·{' '}
+                <span className="text-red">{downs} ▼</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] text-dim">Tamaño:</span>
+            <div className="flex border border-line rounded-lg overflow-hidden">
+              {SIZE_OPTIONS.map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setSizeBy(key)}
+                  className={`px-2.5 py-1 text-[11px] font-mono transition-colors ${
+                    sizeBy === key ? 'bg-gold text-bg font-semibold' : 'bg-bg2 text-dim hover:text-text'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {!isFullscreen ? (
               <button
-                key={key}
-                onClick={() => setSizeBy(key)}
-                className={`px-2.5 py-1 text-[11px] font-mono transition-colors ${
-                  sizeBy === key ? 'bg-gold text-bg font-semibold' : 'bg-bg2 text-dim hover:text-text'
-                }`}
+                type="button"
+                onClick={() => setIsFullscreen(true)}
+                title="Ver mapa de calor en pantalla completa"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg2 hover:bg-line border border-line hover:border-gold text-[11px] font-mono text-text hover:text-gold transition-colors"
               >
-                {label}
+                <Maximize2 size={12} />
+                <span className="hidden sm:inline">Pantalla completa</span>
               </button>
-            ))}
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(false)}
+                  title="Restaurar tamaño"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-bg2 hover:bg-line border border-line text-[11px] font-mono text-dim hover:text-text transition-colors"
+                >
+                  <Minimize2 size={12} />
+                  <span className="hidden sm:inline">Reducir</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(false)}
+                  aria-label="Cerrar pantalla completa"
+                  title="Cerrar pantalla completa (Esc)"
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-red/15 hover:bg-red text-red hover:text-white border border-red/30 transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Lienzo del Treemap */}
-      <div ref={containerRef} className={`relative w-full overflow-hidden rounded-lg bg-bg ${heightClassName}`}>
-        {valid.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center text-dim text-[12.5px]">
-            Cargando cotizaciones para el mapa...
-          </div>
-        )}
+        {/* Lienzo del Treemap */}
+        <div
+          ref={containerRef}
+          className={`relative w-full overflow-hidden rounded-lg bg-bg ${
+            isFullscreen ? 'flex-1 min-h-0' : heightClassName
+          }`}
+        >
+          {valid.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center text-dim text-[12.5px]">
+              Cargando cotizaciones para el mapa...
+            </div>
+          )}
 
-        {rects.map((r, idx) => {
-          const { item } = weighted[idx];
-          const { bg, border } = heatColor(item.change);
-          const w = Math.max(r.w - GAP, 0);
-          const h = Math.max(r.h - GAP, 0);
-          const minSide = Math.min(w, h);
+          {rects.map((r, idx) => {
+            const { item } = weighted[idx];
+            const { bg, border } = heatColor(item.change);
+            const w = Math.max(r.w - GAP, 0);
+            const h = Math.max(r.h - GAP, 0);
+            const minSide = Math.min(w, h);
 
-          const showIcon = w >= 84 && h >= 70;
-          const showPct = w >= 42 && h >= 30;
-          const showTicker = w >= 24 && h >= 16;
-          const tickerSize = Math.max(9, Math.min(26, minSide / 3.6));
-          const pctSize = Math.max(8.5, Math.min(16, minSide / 6));
-          const iconPx = Math.round(Math.max(18, Math.min(34, minSide / 4)));
+            const showIcon = w >= 84 && h >= 70;
+            const showPct = w >= 42 && h >= 30;
+            const showTicker = w >= 24 && h >= 16;
+            const tickerSize = Math.max(9, Math.min(26, minSide / 3.6));
+            const pctSize = Math.max(8.5, Math.min(16, minSide / 6));
+            const iconPx = Math.round(Math.max(18, Math.min(34, minSide / 4)));
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => onItemClick?.(item)}
-              title={`${item.name ?? item.symbol} (${item.symbol})\n$${formatPrice(item.price)} · ${formatPercent(item.change)}`}
-              className="absolute flex flex-col items-center justify-center text-center overflow-hidden rounded-[3px] transition-[filter,transform] duration-150 hover:brightness-125 hover:z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-              style={{
-                left: r.x + GAP / 2,
-                top: r.y + GAP / 2,
-                width: w,
-                height: h,
-                background: bg,
-                border: `1px solid ${border}`,
-              }}
+            return (
+              <button
+                key={item.id}
+                onClick={() => onItemClick?.(item)}
+                title={`${item.name ?? item.symbol} (${item.symbol})\n$${formatPrice(item.price)} · ${formatPercent(item.change)}`}
+                className="absolute flex flex-col items-center justify-center text-center overflow-hidden rounded-[3px] transition-[filter,transform] duration-150 hover:brightness-125 hover:z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+                style={{
+                  left: r.x + GAP / 2,
+                  top: r.y + GAP / 2,
+                  width: w,
+                  height: h,
+                  background: bg,
+                  border: `1px solid ${border}`,
+                }}
+              >
+                {showIcon &&
+                  (item.type === 'crypto' ? (
+                    <CryptoIcon symbol={item.symbol} size={iconPx} className="mb-1" />
+                  ) : (
+                    <AssetIcon
+                      symbol={item.symbol}
+                      name={item.name}
+                      type="stock"
+                      size={iconPx >= 28 ? 'lg' : 'md'}
+                      className="mb-1"
+                    />
+                  ))}
+                {showTicker && (
+                  <span
+                    className="font-bold text-white leading-none truncate max-w-full px-1"
+                    style={{ fontSize: tickerSize }}
+                  >
+                    {item.symbol.replace(/\.BA$/, '').replace(/=F$/, '')}
+                  </span>
+                )}
+                {showPct && (
+                  <span
+                    className="font-mono text-white/85 leading-none mt-1"
+                    style={{ fontSize: pctSize }}
+                  >
+                    {formatPercent(item.change)}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Leyenda térmica */}
+        <div className="flex items-center justify-center gap-1 mt-3 text-[10px] font-mono text-dim flex-shrink-0">
+          {[-5, -3, -1, 0, 1, 3, 5].map((v) => (
+            <span
+              key={v}
+              className="px-2 py-0.5 rounded-[3px] text-white/90"
+              style={{ background: heatColor(v).bg }}
             >
-              {showIcon &&
-                (item.type === 'crypto' ? (
-                  <CryptoIcon symbol={item.symbol} size={iconPx} className="mb-1" />
-                ) : (
-                  <AssetIcon
-                    symbol={item.symbol}
-                    name={item.name}
-                    type="stock"
-                    size={iconPx >= 28 ? 'lg' : 'md'}
-                    className="mb-1"
-                  />
-                ))}
-              {showTicker && (
-                <span
-                  className="font-bold text-white leading-none truncate max-w-full px-1"
-                  style={{ fontSize: tickerSize }}
-                >
-                  {item.symbol.replace(/\.BA$/, '').replace(/=F$/, '')}
-                </span>
-              )}
-              {showPct && (
-                <span
-                  className="font-mono text-white/85 leading-none mt-1"
-                  style={{ fontSize: pctSize }}
-                >
-                  {formatPercent(item.change)}
-                </span>
-              )}
-            </button>
-          );
-        })}
+              {v > 0 ? `+${v}%` : `${v}%`}
+            </span>
+          ))}
+        </div>
       </div>
-
-      {/* Leyenda térmica */}
-      <div className="flex items-center justify-center gap-1 mt-3 text-[10px] font-mono text-dim">
-        {[-5, -3, -1, 0, 1, 3, 5].map((v) => (
-          <span
-            key={v}
-            className="px-2 py-0.5 rounded-[3px] text-white/90"
-            style={{ background: heatColor(v).bg }}
-          >
-            {v > 0 ? `+${v}%` : `${v}%`}
-          </span>
-        ))}
-      </div>
-    </div>
+    </>
   );
 }
