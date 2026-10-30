@@ -74,5 +74,8 @@
 - [x] **Menú Desplegable (Popover) de Temporalidades (`12h`, `24h`, `1sem`, `1 mes`, `3meses`) y Ordenamiento por Columnas:**
   - En todas las tablas y listas de activos (Cripto, Dashboard, Bolsa, Arg/CEDEARs y Países), mostrar el rango activo con `ChevronDown` en el encabezado de `%` y abrir un popover flotante con las 5 temporalidades resaltando la activa en `--gold`, más botón de ordenamiento adyacente (`▲`/`▼`) y ordenamiento en `ACTIVO`, `PRECIO` y `VOLUMEN`.
   - Actualización real de `%` y `<Sparkline />` según el rango elegido tanto en Cripto (`/api/klines` -> Binance `/api/v3/klines`) como en Bolsa, CEDEARs y Países (`/api/market?timeframe=...` con `yahoo-finance2`).
+- [x] **Pulso General de Ballenas en Cripto (`/api/crypto-pulse` + `<WhaleTracker />`):**
+  - Endpoint serverless con caché de 60s que consulta en paralelo Binance Futures (`topLongShortPositionRatio` para BTC/ETH/SOL, `takerlongshortRatio` 1h y `premiumIndex` para Funding Rate) y `api.alternative.me/fng/`.
+  - Bloque superior "Pulso General de Ballenas" integrado en la card del Radar de Ballenas con 3 KPIs rápidos (Posicionamiento Top Traders Long/Short, Presión Taker 1h, Sentimiento & Fondeo), Lectura Crítica automática, filtro de umbral ampliado (`$50k | $100k | $250k | $500k`) y badge dinámico de flujo en vivo por activo.
 - [x] **Integración en Vistas:**
   - En **Dashboard**, **Cripto**, **Bolsa** y **Países**, actualizar el toggle de visualización a `[ Lista | Cards | Mapa ]`.

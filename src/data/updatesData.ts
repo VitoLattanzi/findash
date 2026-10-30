@@ -46,10 +46,10 @@ export const PLATFORM_UPDATES: ReleaseUpdate[] = [
           'Mapa de calor propio en TypeScript con escala térmica FinDash (--teal y --red) y 3 modos de tamaño (Cap. de Mercado, Peso Igualitario y Volatilidad) en Dashboard, Bolsa y Países.',
       },
       {
-        type: 'mejora',
-        title: 'Iconografía Resiliente (<CryptoIcon />) y Gráficos a 3 Meses',
+        type: 'nuevo',
+        title: 'Pulso General de Ballenas (Futuros + Sentimiento + Fondeo)',
         description:
-          'CDN de íconos cripto con fallback circular automático ante errores 404 y apertura por defecto en rango de 3 meses (3M) en todos los gráficos de la aplicación.',
+          'El Radar de Ballenas ahora integra posicionamiento Top Trader Long/Short (BTC, ETH, SOL), Presión Taker 1h, Funding Rate + Fear & Greed con lectura institucional automática, umbral hasta $500k y diagnóstico de flujo en vivo.',
       },
     ],
   },
