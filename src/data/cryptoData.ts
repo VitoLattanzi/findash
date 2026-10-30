@@ -449,3 +449,23 @@ export const getCryptoProfile = (symbol: string): CryptoProfile | null => {
   const clean = symbol.toUpperCase().replace('USDT', '');
   return CRYPTO_PROFILES[clean] || null;
 };
+
+const SUPPLY_MULTIPLIER: Record<string, number> = { K: 1e3, M: 1e6, B: 1e9, T: 1e12 };
+
+/** Convierte un suministro abreviado ('19.77M BTC', '589.2T SHIB') a número. */
+export const parseSupply = (supply?: string): number | null => {
+  if (!supply) return null;
+  const m = supply.match(/([\d.,]+)\s*([KMBT])?/i);
+  if (!m) return null;
+  const base = parseFloat(m[1].replace(',', '.'));
+  if (!Number.isFinite(base)) return null;
+  const mult = m[2] ? SUPPLY_MULTIPLIER[m[2].toUpperCase()] ?? 1 : 1;
+  return base * mult;
+};
+
+/** Capitalización aproximada = precio en vivo × suministro circulante. */
+export const estimateCryptoMarketCap = (symbol: string, price: number): number | null => {
+  const supply = parseSupply(getCryptoProfile(symbol)?.circulatingSupply);
+  if (!supply || !price) return null;
+  return supply * price;
+};

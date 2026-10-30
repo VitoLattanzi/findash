@@ -2,6 +2,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AssetList } from '@/components/dashboard/AssetList';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
+import { MarketHeatmap, HeatmapItem } from '@/components/common/MarketHeatmap';
+import { estimateCryptoMarketCap } from '@/data/cryptoData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useBinanceWebSocket } from '@/hooks/useBinanceWebSocket';
 import { Asset } from '@/types';
@@ -12,6 +14,7 @@ interface QuoteResponse {
   price: number | null;
   change: number | null;
   bars: number[] | null;
+  marketCap?: number | null;
 }
 
 interface DollarQuote {
@@ -43,7 +46,7 @@ const FNG_LABEL: Record<string, string> = {
 
 export const DashboardView = () => {
   const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned_v2', DEFAULT_PINNED);
-  const [view, setView] = useState<'list' | 'card'>('list');
+  const [view, setView] = useState<'list' | 'card' | 'map'>('list');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [quotes, setQuotes] = useState<Record<string, QuoteResponse>>({});
   const [klines, setKlines] = useState<Record<string, number[]>>({});
@@ -201,6 +204,25 @@ export const DashboardView = () => {
   }, [pinned, liveCrypto, klines, quotes]);
 
   const unpin = (symbol: string) => setPinned(pinned.filter((p) => p.symbol !== symbol));
+
+  // Ítems para el mapa de calor (mezcla cripto + acciones + commodities + ETFs)
+  const heatmapItems: Array<HeatmapItem & { asset: Asset }> = useMemo(
+    () =>
+      assets.map((a) => ({
+        id: `${a.type}-${a.symbol ?? a.name}`,
+        symbol: a.symbol ?? a.name,
+        name: a.name,
+        type: a.type ?? 'stock',
+        price: a.price,
+        change: a.change,
+        marketCap:
+          a.type === 'crypto'
+            ? estimateCryptoMarketCap(a.symbol ?? a.name, a.price)
+            : quotes[a.symbol ?? '']?.marketCap ?? null,
+        asset: a,
+      })),
+    [assets, quotes]
+  );
   const pin = (item: (typeof CATALOG)[number]) =>
     setPinned([...pinned, { symbol: item.symbol, label: item.label, type: item.type }]);
 
@@ -232,8 +254,25 @@ export const DashboardView = () => {
           >
             Cards
           </button>
+          <button
+            onClick={() => setView('map')}
+            className={`px-[14px] py-[7px] text-[12.5px] ${view === 'map' ? 'bg-gold text-bg' : 'bg-bg2 text-dim'}`}
+          >
+            Mapa
+          </button>
         </div>
       </div>
+
+      {view === 'map' && pinned.length > 0 && (
+        <div className="mb-5">
+          <MarketHeatmap
+            items={heatmapItems}
+            defaultSizeBy="volatility"
+            title="Mapa de Calor · Activos Fijados"
+            onItemClick={(it) => setSelectedAsset(it.asset)}
+          />
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-5 items-stretch lg:items-start">
         <div className="w-full lg:w-auto lg:flex-[2] min-w-0 flex flex-col gap-4">
@@ -248,7 +287,7 @@ export const DashboardView = () => {
             ) : (
               <AssetList
                 assets={assets}
-                view={view}
+                view={view === 'map' ? 'list' : view}
                 onAssetClick={(a) => setSelectedAsset(a)}
                 onRemove={(a) => unpin(a.symbol ?? a.name)}
               />

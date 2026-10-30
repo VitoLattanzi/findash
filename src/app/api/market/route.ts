@@ -17,6 +17,7 @@ interface MarketResult {
   bars: number[] | null;
   series: SeriesPoint[] | null;
   error: string | null;
+  marketCap?: number | null;
   marketState?: string | null;
   preMarketPrice?: number | null;
   preMarketChange?: number | null;
@@ -131,6 +132,15 @@ export async function GET(request: NextRequest) {
           bars: series ? series.map((p) => p.value) : null,
           series,
           error: null,
+          // Capitalización (acciones) o activos netos (ETFs) para ponderar el Heatmap
+          marketCap:
+            typeof q.marketCap === 'number'
+              ? q.marketCap
+              : typeof q.netAssets === 'number'
+                ? q.netAssets
+                : typeof q.totalAssets === 'number'
+                  ? q.totalAssets
+                  : null,
           marketState: q.marketState || null,
           preMarketPrice: typeof q.preMarketPrice === 'number' ? q.preMarketPrice : null,
           preMarketChange: typeof q.preMarketChangePercent === 'number' ? q.preMarketChangePercent : null,

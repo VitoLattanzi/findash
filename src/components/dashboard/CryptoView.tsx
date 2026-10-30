@@ -21,12 +21,14 @@ import { CryptoIcon } from '@/components/common/CryptoIcon';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { WhaleTracker } from '@/components/dashboard/WhaleTracker';
 import { CryptoNewsCard } from '@/components/dashboard/CryptoNewsCard';
+import { MarketHeatmap } from '@/components/common/MarketHeatmap';
 import { formatPercent, formatPrice, formatVolume } from '@/lib/format';
 import {
   DEFAULT_ALTCOINS,
   DEFAULT_MEMECOINS,
   CRYPTO_PROFILES,
   getCryptoProfile,
+  estimateCryptoMarketCap,
   CryptoProfile,
 } from '@/data/cryptoData';
 import { Asset } from '@/types';
@@ -42,6 +44,7 @@ export const CryptoView = () => {
 
   // Búsqueda y filtrado
   const [searchQuery, setSearchQuery] = useState('');
+  const [view, setView] = useState<'list' | 'map'>('list');
 
   // Modal para agregar moneda
   const [showAddModal, setShowAddModal] = useState(false);
@@ -392,6 +395,24 @@ export const CryptoView = () => {
 
         {/* Buscador y Restablecer */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex border border-line rounded-lg overflow-hidden flex-shrink-0">
+            {(
+              [
+                ['list', 'Listas'],
+                ['map', 'Mapa'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setView(key)}
+                className={`px-3 py-1.5 text-[12px] transition-colors ${
+                  view === key ? 'bg-gold text-bg font-semibold' : 'bg-bg2 text-dim hover:text-text'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <div className="relative flex-1 sm:w-64">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim" />
             <input
@@ -421,11 +442,43 @@ export const CryptoView = () => {
         </div>
       </div>
 
-      {/* Grid Principal: 2 Columnas (Altcoins vs Meme Coins) */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch">
-        {renderColumn('Altcoins & Capa 1', 'activas', 'altcoin', <Layers size={15} />, altRows)}
-        {renderColumn('Meme Coins Líderes', 'activas', 'memecoin', <Flame size={15} />, memeRows)}
-      </div>
+      {/* Grid Principal: 2 Columnas (Altcoins vs Meme Coins) o Mapa de Calor */}
+      {view === 'map' ? (
+        <MarketHeatmap
+          items={[...altRows, ...memeRows]
+            .filter((r, idx, arr) => r.price > 0 && arr.findIndex((x) => x.sym === r.sym) === idx)
+            .map((r) => ({
+              id: r.sym,
+              symbol: r.sym,
+              name: r.name,
+              type: 'crypto' as const,
+              price: r.price,
+              change: r.change,
+              marketCap: estimateCryptoMarketCap(r.sym, r.price),
+              row: r,
+            }))}
+          defaultSizeBy="marketCap"
+          title="Mapa de Calor · Criptomercado"
+          onItemClick={(it) =>
+            handleSelectCoin(
+              it.row.sym,
+              it.row.name,
+              it.row.price,
+              it.row.change,
+              it.row.open,
+              it.row.high,
+              it.row.low,
+              it.row.vol,
+              it.row.bars
+            )
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch">
+          {renderColumn('Altcoins & Capa 1', 'activas', 'altcoin', <Layers size={15} />, altRows)}
+          {renderColumn('Meme Coins Líderes', 'activas', 'memecoin', <Flame size={15} />, memeRows)}
+        </div>
+      )}
 
       {/* Grid Inferior: 2 Cards (Noticias Cripto & Radar de Ballenas) */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch">

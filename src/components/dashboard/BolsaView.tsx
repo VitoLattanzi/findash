@@ -7,13 +7,15 @@ import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { AssetIcon } from '@/components/common/AssetIcon';
 import { Asset } from '@/types';
 import { SearchResultItem } from '@/app/api/search/route';
-import { Search, Globe, Sparkles, Loader2, X } from 'lucide-react';
+import { Search, Globe, Loader2, X } from 'lucide-react';
+import { MarketHeatmap } from '@/components/common/MarketHeatmap';
 
 interface Quote {
   symbol: string;
   price: number | null;
   change: number | null;
   name: string | null;
+  marketCap?: number | null;
 }
 
 type Tab = 'sp500' | 'argentina' | 'commodities';
@@ -60,6 +62,7 @@ export const BolsaView = () => {
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'symbol', dir: 1 });
   const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned_v2', DEFAULT_PINNED);
   const [selected, setSelected] = useState<Asset | null>(null);
+  const [view, setView] = useState<'list' | 'map'>('list');
 
   // Búsqueda global en vivo vía API (para cualquier acción del mundo no limitada a las 100 fijas)
   const [globalResults, setGlobalResults] = useState<SearchResultItem[]>([]);
@@ -211,6 +214,27 @@ export const BolsaView = () => {
             {search.length >= 2 && globalResults.length > 0 && ` + ${globalResults.length} resultados globales`}
           </span>
 
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Toggle Lista | Mapa */}
+          <div className="flex border border-line rounded-lg overflow-hidden flex-shrink-0">
+            {(
+              [
+                ['list', 'Lista'],
+                ['map', 'Mapa'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setView(key)}
+                className={`px-3 py-1.5 text-[12px] transition-colors ${
+                  view === key ? 'bg-gold text-bg font-semibold' : 'bg-bg2 text-dim hover:text-text'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {/* Input de búsqueda ampliado */}
           <div className="relative w-full sm:w-80">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim" />
@@ -231,6 +255,7 @@ export const BolsaView = () => {
               </button>
             ) : null}
           </div>
+          </div>
         </div>
 
         {loading ? (
@@ -240,6 +265,38 @@ export const BolsaView = () => {
           </div>
         ) : error ? (
           <div className="text-red text-[13px] py-4">{error}</div>
+        ) : view === 'map' ? (
+          <MarketHeatmap
+            items={filtered
+              .filter((q) => q.price != null)
+              .map((q) => ({
+                id: q.symbol,
+                symbol: q.symbol,
+                name: q.name ?? q.symbol,
+                type: 'stock' as const,
+                price: q.price ?? 0,
+                change: q.change ?? 0,
+                marketCap: q.marketCap ?? null,
+              }))}
+            defaultSizeBy={tab === 'commodities' ? 'volatility' : 'marketCap'}
+            title={
+              tab === 'sp500'
+                ? 'Mapa de Calor · S&P 500 Líderes'
+                : tab === 'argentina'
+                  ? 'Mapa de Calor · Argentina / ADRs'
+                  : 'Mapa de Calor · Commodities'
+            }
+            onItemClick={(it) =>
+              setSelected({
+                name: it.name ?? it.symbol,
+                symbol: it.symbol,
+                type: 'stock',
+                price: it.price,
+                change: it.change,
+                bars: [],
+              })
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px] border-collapse">

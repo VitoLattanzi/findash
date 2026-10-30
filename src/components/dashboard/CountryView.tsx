@@ -6,6 +6,7 @@ import { formatPercent, formatPrice } from '@/lib/format';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { PriceChart } from '@/components/common/PriceChart';
 import { CountryFlag } from '@/components/common/CountryFlag';
+import { MarketHeatmap } from '@/components/common/MarketHeatmap';
 import { Asset } from '@/types';
 import { X } from 'lucide-react';
 
@@ -67,6 +68,7 @@ interface Quote {
   change: number | null;
   name: string | null;
   bars: number[] | null;
+  marketCap?: number | null;
 }
 
 interface CountryNewsItem {
@@ -123,6 +125,7 @@ export const CountryView = () => {
   const [news, setNews] = useState<Record<string, CountryNews>>({});
   const [newsLoading, setNewsLoading] = useState(true);
   const [riskAr, setRiskAr] = useState<number | null>(null);
+  const [view, setView] = useState<'card' | 'map'>('card');
 
   const tickers = countries.map((c) => c.etf).filter((t) => t && t !== '—');
   const names = useMemo(() => countries.map((c) => c.name), [countries]);
@@ -226,6 +229,22 @@ export const CountryView = () => {
             Gráfico, tipo de cambio local, riesgo y titulares buenos y malos de cada mercado.
           </p>
         </div>
+        <div className="flex border border-line rounded-[5px] overflow-hidden">
+          {(
+            [
+              ['card', 'Cards'],
+              ['map', 'Mapa'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setView(key)}
+              className={`px-[14px] py-[7px] text-[12.5px] ${view === key ? 'bg-gold text-bg' : 'bg-bg2 text-dim'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex gap-2 mb-[16px]">
@@ -247,6 +266,32 @@ export const CountryView = () => {
             <div key={i} className="h-[360px] bg-card border border-line rounded-[8px] animate-pulse" />
           ))}
         </div>
+      ) : view === 'map' ? (
+        <MarketHeatmap
+          items={countries
+            .filter((c) => quotes[c.etf]?.price != null)
+            .map((c) => ({
+              id: `${c.name}-${c.etf}`,
+              symbol: c.etf,
+              name: c.name,
+              type: 'stock' as const,
+              price: quotes[c.etf]?.price ?? 0,
+              change: quotes[c.etf]?.change ?? 0,
+              marketCap: quotes[c.etf]?.marketCap ?? null,
+            }))}
+          defaultSizeBy="volatility"
+          title="Mapa de Calor · Países (ETFs)"
+          onItemClick={(it) =>
+            setSelected({
+              name: it.name ?? it.symbol,
+              symbol: it.symbol,
+              type: 'stock',
+              price: it.price,
+              change: it.change,
+              bars: quotes[it.symbol]?.bars ?? [],
+            })
+          }
+        />
       ) : (
         <div className="grid gap-3 grid-cols-1 xl:grid-cols-2">
           {countries.map((c, i) => {

@@ -15,10 +15,48 @@ export interface ReleaseUpdate {
 
 export const PLATFORM_UPDATES: ReleaseUpdate[] = [
   {
+    version: 'v1.6',
+    date: 'Octubre 2026',
+    title: 'Mapa de Calor Treemap (Heatmap Financiero)',
+    isLatest: true,
+    highlight: 'Visualización térmica interactiva estilo Finviz/TradingView en TypeScript puro, con escala adaptativa y ponderación por capitalización o volatilidad.',
+    items: [
+      {
+        type: 'nuevo',
+        title: 'Componente Treemap Nativo (Squarified Heatmap)',
+        description:
+          'Algoritmo matemático de partición de rectángulos proporcionales sin librerías externas pesadas, garantizando carga instantánea y fluidez visual en cualquier resolución.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Escala Térmica Adaptativa FinDash',
+        description:
+          'Interpolación gradual de color desde rojo intenso (#c94a42) para caídas severas hasta verde azulado (#2b9e93) para subas fuertes, con bordes diferenciados y fondo neutro para cotizaciones estables.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Ponderación Inteligente (3 Modos de Tamaño)',
+        description:
+          'Selector para dimensionar los bloques según Capitalización de Mercado (marketCap), Peso Igualitario o Volatilidad del día (|change|%), permitiendo comparar activos corporativos, divisas y commodities.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Integración Multivista (Dashboard, Bolsa, Cripto y Países)',
+        description:
+          'Selector de visualización [ Lista | Cards | Mapa ] en todas las pantallas principales para analizar el pulso del mercado global de un solo vistazo.',
+      },
+      {
+        type: 'mejora',
+        title: 'Interactividad Directa con DetailPanel',
+        description:
+          'Bloques interactivos con logo, ticker dinámico y variación porcentual que abren al instante el panel central con gráficos de velas y fundamentales.',
+      },
+    ],
+  },
+  {
     version: 'v1.5',
     date: 'Octubre 2026',
     title: 'Criptomercado 2.0: Altcoins, Memecoins y Radar de Ballenas',
-    isLatest: true,
     highlight: 'Tablero dual en 2 columnas, análisis fundamental y perfil de red para cripto, noticias dedicadas y radar de ballenas en tiempo real vía WebSocket.',
     items: [
       {

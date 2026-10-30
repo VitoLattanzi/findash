@@ -1,4 +1,4 @@
-# FinDash — Master Specification & Roadmap (v1.5)
+# FinDash — Master Specification & Roadmap (v1.6)
 
 ## 1. Identidad Visual y UI/UX (Estricto)
 - **Regla de Oro:** Respetar la paleta oscura: `--bg: #0c0f14`, `--bg2: #12161e`, `--card: #161b25`, `--line: #262d3b`, `--gold: #d8ad3f`, `--teal: #4fc7bd`, `--red: #d9685f`.
@@ -45,7 +45,7 @@
   - Horizonte temporal y volatilidad.
 - [x] **Test Interactivo de Perfil de Riesgo (`<RiskProfiler />`):** Cuestionario interactivo secuencial de 3 preguntas que calcula el puntaje y categoriza al inversor en Conservador, Moderado o Agresivo, recomendando instrumentos específicos de FinDash.
 - [x] **Aviso Legal, Exactitud y Reserva de Derechos (Disclaimer):** Bloque legal formal en FinDash Academy, footer permanente en el DetailPanel y documentación en README deslindando responsabilidad por demoras o inexactitudes de fuentes públicas de terceros, aclarando el propósito puramente educativo y la reserva de derechos de software.
-- [x] **Centro de Novedades & Actualizaciones (Changelog / Release Notes):** Modal interactivo (`UpdatesModal`) y botón en Sidebar/Academy con el historial cronológico de versiones estructurado desde la versión inicial `v1.0b` (Beta) hasta `v1.5` (máximo 5 mejoras por versión), destacando nuevas funciones, mejoras y correcciones.
+- [x] **Centro de Novedades & Actualizaciones (Changelog / Release Notes):** Modal interactivo (`UpdatesModal`) y botón en Sidebar/Academy con el historial cronológico de versiones estructurado desde la versión inicial `v1.0b` (Beta) hasta `v1.6` (máximo 5 mejoras por versión), destacando nuevas funciones, mejoras y correcciones.
 - [x] **Buscador Global Universal & Búsqueda Híbrida en Bolsa:** Endpoint `/api/search` para buscar cualquier acción, ETF, bono o cripto mundial en tiempo real (más allá del catálogo base de 100). Command Palette flotante accesible globalmente con `Ctrl + K` / `Cmd + K` o botón en Ticker, y buscador enriquecido en `BolsaView` con resultados de mercado en vivo.
 
 ### Epic 5: Noticias, Multigráficos y Cartera
@@ -59,3 +59,14 @@
 - [x] **Radar de Ballenas en Tiempo Real (Whale Tracker):** Stream WebSocket `@aggTrade` de Binance para capturar transacciones masivas $\ge \$50.000$ USD en vivo con indicador de balance de presión compradora vs vendedora.
 - [x] **Noticias Cripto Dedicadas:** Card inferior con feed RSS de Cointelegraph y medios económicos con análisis de sentimiento.
 - [x] **Buscador y Personalización de Listas:** Búsqueda en vivo por ticker/red y selector para sumar o quitar monedas con persistencia en `localStorage`.
+
+### Epic 7: Mapa de Calor Financiero (Treemap Heatmap - v1.6)
+- [x] **Datos de Market Cap y Volumen:** Asegurar que `/api/market` devuelva `marketCap` desde `yahoo-finance2` y que el estado de Cripto calcule o reciba la capitalización aproximada (`estimateCryptoMarketCap`) para ponderar el tamaño de los bloques.
+- [x] **Componente `<MarketHeatmap />` (`src/components/common/MarketHeatmap.tsx`):**
+  - Implementar algoritmo *Squarified Treemap* ligero en TypeScript sin librerías externas pesadas.
+  - Soportar 3 modos de dimensionamiento (`sizeBy`): `'marketCap'` (por capitalización), `'equal'` (peso igualitario) y `'volatility'` (por magnitud de variación diaria para vistas mixtas con commodities/ETFs en el Dashboard).
+  - Escala de color dinámica: interpolar tonos de `--teal` (`#2b9e93`) para subas y `--red` (`#c94a42`) para bajas según la magnitud del porcentaje (`change`), con `#161b25` para neutros.
+  - Cada celda muestra centrados: Logo (`<CryptoIcon />` o `<AssetIcon />`), Ticker en bold, y porcentaje de cambio (`+X.XX%`), adaptando tipografía e ícono según el tamaño del bloque.
+  - Al hacer clic en un bloque, disparar `onItemClick(asset)` para abrir el `<DetailPanel />`.
+- [x] **Integración en Vistas:**
+  - En **Dashboard**, **Cripto**, **Bolsa** y **Países**, actualizar el toggle de visualización a 3 opciones: `[ Lista | Cards | Mapa ]`.
