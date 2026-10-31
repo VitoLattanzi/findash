@@ -344,10 +344,9 @@ export function MarketHeatmap<T extends HeatmapItem>({
           })}
         </div>
 
-        {/* Leyenda térmica ("Rango") + Botón de Pantalla Completa abajo a la derecha */}
+        {/* Leyenda térmica + Botón de Pantalla Completa abajo a la derecha */}
         <div className="flex items-center justify-between gap-2 mt-3 text-[10px] font-mono text-dim flex-shrink-0 flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="uppercase tracking-wider text-dim font-semibold mr-1">Rango:</span>
             {[-5, -3, -1, 0, 1, 3, 5].map((v) => (
               <span
                 key={v}

@@ -92,11 +92,6 @@ const TradingViewCryptoHeatmapComponent = () => {
           </button>
         )}
 
-        {/* Etiqueta "Rango" junto al indicador de colores inferior */}
-        <span className="absolute bottom-[6px] left-[248px] z-20 text-[10.5px] font-mono uppercase tracking-wider text-[#9db2bd] pointer-events-none select-none hidden sm:inline">
-          Rango
-        </span>
-
         {/* Botón de Zoom / Pantalla Completa abajo a la derecha del todo (en la barra del indicador de colores) */}
         <button
           type="button"
