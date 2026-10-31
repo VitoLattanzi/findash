@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useRef, useState, memo } from 'react';
-import { Maximize2, Minimize2, X } from 'lucide-react';
+import { Maximize2, X } from 'lucide-react';
 
 const TradingViewCryptoHeatmapComponent = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -79,29 +79,30 @@ const TradingViewCryptoHeatmapComponent = () => {
             : 'relative bg-card border border-line rounded-[6px] h-[580px] overflow-hidden w-full'
         }
       >
-        {/* Botón X arriba a la derecha cuando está en modo pantalla completa */}
-        {isFullscreen && (
+        {/* Botón integrado nativamente en la barra superior de TradingView (justo a la izquierda del engranaje ⚙️) */}
+        {!isFullscreen ? (
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(true)}
+            aria-label="Ver en pantalla completa"
+            title="Ver en pantalla completa"
+            className="absolute top-[5px] right-[42px] z-20 h-[28px] px-2 rounded-[6px] bg-transparent hover:bg-[#2a2e39] text-[#d1d4dc] hover:text-white flex items-center gap-1.5 text-[12px] font-sans transition-colors cursor-pointer"
+          >
+            <Maximize2 size={14} strokeWidth={1.8} />
+            <span className="hidden sm:inline text-[12px] leading-none">Expandir</span>
+          </button>
+        ) : (
           <button
             type="button"
             onClick={() => setIsFullscreen(false)}
             aria-label="Salir de pantalla completa"
             title="Salir de pantalla completa (Esc)"
-            className="absolute top-1.5 right-12 z-30 w-7 h-7 rounded-[4px] bg-[#131722]/95 hover:bg-red text-text hover:text-white border border-[#2a2e39] hover:border-red flex items-center justify-center shadow-lg transition-colors"
+            className="absolute top-[5px] right-[42px] z-30 h-[28px] px-2.5 rounded-[6px] bg-[#2a2e39] hover:bg-red text-white flex items-center gap-1.5 text-[12px] font-sans transition-colors cursor-pointer shadow-sm"
           >
-            <X size={15} />
+            <X size={15} strokeWidth={2} />
+            <span className="text-[12px] font-medium leading-none">Cerrar</span>
           </button>
         )}
-
-        {/* Botón flotante de Pantalla Completa integrado en la columna derecha de controles (+ / -) */}
-        <button
-          type="button"
-          onClick={() => setIsFullscreen((prev) => !prev)}
-          aria-label={isFullscreen ? 'Reducir pantalla completa' : 'Ver en pantalla completa'}
-          title={isFullscreen ? 'Salir de pantalla completa (Esc)' : 'Ampliar a pantalla completa'}
-          className="absolute right-[10px] top-[44%] -translate-y-[52px] z-20 w-[28px] h-[28px] rounded-[4px] bg-[#131722]/90 hover:bg-[#2a2e39] text-[#d1d4dc] hover:text-gold border border-[#2a2e39] hover:border-gold/60 flex items-center justify-center shadow-md transition-colors"
-        >
-          {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-        </button>
 
         <div
           ref={containerRef}
