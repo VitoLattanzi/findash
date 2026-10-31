@@ -255,37 +255,16 @@ export function MarketHeatmap<T extends HeatmapItem>({
               ))}
             </div>
 
-            {!isFullscreen ? (
+            {isFullscreen && (
               <button
                 type="button"
-                onClick={() => setIsFullscreen(true)}
-                title="Ver mapa de calor en pantalla completa"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bg2 hover:bg-line border border-line hover:border-gold text-[11px] font-mono text-text hover:text-gold transition-colors"
+                onClick={() => setIsFullscreen(false)}
+                aria-label="Cerrar pantalla completa"
+                title="Cerrar pantalla completa (Esc)"
+                className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-red/15 hover:bg-red text-red hover:text-white border border-red/30 transition-colors"
               >
-                <Maximize2 size={12} />
-                <span className="hidden sm:inline">Pantalla completa</span>
+                <X size={15} />
               </button>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setIsFullscreen(false)}
-                  title="Restaurar tamaño"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-bg2 hover:bg-line border border-line text-[11px] font-mono text-dim hover:text-text transition-colors"
-                >
-                  <Minimize2 size={12} />
-                  <span className="hidden sm:inline">Reducir</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsFullscreen(false)}
-                  aria-label="Cerrar pantalla completa"
-                  title="Cerrar pantalla completa (Esc)"
-                  className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-red/15 hover:bg-red text-red hover:text-white border border-red/30 transition-colors"
-                >
-                  <X size={15} />
-                </button>
-              </div>
             )}
           </div>
         </div>
@@ -365,17 +344,39 @@ export function MarketHeatmap<T extends HeatmapItem>({
           })}
         </div>
 
-        {/* Leyenda térmica */}
-        <div className="flex items-center justify-center gap-1 mt-3 text-[10px] font-mono text-dim flex-shrink-0">
-          {[-5, -3, -1, 0, 1, 3, 5].map((v) => (
-            <span
-              key={v}
-              className="px-2 py-0.5 rounded-[3px] text-white/90"
-              style={{ background: heatColor(v).bg }}
-            >
-              {v > 0 ? `+${v}%` : `${v}%`}
-            </span>
-          ))}
+        {/* Leyenda térmica ("Rango") + Botón de Pantalla Completa abajo a la derecha */}
+        <div className="flex items-center justify-between gap-2 mt-3 text-[10px] font-mono text-dim flex-shrink-0 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="uppercase tracking-wider text-dim font-semibold mr-1">Rango:</span>
+            {[-5, -3, -1, 0, 1, 3, 5].map((v) => (
+              <span
+                key={v}
+                className="px-2 py-0.5 rounded-[3px] text-white/90"
+                style={{ background: heatColor(v).bg }}
+              >
+                {v > 0 ? `+${v}%` : `${v}%`}
+              </span>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsFullscreen((prev) => !prev)}
+            title={isFullscreen ? 'Salir de pantalla completa (Esc)' : 'Ver mapa de calor en pantalla completa'}
+            className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-bg2 hover:bg-line border border-line hover:border-gold text-[11px] font-mono text-text hover:text-gold transition-colors cursor-pointer"
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize2 size={12} />
+                <span>Reducir</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 size={12} />
+                <span>Pantalla completa</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </>
