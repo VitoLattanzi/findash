@@ -1,4 +1,4 @@
-# FinDash — Master Specification & Roadmap (v1.6)
+# FinDash — Master Specification & Roadmap (v1.7)
 
 ## 1. Identidad Visual y UI/UX (Estricto)
 - **Regla de Oro:** Respetar la paleta oscura: `--bg: #0c0f14`, `--bg2: #12161e`, `--card: #161b25`, `--line: #262d3b`, `--gold: #d8ad3f`, `--teal: #4fc7bd`, `--red: #d9685f`.
@@ -79,3 +79,7 @@
   - Bloque superior "Pulso General de Ballenas" integrado en la card del Radar de Ballenas con 3 KPIs rápidos (Posicionamiento Top Traders Long/Short, Presión Taker 1h, Sentimiento & Fondeo), Lectura Crítica automática, filtro de umbral ampliado (`$50k | $100k | $250k | $500k`) y badge dinámico de flujo en vivo por activo.
 - [x] **Integración en Vistas:**
   - En **Dashboard**, **Cripto**, **Bolsa** y **Países**, actualizar el toggle de visualización a `[ Lista | Cards | Mapa ]`.
+
+
+### Epic 8: Refactorización y Evolución de Bolsa & Materias Primas (v1.7)
+- [ ] **Diseño y Reestructuración de BolsaView:** Refactorización visual, paneles y métricas de mercado bursátil.
