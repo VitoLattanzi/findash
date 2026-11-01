@@ -23,6 +23,13 @@ const FEEDS: Record<string, string[]> = {
     'https://cointelegraph.com/rss/tag/binance',
     'https://cointelegraph.com/rss/tag/bitcoin',
   ],
+  bolsa: [
+    gnews('Wall Street S&P 500 Nasdaq acciones mercados'),
+    gnews('Jerome Powell Reserva Federal Fed tasas interés declaraciones'),
+    gnews('balance trimestral ganancias ingresos acciones Apple Nvidia Microsoft Tesla'),
+    gnews('oro petróleo commodities ADRs acciones argentinas YPF MercadoLibre'),
+    'https://www.ambito.com/rss/finanzas.xml',
+  ],
 };
 
 const CATEGORIES = Object.keys(FEEDS);
@@ -41,12 +48,12 @@ function analyzeSentiment(title: string): 'positivo' | 'negativo' | 'neutral' {
     'sube', 'gana', 'alcista', 'récord', 'ath', 'máximo', 'aprob', 'adopción',
     'listing', 'listado', 'nuevo', 'rally', 'dispara', 'impulsa', 'crece',
     'victoria', 'bull', 'supera', 'aumenta', 'ganancia', 'verde', 'repunta',
-    'alianza', 'expande', 'inversión'
+    'alianza', 'expande', 'inversión',
   ];
   const negative = [
     'cae', 'baja', 'desploma', 'pérdida', 'hack', 'robo', 'demanda', 'sec',
     'quiebra', 'colapso', 'alerta', 'miedo', 'estafa', 'investig', 'sanción',
-    'bajista', 'bear', 'rojo', 'liquid', 'caída', 'retrocede', 'multa', 'fuga'
+    'bajista', 'bear', 'rojo', 'liquid', 'caída', 'retrocede', 'multa', 'fuga',
   ];
   let pos = 0;
   let neg = 0;

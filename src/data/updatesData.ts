@@ -15,10 +15,48 @@ export interface ReleaseUpdate {
 
 export const PLATFORM_UPDATES: ReleaseUpdate[] = [
   {
+    version: 'v1.7',
+    date: 'Noviembre 2026',
+    title: 'Bolsa & Materias Primas 2.0: Layout en 4 Bloques y Voces del Mercado',
+    isLatest: true,
+    highlight: 'Rediseño integral en 4 bloques sin pestañas ocultas: Mapa de Calor S&P 500 oficial de TradingView, Principales Acciones con conjuntos rápidos, Panel Triple en paralelo (Oro & Commodities | Mercado Global | Argentina ADRs) y radar de Noticias / "Habló X Persona".',
+    items: [
+      {
+        type: 'nuevo',
+        title: 'Mapa de Calor S&P 500 de TradingView Integrado',
+        description:
+          'Bloque superior izquierdo con el mapa de calor oficial del S&P 500 agrupado por sectores industriales (Tecnología, Finanzas, Salud, Energía, Consumo), con modo Pantalla Completa y tema oscuro nativo.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Principales Acciones & Conjuntos al Estilo S&P 500',
+        description:
+          'Bloque superior derecho con scroll interno para explorar líderes del S&P 500, pills rápidas de conjuntos (Todas, Mag 7 & IA, Finanzas, Consumo & Salud, Energía & Ind.), buscador global en vivo y ordenamiento con 5 temporalidades.',
+      },
+      {
+        type: 'nuevo',
+        title: 'Panel Triple en Paralelo: Oro | Mercado Global | Argentina',
+        description:
+          'Bloque inferior izquierdo dividido en 3 columnas simultáneas siempre visibles: Oro & Materias Primas (Oro, Plata, Petróleo WTI/Brent, Gas, Cobre, Soja), Mercado Global (Índices de EE.UU., Bono 10Y, VIX, TSM, ASML, BABA) y Argentina ADRs (MELI, YPF, GGAL, VIST, PAM).',
+      },
+      {
+        type: 'nuevo',
+        title: 'Radar de Noticias, Balances & "Habló X Persona"',
+        description:
+          'Bloque inferior derecho con clasificación inteligente de noticias bursátiles en vivo: detecta declaraciones clave ("🎙️ Habló Powell / Fed", Trump, Elon Musk, Jensen Huang, Buffett), reportes de balances trimestrales y pulso de mercados.',
+      },
+      {
+        type: 'mejora',
+        title: 'Mapa de Calor Cripto Unificado en TradingView',
+        description:
+          'Simplificación del bloque de mapa de calor en Cripto y Bolsa utilizando exclusivamente el motor interactivo de TradingView con botón de pantalla completa integrado en la barra inferior.',
+      },
+    ],
+  },
+  {
     version: 'v1.6',
     date: 'Noviembre 2026',
     title: 'Mapas de Calor, Temporalidades Dinámicas & Cripto 2.5',
-    isLatest: true,
     highlight: 'Nuevo layout con Mapas de Calor (TradingView + Treemap táctil mobile), menú de 5 temporalidades (12h a 3 meses) con actualización real de %, ordenamiento universal y radar de ballenas con pulso de derivados.',
     items: [
       {
