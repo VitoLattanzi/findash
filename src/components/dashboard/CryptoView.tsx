@@ -16,7 +16,6 @@ import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { WhaleTracker } from '@/components/dashboard/WhaleTracker';
 import { CryptoNewsCard } from '@/components/dashboard/CryptoNewsCard';
 import { TradingViewCryptoHeatmap } from '@/components/common/TradingViewCryptoHeatmap';
-import { MarketHeatmap, HeatmapItem } from '@/components/common/MarketHeatmap';
 import { TimeframeControl } from '@/components/common/TimeframeHeader';
 import { formatPercent, formatPrice, formatVolume } from '@/lib/format';
 import {
@@ -24,7 +23,6 @@ import {
   DEFAULT_MEMECOINS,
   CRYPTO_PROFILES,
   getCryptoProfile,
-  estimateCryptoMarketCap,
 } from '@/data/cryptoData';
 import { ChangeTimeframe, getTimeframeOption } from '@/lib/timeframe';
 import { Asset } from '@/types';
@@ -52,8 +50,6 @@ export const CryptoView = () => {
     dir: -1,
   });
 
-  // Selector de mapa: TradingView (desktop) o Interactivo Touch FinDash (con zoom 2 dedos y tap directo a DetailPanel)
-  const [heatmapEngine, setHeatmapEngine] = useState<'tv' | 'touch'>('tv');
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [addCategory, setAddCategory] = useState<'altcoin' | 'memecoin'>('altcoin');
@@ -259,24 +255,6 @@ export const CryptoView = () => {
   const altRows = getRowsFor(altcoins);
   const memeRows = getRowsFor(memecoins);
 
-  // Ítems para el modo Treemap Touch con soporte de zoom táctil (2 dedos / doble toque) y apertura directa de DetailPanel
-  const heatmapCryptoItems: Array<HeatmapItem & { row: (typeof altRows)[0] }> = useMemo(() => {
-    const combined = [...altRows, ...memeRows];
-    const unique = new Map<string, (typeof altRows)[0]>();
-    for (const r of combined) {
-      if (!unique.has(r.sym)) unique.set(r.sym, r);
-    }
-    return Array.from(unique.values()).map((r) => ({
-      id: r.sym,
-      symbol: r.sym,
-      name: r.name,
-      type: 'crypto' as const,
-      price: r.price,
-      change: r.change,
-      marketCap: estimateCryptoMarketCap(r.sym, r.price),
-      row: r,
-    }));
-  }, [altRows, memeRows]);
 
   const renderPanel = (
     title: string,
@@ -470,32 +448,6 @@ export const CryptoView = () => {
 
         {/* Buscador, Selector de Motor de Mapa y Restablecer */}
         <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
-          {/* Selector de Motor: TradingView vs Interactivo Touch FinDash */}
-          <div className="flex border border-line rounded-lg overflow-hidden flex-shrink-0">
-            <button
-              onClick={() => setHeatmapEngine('tv')}
-              className={`px-2.5 py-1.5 text-[11px] font-mono transition-colors ${
-                heatmapEngine === 'tv'
-                  ? 'bg-gold text-bg font-semibold'
-                  : 'bg-bg2 text-dim hover:text-text'
-              }`}
-              title="Widget de TradingView oficial"
-            >
-              TradingView
-            </button>
-            <button
-              onClick={() => setHeatmapEngine('touch')}
-              className={`px-2.5 py-1.5 text-[11px] font-mono transition-colors ${
-                heatmapEngine === 'touch'
-                  ? 'bg-gold text-bg font-semibold'
-                  : 'bg-bg2 text-dim hover:text-text'
-              }`}
-              title="Mapa táctil: Zoom con 2 dedos / doble toque y toque para abrir detalle"
-            >
-              Táctil (Móvil)
-            </button>
-          </div>
-
           <div className="relative flex-1 sm:w-64">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim" />
             <input
@@ -528,30 +480,7 @@ export const CryptoView = () => {
       {/* Grilla Superior: Izquierda (Heatmap 53%) | Derecha (2 Paneles Apilados 47%) */}
       <div className="flex flex-col xl:flex-row gap-4 items-stretch">
         <div className="w-full xl:w-[53%] min-w-0">
-          {heatmapEngine === 'tv' ? (
-            <TradingViewCryptoHeatmap />
-          ) : (
-            <MarketHeatmap
-              items={heatmapCryptoItems}
-              defaultSizeBy="marketCap"
-              title="Mapa de Calor Cripto (Táctil)"
-              heightClassName="h-[460px] md:h-[500px]"
-              onItemClick={(item) => {
-                const r = item.row;
-                handleSelectCoin(
-                  r.sym,
-                  r.name,
-                  r.price,
-                  r.change,
-                  r.open,
-                  r.high,
-                  r.low,
-                  r.vol,
-                  r.bars
-                );
-              }}
-            />
-          )}
+          <TradingViewCryptoHeatmap />
         </div>
 
         <div className="w-full xl:w-[47%] min-w-0 flex flex-col justify-between gap-4">
