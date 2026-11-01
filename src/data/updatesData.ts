@@ -16,40 +16,40 @@ export interface ReleaseUpdate {
 export const PLATFORM_UPDATES: ReleaseUpdate[] = [
   {
     version: 'v1.6',
-    date: 'Octubre 2026',
-    title: 'Mapas de Calor, Temporalidades Dinámicas y Ordenamiento',
+    date: 'Noviembre 2026',
+    title: 'Mapas de Calor, Temporalidades Dinámicas & Cripto 2.5',
     isLatest: true,
-    highlight: 'Mapa de Calor oficial de TradingView en Cripto, Treemap nativo en Bolsa/Dashboard/Países y menú desplegable de 5 temporalidades (12h a 3 meses) con actualización real de % y Sparklines.',
+    highlight: 'Nuevo layout con Mapas de Calor (TradingView + Treemap táctil mobile), menú de 5 temporalidades (12h a 3 meses) con actualización real de %, ordenamiento universal y radar de ballenas con pulso de derivados.',
     items: [
       {
         type: 'nuevo',
-        title: 'Nuevo Layout Cripto: Mapa de Calor TradingView + Listas Scrolleables',
+        title: 'Layout Cripto: Mapa de Calor + Listas Scrolleables',
         description:
-          'Widget interactivo oficial de Mapa de Calor de Criptomonedas de TradingView a la izquierda (con zoom y bloques por Market Cap) y paneles apilados de Altcoins & Capa 1 (ampliado) y Meme Coins Líderes con scroll interno compacto a la derecha.',
+          'Integración dual con Mapa oficial de TradingView y modo Táctil FinDash (zoom con 2 dedos, doble toque y apertura de detalle), acompañado a la derecha por listas compactas con scroll interno para Altcoins y Memecoins.',
       },
       {
         type: 'nuevo',
-        title: 'Popover de Temporalidades (12h, 24h, 1sem, 1 mes, 3meses)',
+        title: 'Popover de Temporalidades Dinámicas (12h a 3 meses)',
         description:
-          'Menú desplegable flotante al tocar el encabezado de % en todas las tablas (Cripto, Dashboard, Bolsa, Arg/CEDEARs y Países) que recalcula en tiempo real el porcentaje de variación y redibuja las curvas Sparkline.',
+          'Menú desplegable flotante al tocar el encabezado de % en todas las tablas (Cripto, Dashboard, Bolsa, CEDEARs y Países) que recalcula en tiempo real la variación y actualiza las curvas Sparkline.',
       },
       {
         type: 'nuevo',
-        title: 'Ordenamiento Completo por Columnas',
+        title: 'Ordenamiento por Columnas en Todas las Tablas',
         description:
-          'Encabezados interactivos para ordenar cualquier tabla alfabéticamente por Activo (A-Z / Z-A) o numéricamente por Precio, Variación % (con botón rápido ▲/▼) y Volumen.',
+          'Cabeceras interactivas para ordenar alfabéticamente por Activo (A-Z / Z-A) o numéricamente por Precio, Variación % (con botón rápido ▲/▼) y Volumen.',
       },
       {
         type: 'nuevo',
-        title: 'Componente Treemap Nativo (Squarified Heatmap)',
+        title: 'Treemap Squarified Nativo con Modo Pantalla Completa',
         description:
-          'Mapa de calor propio en TypeScript con escala térmica FinDash (--teal y --red) y 3 modos de tamaño (Cap. de Mercado, Peso Igualitario y Volatilidad) en Dashboard, Bolsa y Países.',
+          'Algoritmo matemático propio sin librerías pesadas con escala térmica (--teal y --red), 3 modos de ponderación (Cap. Mercado, Igualitario, Volatilidad) y botón de pantalla completa.',
       },
       {
         type: 'nuevo',
-        title: 'Pulso General de Ballenas (Futuros + Sentimiento + Fondeo)',
+        title: 'Pulso General de Ballenas (Derivados + Fondeo + F&G)',
         description:
-          'El Radar de Ballenas ahora integra posicionamiento Top Trader Long/Short (BTC, ETH, SOL), Presión Taker 1h, Funding Rate + Fear & Greed con lectura institucional automática, umbral hasta $500k y diagnóstico de flujo en vivo.',
+          'El Radar de Ballenas ahora suma 3 KPIs institucionales: Posicionamiento Top Traders Long/Short (BTC/ETH/SOL), Presión Taker 1h, Funding Rate + Fear & Greed con diagnóstico automático y umbrales hasta $500k.',
       },
     ],
   },
