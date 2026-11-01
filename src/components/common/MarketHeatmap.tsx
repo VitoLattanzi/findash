@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutGrid, Maximize2, Minimize2, X } from 'lucide-react';
+import { LayoutGrid, Maximize2, Minimize2, X, RotateCcw } from 'lucide-react';
 import { AssetIcon } from '@/components/common/AssetIcon';
 import { CryptoIcon } from '@/components/common/CryptoIcon';
 import { formatPercent, formatPrice } from '@/lib/format';
@@ -69,7 +69,7 @@ function squarify(areas: number[], container: Rect): Rect[] {
     } else {
       // Fila arriba
       const rowH = free.w > 0 ? sum / free.w : 0;
-      let x = free.x;
+      let x = free.y;
       for (const a of r) {
         const w = rowH > 0 ? a / rowH : 0;
         out.push({ x, y: free.y, w, h: rowH });
@@ -148,6 +148,27 @@ export function MarketHeatmap<T extends HeatmapItem>({
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ w: 0, h: 0 });
 
+  // Estados de Zoom / Pan táctil para celular y mouse
+  const [zoomScale, setZoomScale] = useState(1);
+  const [zoomTranslate, setZoomTranslate] = useState({ x: 0, y: 0 });
+
+  // Touch tracking refs
+  const touchStateRef = useRef<{
+    initialDistance: number;
+    initialScale: number;
+    lastPan: { x: number; y: number };
+    lastTapTime: number;
+    isPinchingOrPanning: boolean;
+    moved: boolean;
+  }>({
+    initialDistance: 0,
+    initialScale: 1,
+    lastPan: { x: 0, y: 0 },
+    lastTapTime: 0,
+    isPinchingOrPanning: false,
+    moved: false,
+  });
+
   // Cerrar con tecla Escape cuando está en modo pantalla completa
   useEffect(() => {
     if (!isFullscreen) return;
@@ -168,6 +189,12 @@ export function MarketHeatmap<T extends HeatmapItem>({
     ro.observe(el);
     return () => ro.disconnect();
   }, [isFullscreen]);
+
+  // Reset zoom al cambiar fullscreen o modo
+  const resetZoom = () => {
+    setZoomScale(1);
+    setZoomTranslate({ x: 0, y: 0 });
+  };
 
   const valid = useMemo(
     () => items.filter((it) => it.price > 0 || Number.isFinite(it.change)),
@@ -208,6 +235,97 @@ export function MarketHeatmap<T extends HeatmapItem>({
   const ups = valid.filter((it) => it.change > 0).length;
   const downs = valid.filter((it) => it.change < 0).length;
 
+  // Manejador de touch (pellizco 2 dedos para zoom, arrastre 1 o 2 dedos para pan, y doble toque)
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchStateRef.current.moved = false;
+
+    if (e.touches.length === 2) {
+      // Inicio de pellizco con 2 dedos
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      touchStateRef.current.initialDistance = dist;
+      touchStateRef.current.initialScale = zoomScale;
+      touchStateRef.current.lastPan = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+      };
+      touchStateRef.current.isPinchingOrPanning = true;
+    } else if (e.touches.length === 1) {
+      // Registro de posición para pan cuando está zoomeado
+      touchStateRef.current.lastPan = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+      touchStateRef.current.moved = true;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+
+      if (touchStateRef.current.initialDistance > 0) {
+        const factor = dist / touchStateRef.current.initialDistance;
+        const newScale = Math.min(Math.max(touchStateRef.current.initialScale * factor, 1), 4);
+        setZoomScale(newScale);
+
+        // Pan simultáneo de dos dedos
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const deltaX = midX - touchStateRef.current.lastPan.x;
+        const deltaY = midY - touchStateRef.current.lastPan.y;
+
+        setZoomTranslate((prev) => ({
+          x: prev.x + deltaX,
+          y: prev.y + deltaY,
+        }));
+
+        touchStateRef.current.lastPan = { x: midX, y: midY };
+      }
+    } else if (e.touches.length === 1 && zoomScale > 1.05) {
+      // Pan con 1 dedo cuando está ampliado
+      const deltaX = e.touches[0].clientX - touchStateRef.current.lastPan.x;
+      const deltaY = e.touches[0].clientY - touchStateRef.current.lastPan.y;
+
+      if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+        touchStateRef.current.moved = true;
+      }
+
+      setZoomTranslate((prev) => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY,
+      }));
+
+      touchStateRef.current.lastPan = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length < 2) {
+      touchStateRef.current.initialDistance = 0;
+    }
+    if (e.touches.length === 0) {
+      // Doble toque para zoom in (2.2x) o restablecer (1x)
+      const now = Date.now();
+      const last = touchStateRef.current.lastTapTime;
+      if (!touchStateRef.current.moved && now - last < 300) {
+        if (zoomScale > 1.2) {
+          resetZoom();
+        } else {
+          setZoomScale(2.2);
+        }
+      }
+      touchStateRef.current.lastTapTime = now;
+      touchStateRef.current.isPinchingOrPanning = false;
+    }
+  };
+
   return (
     <>
       {isFullscreen && (
@@ -220,8 +338,8 @@ export function MarketHeatmap<T extends HeatmapItem>({
       <div
         className={
           isFullscreen
-            ? 'fixed inset-2 sm:inset-5 z-[90] bg-card border border-line rounded-xl p-4 shadow-2xl flex flex-col overflow-hidden'
-            : 'bg-card border border-line rounded-xl p-4 shadow-sm'
+            ? 'fixed inset-2 sm:inset-5 z-[90] bg-card border border-line rounded-xl p-3 sm:p-4 shadow-2xl flex flex-col overflow-hidden'
+            : 'bg-card border border-line rounded-xl p-3 sm:p-4 shadow-sm'
         }
       >
         {/* Encabezado */}
@@ -235,6 +353,9 @@ export function MarketHeatmap<T extends HeatmapItem>({
               <p className="text-[11px] text-dim font-mono">
                 {valid.length} activos · <span className="text-teal">{ups} ▲</span> ·{' '}
                 <span className="text-red">{downs} ▼</span>
+                {zoomScale > 1.05 && (
+                  <span className="ml-1 text-gold font-semibold">({zoomScale.toFixed(1)}x)</span>
+                )}
               </p>
             </div>
           </div>
@@ -255,6 +376,18 @@ export function MarketHeatmap<T extends HeatmapItem>({
               ))}
             </div>
 
+            {zoomScale > 1.05 && (
+              <button
+                type="button"
+                onClick={resetZoom}
+                title="Restablecer zoom (1x)"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-bg2 hover:bg-line border border-line text-[11px] font-mono text-gold transition-colors"
+              >
+                <RotateCcw size={12} />
+                <span className="hidden sm:inline">1x</span>
+              </button>
+            )}
+
             {isFullscreen && (
               <button
                 type="button"
@@ -269,10 +402,13 @@ export function MarketHeatmap<T extends HeatmapItem>({
           </div>
         </div>
 
-        {/* Lienzo del Treemap */}
+        {/* Lienzo del Treemap interactivo con gestos touch (pellizco 2 dedos + doble toque + tap en activo) */}
         <div
           ref={containerRef}
-          className={`relative w-full overflow-hidden rounded-lg bg-bg ${
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className={`relative w-full overflow-hidden rounded-lg bg-bg select-none touch-none ${
             isFullscreen ? 'flex-1 min-h-0' : heightClassName
           }`}
         >
@@ -282,66 +418,78 @@ export function MarketHeatmap<T extends HeatmapItem>({
             </div>
           )}
 
-          {rects.map((r, idx) => {
-            const { item } = weighted[idx];
-            const { bg, border } = heatColor(item.change);
-            const w = Math.max(r.w - GAP, 0);
-            const h = Math.max(r.h - GAP, 0);
-            const minSide = Math.min(w, h);
+          <div
+            className="w-full h-full relative transition-transform duration-75 origin-center will-change-transform"
+            style={{
+              transform: `translate(${zoomTranslate.x}px, ${zoomTranslate.y}px) scale(${zoomScale})`,
+            }}
+          >
+            {rects.map((r, idx) => {
+              const { item } = weighted[idx];
+              const { bg, border } = heatColor(item.change);
+              const w = Math.max(r.w - GAP, 0);
+              const h = Math.max(r.h - GAP, 0);
+              const minSide = Math.min(w, h);
 
-            const showIcon = w >= 84 && h >= 70;
-            const showPct = w >= 42 && h >= 30;
-            const showTicker = w >= 24 && h >= 16;
-            const tickerSize = Math.max(9, Math.min(26, minSide / 3.6));
-            const pctSize = Math.max(8.5, Math.min(16, minSide / 6));
-            const iconPx = Math.round(Math.max(18, Math.min(34, minSide / 4)));
+              const showIcon = w >= 70 && h >= 56;
+              const showPct = w >= 36 && h >= 26;
+              const showTicker = w >= 20 && h >= 14;
+              const tickerSize = Math.max(9, Math.min(26, minSide / 3.6));
+              const pctSize = Math.max(8.5, Math.min(16, minSide / 6));
+              const iconPx = Math.round(Math.max(16, Math.min(32, minSide / 4)));
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => onItemClick?.(item)}
-                title={`${item.name ?? item.symbol} (${item.symbol})\n$${formatPrice(item.price)} · ${formatPercent(item.change)}`}
-                className="absolute flex flex-col items-center justify-center text-center overflow-hidden rounded-[3px] transition-[filter,transform] duration-150 hover:brightness-125 hover:z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-                style={{
-                  left: r.x + GAP / 2,
-                  top: r.y + GAP / 2,
-                  width: w,
-                  height: h,
-                  background: bg,
-                  border: `1px solid ${border}`,
-                }}
-              >
-                {showIcon &&
-                  (item.type === 'crypto' ? (
-                    <CryptoIcon symbol={item.symbol} size={iconPx} className="mb-1" />
-                  ) : (
-                    <AssetIcon
-                      symbol={item.symbol}
-                      name={item.name}
-                      type="stock"
-                      size={iconPx >= 28 ? 'lg' : 'md'}
-                      className="mb-1"
-                    />
-                  ))}
-                {showTicker && (
-                  <span
-                    className="font-bold text-white leading-none truncate max-w-full px-1"
-                    style={{ fontSize: tickerSize }}
-                  >
-                    {item.symbol.replace(/\.BA$/, '').replace(/=F$/, '')}
-                  </span>
-                )}
-                {showPct && (
-                  <span
-                    className="font-mono text-white/85 leading-none mt-1"
-                    style={{ fontSize: pctSize }}
-                  >
-                    {formatPercent(item.change)}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    // Evitar disparar click si el usuario estaba arrastrando/pellizcando
+                    if (touchStateRef.current.moved) return;
+                    onItemClick?.(item);
+                  }}
+                  title={`${item.name ?? item.symbol} (${item.symbol})\n$${formatPrice(item.price)} · ${formatPercent(item.change)}`}
+                  className="absolute flex flex-col items-center justify-center text-center overflow-hidden rounded-[3px] transition-[filter,transform] duration-150 active:scale-95 hover:brightness-125 hover:z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold cursor-pointer"
+                  style={{
+                    left: r.x + GAP / 2,
+                    top: r.y + GAP / 2,
+                    width: w,
+                    height: h,
+                    background: bg,
+                    border: `1px solid ${border}`,
+                  }}
+                >
+                  {showIcon &&
+                    (item.type === 'crypto' ? (
+                      <CryptoIcon symbol={item.symbol} size={iconPx} className="mb-1 pointer-events-none" />
+                    ) : (
+                      <AssetIcon
+                        symbol={item.symbol}
+                        name={item.name}
+                        type="stock"
+                        size={iconPx >= 28 ? 'lg' : 'md'}
+                        className="mb-1 pointer-events-none"
+                      />
+                    ))}
+                  {showTicker && (
+                    <span
+                      className="font-bold text-white leading-none truncate max-w-full px-1 pointer-events-none"
+                      style={{ fontSize: tickerSize }}
+                    >
+                      {item.symbol.replace(/\.BA$/, '').replace(/=F$/, '')}
+                    </span>
+                  )}
+                  {showPct && (
+                    <span
+                      className="font-mono text-white/85 leading-none mt-1 pointer-events-none"
+                      style={{ fontSize: pctSize }}
+                    >
+                      {formatPercent(item.change)}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Leyenda térmica + Botón de Pantalla Completa abajo a la derecha */}
