@@ -1,8 +1,9 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useQuotes } from '@/hooks/useQuotes';
 import { DEFAULT_PINNED, PinnedAsset, SP500_TICKERS, labelFor } from '@/lib/catalog';
-import { formatPercent, formatPrice } from '@/lib/format';
+import { fmtCompact, fmtPct, fmtPrice } from '@/lib/format';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { BolsaNewsCard } from '@/components/dashboard/BolsaNewsCard';
 import { TradingViewStockHeatmap } from '@/components/common/TradingViewStockHeatmap';
@@ -20,21 +21,16 @@ import {
   Layers,
   Gem,
   Landmark,
-  Flame,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
-
-interface Quote {
-  symbol: string;
-  price: number | null;
-  change: number | null;
-  name: string | null;
-  bars?: number[] | null;
-  marketCap?: number | null;
-  volume?: number | null;
-}
 
 type SortKey = 'symbol' | 'name' | 'price' | 'change' | 'volume';
 type SectorGroup = 'all' | 'mag7' | 'finanzas' | 'consumo_salud' | 'energia_ind';
+type PerformanceFilter = 'all' | 'gainers' | 'losers' | 'active' | 'favorites';
+
+const DEFAULT_FAV_STOCKS = ['NVDA', 'AAPL', 'MSFT', 'MELI', 'AMZN', 'GOOGL'];
+const INITIAL_CARD_ROWS = 7;
 
 const SECTOR_GROUPS: Array<{
   key: SectorGroup;
@@ -105,7 +101,7 @@ const SECTOR_GROUPS: Array<{
   },
 ];
 
-// 1. Columna "Mercado de Oro y eso" (Materias Primas / Commodities)
+// 1. Columna "Oro & Materias Primas" (Commodities)
 const COMMODITIES_ITEMS: Array<{ symbol: string; displayName: string; unit: string }> = [
   { symbol: 'GC=F', displayName: 'Oro (Gold Futures)', unit: 'oz' },
   { symbol: 'SI=F', displayName: 'Plata (Silver)', unit: 'oz' },
@@ -152,71 +148,96 @@ const ARGENTINA_MARKET_ITEMS: Array<{ symbol: string; displayName: string; secto
   { symbol: 'CRESY', displayName: 'Cresud', sector: 'Agro & Real Estate' },
 ];
 
-const formatVolumeCompact = (v?: number | null) => {
-  if (v == null || v <= 0) return '—';
-  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`;
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
-  return String(v);
-};
+interface ArgMacroState {
+  riesgoPais: number | null;
+  mep: number | null;
+  ccl: number | null;
+  brechaPct: number | null;
+}
 
 export const BolsaView = () => {
   const [sectorGroup, setSectorGroup] = useState<SectorGroup>('all');
-  const [quotesMap, setQuotesMap] = useState<Record<string, Quote>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [perfFilter, setPerfFilter] = useState<PerformanceFilter>('all');
   const [search, setSearch] = useState('');
   const [timeframe, setTimeframe] = useState<ChangeTimeframe>('24h');
-  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'volume', dir: -1 });
+  // Orden por defecto: Variación % (changePct descendente) en lugar de Volumen nominal
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'change', dir: -1 });
+  const [favStocks, setFavStocks] = useLocalStorage<string[]>('findash_fav_stocks', DEFAULT_FAV_STOCKS);
   const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned_v2', DEFAULT_PINNED);
   const [selected, setSelected] = useState<Asset | null>(null);
 
-  // Búsqueda global en vivo vía API (para cualquier acción del mundo no limitada al catálogo)
+  // Estados de expansión para las 3 tarjetas inferiores (elimina la trampa de 5 scrolls anidados)
+  const [expandCommodities, setExpandCommodities] = useState(false);
+  const [expandGlobal, setExpandGlobal] = useState(false);
+  const [expandArgentina, setExpandArgentina] = useState(false);
+
+  // Header Macro para la tarjeta Argentina (Riesgo País, Dólar MEP, Dólar CCL, Brecha %)
+  const [argMacro, setArgMacro] = useState<ArgMacroState>({
+    riesgoPais: null,
+    mep: null,
+    ccl: null,
+    brechaPct: null,
+  });
+
+  // Búsqueda global en vivo vía API
   const [globalResults, setGlobalResults] = useState<SearchResultItem[]>([]);
   const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
 
   // Lista unificada de todos los tickers que alimentan los paneles en simultáneo
-  const allTickersString = useMemo(() => {
+  const allTickersList = useMemo(() => {
     const spList = SP500_TICKERS.split(',');
     const commList = COMMODITIES_ITEMS.map((i) => i.symbol);
     const globList = GLOBAL_MARKET_ITEMS.map((i) => i.symbol);
     const argList = ARGENTINA_MARKET_ITEMS.map((i) => i.symbol);
-    return Array.from(new Set([...spList, ...commList, ...globList, ...argList])).join(',');
+    return Array.from(new Set([...spList, ...commList, ...globList, ...argList]));
   }, []);
 
-  // Carga unificada de cotizaciones según el rango temporal elegido (12h, 24h, 1sem, 1mes, 3meses)
+  // Polling inteligente según marketState (60s en REGULAR, 10m cerrado) con keepPreviousData
+  const { quotesMap, loading, error } = useQuotes(allTickersList, {
+    timeframe,
+    withSpark: true,
+    keepPreviousData: true,
+  });
+
+  // Carga de indicadores Macro de Argentina para el Header de la tarjeta Argentina (ADRs)
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
-    fetch(
-      `/api/market?tickers=${encodeURIComponent(allTickersString)}&timeframe=${encodeURIComponent(timeframe)}&spark=1`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return;
-        if (Array.isArray(data)) {
-          const map: Record<string, Quote> = {};
-          for (const item of data) {
-            if (item?.symbol) map[item.symbol] = item;
-          }
-          setQuotesMap(map);
-        } else {
-          setError(data?.error || 'No se pudo obtener la data de mercado');
+    Promise.allSettled([
+      fetch('https://dolarapi.com/v1/dolares').then((r) => r.json()),
+      fetch('https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo').then((r) => r.json()),
+    ]).then(([dolaresRes, riesgoRes]) => {
+      if (cancelled) return;
+
+      let mep: number | null = null;
+      let ccl: number | null = null;
+      let oficial: number | null = null;
+      let riesgoPais: number | null = null;
+
+      if (dolaresRes.status === 'fulfilled' && Array.isArray(dolaresRes.value)) {
+        for (const d of dolaresRes.value) {
+          if (d?.casa === 'bolsa' && typeof d.venta === 'number' && d.venta > 0) mep = d.venta;
+          if (d?.casa === 'contadoconliqui' && typeof d.venta === 'number' && d.venta > 0) ccl = d.venta;
+          if (d?.casa === 'oficial' && typeof d.venta === 'number' && d.venta > 0) oficial = d.venta;
         }
-      })
-      .catch(() => {
-        if (!cancelled) setError('No se pudo obtener la data de mercado');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      }
+
+      if (riesgoRes.status === 'fulfilled' && typeof riesgoRes.value?.valor === 'number') {
+        riesgoPais = riesgoRes.value.valor;
+      }
+
+      const brechaPct =
+        ccl != null && oficial != null && oficial > 0
+          ? ((ccl - oficial) / oficial) * 100
+          : null;
+
+      setArgMacro({ riesgoPais, mep, ccl, brechaPct });
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [allTickersString, timeframe]);
+  }, []);
 
   // Búsqueda en vivo en todo el mercado (Yahoo Finance search) con debounce
   useEffect(() => {
@@ -262,11 +283,30 @@ export const BolsaView = () => {
   const sortArrow = (key: SortKey) =>
     sort.key === key ? (sort.dir === 1 ? '▲' : '▼') : '↕';
 
-  const togglePin = (symbol: string, customLabel?: string) => {
-    const isPinned = pinned.some((p) => p.symbol === symbol);
-    if (isPinned) {
-      setPinned(pinned.filter((p) => p.symbol !== symbol));
+  const handlePerfFilterChange = (next: PerformanceFilter) => {
+    setPerfFilter(next);
+    if (next === 'gainers') {
+      setSort({ key: 'change', dir: -1 });
+    } else if (next === 'losers') {
+      setSort({ key: 'change', dir: 1 });
+    } else if (next === 'active') {
+      setSort({ key: 'volume', dir: -1 });
+    }
+  };
+
+  const toggleFavorite = (symbol: string, customLabel?: string) => {
+    const existsFav = favStocks.includes(symbol);
+    if (existsFav) {
+      setFavStocks(favStocks.filter((s) => s !== symbol));
     } else {
+      setFavStocks([...favStocks, symbol]);
+    }
+
+    // También sincronizamos con el pin del Dashboard principal
+    const isPinned = pinned.some((p) => p.symbol === symbol);
+    if (existsFav && isPinned) {
+      setPinned(pinned.filter((p) => p.symbol !== symbol));
+    } else if (!existsFav && !isPinned) {
       setPinned([...pinned, { symbol, label: customLabel || labelFor(symbol), type: 'stock' }]);
     }
   };
@@ -278,12 +318,18 @@ export const BolsaView = () => {
       ? new Set(activeGroupObj.symbols)
       : new Set(SP500_TICKERS.split(','));
 
+    const favSet = new Set(favStocks);
     const q = search.trim().toLowerCase();
-    const list: Quote[] = [];
+    const list = [];
 
     for (const sym of allowedSymbols) {
       const item = quotesMap[sym];
       if (!item) continue;
+
+      if (perfFilter === 'favorites' && !favSet.has(sym)) continue;
+      if (perfFilter === 'gainers' && (item.change == null || item.change <= 0)) continue;
+      if (perfFilter === 'losers' && (item.change == null || item.change >= 0)) continue;
+
       if (q) {
         const matchSym = item.symbol.toLowerCase().includes(q);
         const matchName = (item.name ?? '').toLowerCase().includes(q);
@@ -297,13 +343,26 @@ export const BolsaView = () => {
       if (sort.key === 'name') {
         return (a.name ?? a.symbol).localeCompare(b.name ?? b.symbol, 'es') * sort.dir;
       }
-      if (sort.key === 'price') return ((a.price ?? 0) - (b.price ?? 0)) * sort.dir;
-      if (sort.key === 'volume') return ((a.volume ?? 0) - (b.volume ?? 0)) * sort.dir;
-      return ((a.change ?? 0) - (b.change ?? 0)) * sort.dir;
+      if (sort.key === 'price') {
+        if (a.price == null && b.price == null) return 0;
+        if (a.price == null) return 1;
+        if (b.price == null) return -1;
+        return (a.price - b.price) * sort.dir;
+      }
+      if (sort.key === 'volume') {
+        if (a.volume == null && b.volume == null) return 0;
+        if (a.volume == null) return 1;
+        if (b.volume == null) return -1;
+        return (a.volume - b.volume) * sort.dir;
+      }
+      if (a.change == null && b.change == null) return 0;
+      if (a.change == null) return 1;
+      if (b.change == null) return -1;
+      return (a.change - b.change) * sort.dir;
     });
-  }, [quotesMap, sectorGroup, search, sort]);
+  }, [quotesMap, sectorGroup, perfFilter, favStocks, search, sort]);
 
-  // Helper para ordenar cualquiera de las 3 columnas del Bloque 3 (Oro y eso | Mercado Global | Argentina)
+  // Helper para ordenar cualquiera de las 3 columnas del Bloque 3
   const getSortedMiniColumn = <T extends { symbol: string; displayName: string }>(items: T[]) => {
     const q = search.trim().toLowerCase();
     const filtered = items
@@ -315,6 +374,8 @@ export const BolsaView = () => {
           change: quote?.change ?? null,
           bars: quote?.bars ?? [],
           volume: quote?.volume ?? null,
+          marketCap: quote?.marketCap ?? null,
+          marketState: quote?.marketState ?? null,
         };
       })
       .filter((row) => {
@@ -330,18 +391,45 @@ export const BolsaView = () => {
         return a.displayName.localeCompare(b.displayName, 'es') * sort.dir;
       }
       if (sort.key === 'price') {
-        return ((a.price ?? 0) - (b.price ?? 0)) * sort.dir;
+        if (a.price == null && b.price == null) return 0;
+        if (a.price == null) return 1;
+        if (b.price == null) return -1;
+        return (a.price - b.price) * sort.dir;
       }
       if (sort.key === 'volume') {
-        return ((a.volume ?? 0) - (b.volume ?? 0)) * sort.dir;
+        if (a.volume == null && b.volume == null) return 0;
+        if (a.volume == null) return 1;
+        if (b.volume == null) return -1;
+        return (a.volume - b.volume) * sort.dir;
       }
-      return ((a.change ?? 0) - (b.change ?? 0)) * sort.dir;
+      if (a.change == null && b.change == null) return 0;
+      if (a.change == null) return 1;
+      if (b.change == null) return -1;
+      return (a.change - b.change) * sort.dir;
     });
   };
 
   const commoditiesRows = useMemo(() => getSortedMiniColumn(COMMODITIES_ITEMS), [quotesMap, search, sort]);
   const globalRows = useMemo(() => getSortedMiniColumn(GLOBAL_MARKET_ITEMS), [quotesMap, search, sort]);
   const argentinaRows = useMemo(() => getSortedMiniColumn(ARGENTINA_MARKET_ITEMS), [quotesMap, search, sort]);
+
+  const visibleCommodities = expandCommodities ? commoditiesRows : commoditiesRows.slice(0, INITIAL_CARD_ROWS);
+  const visibleGlobal = expandGlobal ? globalRows : globalRows.slice(0, INITIAL_CARD_ROWS);
+  const visibleArgentina = expandArgentina ? argentinaRows : argentinaRows.slice(0, INITIAL_CARD_ROWS);
+
+  const isInitialLoading = loading && Object.keys(quotesMap).length === 0;
+
+  const openTickerInDetail = (symbol: string, name: string) => {
+    const q = quotesMap[symbol];
+    setSelected({
+      name: q?.name || name || symbol,
+      symbol,
+      type: 'stock',
+      price: q?.price ?? 0,
+      change: q?.change ?? 0,
+      bars: q?.bars ?? [],
+    });
+  };
 
   return (
     <section className="space-y-5">
@@ -357,7 +445,7 @@ export const BolsaView = () => {
             </span>
           </div>
           <p className="text-[12px] text-dim mt-0.5">
-            Mapa de calor sectorial S&amp;P 500, conjuntos líderes, materias primas, índices globales, ADRs argentinos y noticias.
+            Mapa de calor sectorial S&amp;P 500, conjuntos líderes, materias primas, índices globales, ADRs argentinos y calendario Quartr.
           </p>
         </div>
 
@@ -384,21 +472,21 @@ export const BolsaView = () => {
       </div>
 
       {/* =====================================================================
-          FILA SUPERIOR:
+          FILA SUPERIOR (Altura 640px):
           Izquierda (53%): Bloque 1 — Mapa de Calor Bursátil (TradingView)
-          Derecha  (47%): Bloque 2 — Principales Acciones o Conjuntos (S&P 500)
+          Derecha  (47%): Bloque 2 — Principales Acciones & Conjuntos (S&P 500)
       ===================================================================== */}
       <div className="flex flex-col xl:flex-row gap-4 items-stretch">
-        {/* BLOQUE 1: Mapa de Calor de Acciones (53%) */}
+        {/* BLOQUE 1: Mapa de Calor de Acciones (53%, 640px) */}
         <div className="w-full xl:w-[53%] min-w-0">
           <TradingViewStockHeatmap />
         </div>
 
-        {/* BLOQUE 2: Principales Acciones o Conjuntos al estilo S&P 500 (47%) */}
+        {/* BLOQUE 2: Principales Acciones & Conjuntos al estilo S&P 500 (47%, 640px) */}
         <div className="w-full xl:w-[47%] min-w-0">
-          <div className="bg-card border border-line rounded-[6px] p-3.5 flex flex-col h-[580px] shadow-sm">
+          <div className="bg-card border border-line rounded-[6px] p-3.5 flex flex-col h-[640px] shadow-sm">
             {/* Cabecera del Panel */}
-            <div className="flex items-center justify-between pb-2.5 border-b border-line gap-2 flex-wrap">
+            <div className="flex items-center justify-between pb-2 border-b border-line gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md bg-gold/15 text-gold border border-gold/30 flex items-center justify-center">
                   <Layers size={14} />
@@ -406,7 +494,7 @@ export const BolsaView = () => {
                 <h3 className="text-[13.5px] font-semibold text-text flex items-center gap-2">
                   <span>Principales Acciones &amp; Conjuntos</span>
                   <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-bg2 border border-line text-dim">
-                    {loading ? '...' : `${sp500Rows.length} activos`}
+                    {isInitialLoading ? '...' : `${sp500Rows.length} activos`}
                   </span>
                 </h3>
               </div>
@@ -414,8 +502,8 @@ export const BolsaView = () => {
               {error && <span className="text-[11px] text-red font-mono">{error}</span>}
             </div>
 
-            {/* Píldoras de Conjuntos (Todas | Mag 7 & IA | Finanzas | Consumo & Salud | Energía & Ind.) */}
-            <div className="flex items-center gap-1.5 py-2 border-b border-line/60 overflow-x-auto no-scrollbar flex-shrink-0">
+            {/* Píldoras de Sectores (Todas | Mag 7 & IA | Finanzas | Consumo & Salud | Energía & Ind.) */}
+            <div className="flex items-center gap-1.5 pt-2 pb-1.5 overflow-x-auto no-scrollbar flex-shrink-0">
               {SECTOR_GROUPS.map((g) => (
                 <button
                   key={g.key}
@@ -432,12 +520,42 @@ export const BolsaView = () => {
               ))}
             </div>
 
+            {/* Sub-tabs de Rendimiento: Todas | 🔥 Top Ganadoras | 🩸 Top Perdedoras | ⚡ Más Activas | ⭐ Mis Favoritas */}
+            <div className="flex items-center gap-1.5 pb-2 border-b border-line/60 overflow-x-auto no-scrollbar flex-shrink-0">
+              {(
+                [
+                  { key: 'all', label: 'Todas' },
+                  { key: 'gainers', label: '🔥 Top Ganadoras' },
+                  { key: 'losers', label: '🩸 Top Perdedoras' },
+                  { key: 'active', label: '⚡ Más Activas' },
+                  { key: 'favorites', label: `⭐ Mis Favoritas (${favStocks.length})` },
+                ] as const
+              ).map((pf) => (
+                <button
+                  key={pf.key}
+                  type="button"
+                  onClick={() => handlePerfFilterChange(pf.key)}
+                  className={`px-2 py-0.5 rounded-[4px] text-[10.5px] font-mono whitespace-nowrap border transition-colors cursor-pointer ${
+                    perfFilter === pf.key
+                      ? 'bg-teal/15 text-teal border-teal/40 font-semibold'
+                      : 'bg-bg/60 text-dim border-line/70 hover:text-text'
+                  }`}
+                >
+                  {pf.label}
+                </button>
+              ))}
+            </div>
+
             {/* Tabla Scrolleable de Principales Acciones */}
             <div className="flex-1 overflow-y-auto overflow-x-auto pr-0.5 min-h-0">
-              {loading && Object.keys(quotesMap).length === 0 ? (
-                <div className="py-16 text-center text-dim text-[12.5px]">
-                  <Loader2 size={22} className="mx-auto mb-2 text-gold animate-spin" />
-                  Cargando cotizaciones de Wall Street...
+              {isInitialLoading ? (
+                <div className="space-y-2 py-3 px-1">
+                  {Array.from({ length: 10 }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="h-10 rounded-[5px] bg-bg2/70 border border-line/40 animate-pulse"
+                    />
+                  ))}
                 </div>
               ) : (
                 <table className="w-full text-left text-[12px] border-collapse min-w-[340px]">
@@ -467,6 +585,7 @@ export const BolsaView = () => {
                           sortDir={sort.dir}
                           onSortClick={() => toggleSort('change')}
                           align="right"
+                          mode="stock"
                         />
                       </th>
                       <th
@@ -482,84 +601,100 @@ export const BolsaView = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line/40">
-                    {sp500Rows.map((q) => {
-                      const isPinned = pinned.some((p) => p.symbol === q.symbol);
-                      const change = q.change ?? 0;
-                      return (
-                        <tr
-                          key={q.symbol}
-                          onClick={() =>
-                            setSelected({
-                              name: q.name || q.symbol,
-                              symbol: q.symbol,
-                              type: 'stock',
-                              price: q.price ?? 0,
-                              change,
-                              bars: q.bars ?? [],
-                            })
-                          }
-                          className="cursor-pointer hover:bg-bg2/70 transition-colors group"
-                        >
-                          <td className="py-2 px-2">
-                            <div className="flex items-center gap-2">
-                              <AssetIcon
-                                symbol={q.symbol}
-                                name={q.name ?? undefined}
-                                type="stock"
-                                size="sm"
-                              />
-                              <div className="min-w-0">
-                                <div className="font-mono font-bold text-text group-hover:text-gold transition-colors leading-tight">
-                                  {q.symbol}
+                    {sp500Rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-dim text-[12px]">
+                          No hay acciones que coincidan con el filtro seleccionado.
+                        </td>
+                      </tr>
+                    ) : (
+                      sp500Rows.map((q) => {
+                        const isFav = favStocks.includes(q.symbol);
+                        const hasChange = typeof q.change === 'number' && Number.isFinite(q.change);
+                        const isUp = hasChange && q.change! > 0;
+                        const isDown = hasChange && q.change! < 0;
+
+                        return (
+                          <tr
+                            key={q.symbol}
+                            onClick={() =>
+                              setSelected({
+                                name: q.name || q.symbol,
+                                symbol: q.symbol,
+                                type: 'stock',
+                                price: q.price ?? 0,
+                                change: q.change ?? 0,
+                                bars: q.bars ?? [],
+                              })
+                            }
+                            className="cursor-pointer hover:bg-bg2/70 transition-colors group"
+                          >
+                            <td className="py-2 px-2">
+                              <div className="flex items-center gap-2">
+                                <AssetIcon
+                                  symbol={q.symbol}
+                                  name={q.name ?? undefined}
+                                  type="stock"
+                                  size="sm"
+                                />
+                                <div className="min-w-0">
+                                  <div className="font-mono font-bold text-text group-hover:text-gold transition-colors leading-tight">
+                                    {q.symbol}
+                                  </div>
+                                  <span className="text-[10.5px] text-dim block truncate max-w-[125px]">
+                                    {q.name || '—'}
+                                  </span>
                                 </div>
-                                <span className="text-[10px] text-dim block truncate max-w-[125px]">
-                                  {q.name || '—'}
-                                </span>
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          <td className="py-2 px-2 text-right font-mono font-medium text-text">
-                            ${formatPrice(q.price)}
-                          </td>
+                            <td className="py-2 px-2 text-right font-mono font-medium text-text tabular-nums">
+                              {fmtPrice(q.price)}
+                            </td>
 
-                          <td
-                            className={`py-2 px-2 text-right font-mono font-semibold ${
-                              change >= 0 ? 'text-teal' : 'text-red'
-                            }`}
-                          >
-                            {formatPercent(q.change)}
-                          </td>
-
-                          <td className="hidden sm:table-cell py-2 px-2 text-right font-mono text-dim text-[11px]">
-                            {formatVolumeCompact(q.volume)}
-                          </td>
-
-                          <td className="hidden md:table-cell py-2 px-2 text-center">
-                            <div className="w-[64px] h-[20px] mx-auto">
-                              <Sparkline data={q.bars ?? []} change={change} width={64} height={20} />
-                            </div>
-                          </td>
-
-                          <td
-                            className="py-2 px-1 text-center"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              togglePin(q.symbol, q.name || q.symbol);
-                            }}
-                          >
-                            <button
-                              title={isPinned ? 'Quitar del dashboard' : 'Fijar en dashboard'}
-                              className={`text-[14px] transition-transform active:scale-125 ${
-                                isPinned ? 'text-gold' : 'text-dim hover:text-text'
+                            <td
+                              className={`py-2 px-2 text-right font-mono font-semibold tabular-nums whitespace-nowrap ${
+                                isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
                               }`}
                             >
-                              {isPinned ? '★' : '☆'}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                              {fmtPct(q.change, true)}
+                            </td>
+
+                            <td className="hidden sm:table-cell py-2 px-2 text-right font-mono text-dim text-[11px] tabular-nums">
+                              {fmtCompact(q.volume)}
+                            </td>
+
+                            <td className="hidden md:table-cell py-2 px-2 text-center">
+                              <div className="w-[64px] h-[20px] mx-auto">
+                                <Sparkline
+                                  data={q.bars ?? []}
+                                  change={q.change ?? 0}
+                                  width={64}
+                                  height={20}
+                                />
+                              </div>
+                            </td>
+
+                            <td
+                              className="py-2 px-1 text-center"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(q.symbol, q.name || q.symbol);
+                              }}
+                            >
+                              <button
+                                title={isFav ? 'Quitar de Mis Favoritas' : 'Agregar a Mis Favoritas'}
+                                className={`text-[14px] transition-transform active:scale-125 ${
+                                  isFav ? 'text-gold' : 'text-dim hover:text-text'
+                                }`}
+                              >
+                                {isFav ? '★' : '☆'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
 
                     {/* Resultados Globales en Vivo cuando el usuario busca cualquier ticker fuera de la lista */}
                     {search.trim().length >= 2 && globalResults.length > 0 && (
@@ -576,8 +711,11 @@ export const BolsaView = () => {
                           </td>
                         </tr>
                         {globalResults.map((r) => {
-                          const isPinned = pinned.some((p) => p.symbol === r.symbol);
-                          const chg = r.change ?? 0;
+                          const isFav = favStocks.includes(r.symbol);
+                          const hasChg = typeof r.change === 'number' && Number.isFinite(r.change);
+                          const isUp = hasChg && r.change! > 0;
+                          const isDown = hasChg && r.change! < 0;
+
                           return (
                             <tr
                               key={r.symbol}
@@ -587,7 +725,7 @@ export const BolsaView = () => {
                                   symbol: r.symbol,
                                   type: r.type === 'crypto' ? 'crypto' : 'stock',
                                   price: r.price ?? 0,
-                                  change: chg,
+                                  change: r.change ?? 0,
                                   bars: [],
                                 })
                               }
@@ -611,15 +749,15 @@ export const BolsaView = () => {
                                   </div>
                                 </div>
                               </td>
-                              <td className="py-2 px-2 text-right font-mono font-medium">
-                                {r.price != null ? `$${formatPrice(r.price)}` : '—'}
+                              <td className="py-2 px-2 text-right font-mono font-medium tabular-nums">
+                                {fmtPrice(r.price)}
                               </td>
                               <td
-                                className={`py-2 px-2 text-right font-mono font-semibold ${
-                                  chg >= 0 ? 'text-teal' : 'text-red'
+                                className={`py-2 px-2 text-right font-mono font-semibold tabular-nums whitespace-nowrap ${
+                                  isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
                                 }`}
                               >
-                                {r.change != null ? formatPercent(r.change) : '—'}
+                                {fmtPct(r.change, true)}
                               </td>
                               <td className="hidden sm:table-cell py-2 px-2 text-right text-dim">—</td>
                               <td className="hidden md:table-cell py-2 px-2 text-center text-dim">—</td>
@@ -627,15 +765,15 @@ export const BolsaView = () => {
                                 className="py-2 px-1 text-center"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  togglePin(r.symbol, r.name || r.symbol);
+                                  toggleFavorite(r.symbol, r.name || r.symbol);
                                 }}
                               >
                                 <button
                                   className={`text-[14px] ${
-                                    isPinned ? 'text-gold' : 'text-dim hover:text-text'
+                                    isFav ? 'text-gold' : 'text-dim hover:text-text'
                                   }`}
                                 >
-                                  {isPinned ? '★' : '☆'}
+                                  {isFav ? '★' : '☆'}
                                 </button>
                               </td>
                             </tr>
@@ -653,8 +791,8 @@ export const BolsaView = () => {
 
       {/* =====================================================================
           FILA INFERIOR:
-          Izquierda (53%): Bloque 3 — Panel Triple (Mercado de Oro y eso | Mercado Global | Argentina)
-          Derecha  (47%): Bloque 4 — Noticias / Lanzamientos / Habló X Persona
+          Izquierda (53%): Bloque 3 — Panel Triple (Oro & Materias Primas | Mercado Global | Argentina ADRs)
+          Derecha  (47%): Bloque 4 — Noticias, Balances (Quartr) & Voces
       ===================================================================== */}
       <div className="flex flex-col xl:flex-row gap-4 items-stretch">
         {/* BLOQUE 3: Panel Triple en Paralelo (53%) */}
@@ -684,7 +822,7 @@ export const BolsaView = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-[10.5px] font-mono text-dim hidden sm:inline">Rango %:</span>
+                <span className="text-[10.5px] font-mono text-dim hidden sm:inline">Rango:</span>
                 <TimeframeControl
                   timeframe={timeframe}
                   onTimeframeChange={setTimeframe}
@@ -692,13 +830,14 @@ export const BolsaView = () => {
                   sortDir={sort.dir}
                   onSortClick={() => toggleSort('change')}
                   align="right"
+                  mode="stock"
                 />
               </div>
             </div>
 
-            {/* Grilla de 3 Columnas Verticales Lado a Lado */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
-              {/* COLUMNA 1: Mercado de Oro y Materias Primas */}
+            {/* Grilla de 3 Columnas Verticales Lado a Lado (Sin scroll anidado: top 7 + Ver todos) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 items-start">
+              {/* COLUMNA 1: Oro & Materias Primas */}
               <div className="bg-bg2/60 border border-line rounded-[6px] flex flex-col overflow-hidden">
                 <div className="px-3 py-2 bg-bg2 border-b border-line flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
@@ -708,52 +847,88 @@ export const BolsaView = () => {
                   <span className="text-[9.5px] font-mono text-dim">{commoditiesRows.length}</span>
                 </div>
 
-                <div className="divide-y divide-line/40 overflow-y-auto max-h-[390px] px-1">
-                  {commoditiesRows.map((item) => {
-                    const chg = item.change ?? 0;
-                    return (
-                      <div
-                        key={item.symbol}
-                        onClick={() =>
-                          setSelected({
-                            name: item.displayName,
-                            symbol: item.symbol,
-                            type: 'stock',
-                            price: item.price ?? 0,
-                            change: chg,
-                            bars: item.bars,
-                          })
-                        }
-                        className="flex items-center justify-between py-2 px-2 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <AssetIcon symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
-                          <div className="min-w-0">
-                            <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
-                              {item.displayName}
-                            </div>
-                            <span className="text-[9.5px] font-mono text-dim block">
-                              {item.symbol.replace('=F', '')} · {item.unit}
-                            </span>
-                          </div>
-                        </div>
+                <div className="divide-y divide-line/40 px-1">
+                  {isInitialLoading
+                    ? Array.from({ length: INITIAL_CARD_ROWS }).map((_, idx) => (
+                        <div key={idx} className="h-11 my-1 rounded bg-bg2 animate-pulse" />
+                      ))
+                    : visibleCommodities.map((item) => {
+                        const hasChg = typeof item.change === 'number' && Number.isFinite(item.change);
+                        const isUp = hasChg && item.change! > 0;
+                        const isDown = hasChg && item.change! < 0;
 
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-[11.5px] font-mono font-medium text-text">
-                            ${formatPrice(item.price)}
-                          </div>
+                        return (
                           <div
-                            className={`text-[10.5px] font-mono font-semibold ${
-                              chg >= 0 ? 'text-teal' : 'text-red'
-                            }`}
+                            key={item.symbol}
+                            onClick={() =>
+                              setSelected({
+                                name: item.displayName,
+                                symbol: item.symbol,
+                                type: 'stock',
+                                price: item.price ?? 0,
+                                change: item.change ?? 0,
+                                bars: item.bars,
+                              })
+                            }
+                            className="flex items-center justify-between py-2 px-1.5 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
                           >
-                            {formatPercent(item.change)}
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              <AssetIcon symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
+                              <div className="min-w-0">
+                                <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
+                                  {item.displayName}
+                                </div>
+                                <span className="text-[9.5px] font-mono text-dim block">
+                                  {item.symbol.replace('=F', '')} · {item.unit}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="w-[44px] h-[18px] flex-shrink-0 hidden 2xl:block">
+                              <Sparkline
+                                data={item.bars ?? []}
+                                change={item.change ?? 0}
+                                width={44}
+                                height={18}
+                              />
+                            </div>
+
+                            <div className="text-right flex-shrink-0 tabular-nums">
+                              <div className="text-[11px] font-mono font-medium text-text">
+                                {fmtPrice(item.price)}
+                              </div>
+                              <div
+                                className={`text-[10px] font-mono font-semibold whitespace-nowrap ${
+                                  isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
+                                }`}
+                              >
+                                {fmtPct(item.change, true)}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
                 </div>
+
+                {commoditiesRows.length > INITIAL_CARD_ROWS && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandCommodities((prev) => !prev)}
+                    className="w-full py-2 px-3 bg-bg2/90 hover:bg-bg2 border-t border-line text-[11px] font-mono text-gold hover:text-text flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                  >
+                    {expandCommodities ? (
+                      <>
+                        <span>Mostrar menos</span>
+                        <ChevronUp size={12} />
+                      </>
+                    ) : (
+                      <>
+                        <span>Ver todos ({commoditiesRows.length})</span>
+                        <ChevronDown size={12} />
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
 
               {/* COLUMNA 2: Mercado Global (Índices, Bonos & Internacionales) */}
@@ -766,57 +941,95 @@ export const BolsaView = () => {
                   <span className="text-[9.5px] font-mono text-dim">{globalRows.length}</span>
                 </div>
 
-                <div className="divide-y divide-line/40 overflow-y-auto max-h-[390px] px-1">
-                  {globalRows.map((item) => {
-                    const chg = item.change ?? 0;
-                    return (
-                      <div
-                        key={item.symbol}
-                        onClick={() =>
-                          setSelected({
-                            name: item.displayName,
-                            symbol: item.symbol,
-                            type: 'stock',
-                            price: item.price ?? 0,
-                            change: chg,
-                            bars: item.bars,
-                          })
-                        }
-                        className="flex items-center justify-between py-2 px-2 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <AssetIcon symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
-                          <div className="min-w-0">
-                            <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
-                              {item.displayName}
-                            </div>
-                            <span className="text-[9.5px] font-mono text-dim block">
-                              {item.symbol} · <span className="text-gold/90">{item.region}</span>
-                            </span>
-                          </div>
-                        </div>
+                <div className="divide-y divide-line/40 px-1">
+                  {isInitialLoading
+                    ? Array.from({ length: INITIAL_CARD_ROWS }).map((_, idx) => (
+                        <div key={idx} className="h-11 my-1 rounded bg-bg2 animate-pulse" />
+                      ))
+                    : visibleGlobal.map((item) => {
+                        const hasChg = typeof item.change === 'number' && Number.isFinite(item.change);
+                        const isUp = hasChg && item.change! > 0;
+                        const isDown = hasChg && item.change! < 0;
 
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-[11.5px] font-mono font-medium text-text">
-                            {item.symbol === '^TNX'
-                              ? `${formatPrice(item.price)}%`
-                              : `$${formatPrice(item.price)}`}
-                          </div>
+                        return (
                           <div
-                            className={`text-[10.5px] font-mono font-semibold ${
-                              chg >= 0 ? 'text-teal' : 'text-red'
-                            }`}
+                            key={item.symbol}
+                            onClick={() =>
+                              setSelected({
+                                name: item.displayName,
+                                symbol: item.symbol,
+                                type: 'stock',
+                                price: item.price ?? 0,
+                                change: item.change ?? 0,
+                                bars: item.bars,
+                              })
+                            }
+                            className="flex items-center justify-between py-2 px-1.5 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
                           >
-                            {formatPercent(item.change)}
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              <AssetIcon symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
+                              <div className="min-w-0">
+                                <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
+                                  {item.displayName}
+                                </div>
+                                <span className="text-[9.5px] font-mono text-dim block">
+                                  {item.symbol} · <span className="text-gold/90">{item.region}</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="w-[44px] h-[18px] flex-shrink-0 hidden 2xl:block">
+                              <Sparkline
+                                data={item.bars ?? []}
+                                change={item.change ?? 0}
+                                width={44}
+                                height={18}
+                              />
+                            </div>
+
+                            <div className="text-right flex-shrink-0 tabular-nums">
+                              <div className="text-[11px] font-mono font-medium text-text">
+                                {item.symbol === '^TNX'
+                                  ? item.price != null
+                                    ? `${fmtPrice(item.price, '')}%`
+                                    : '—'
+                                  : fmtPrice(item.price)}
+                              </div>
+                              <div
+                                className={`text-[10px] font-mono font-semibold whitespace-nowrap ${
+                                  isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
+                                }`}
+                              >
+                                {fmtPct(item.change, true)}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
                 </div>
+
+                {globalRows.length > INITIAL_CARD_ROWS && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandGlobal((prev) => !prev)}
+                    className="w-full py-2 px-3 bg-bg2/90 hover:bg-bg2 border-t border-line text-[11px] font-mono text-gold hover:text-text flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                  >
+                    {expandGlobal ? (
+                      <>
+                        <span>Mostrar menos</span>
+                        <ChevronUp size={12} />
+                      </>
+                    ) : (
+                      <>
+                        <span>Ver todos ({globalRows.length})</span>
+                        <ChevronDown size={12} />
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
 
-              {/* COLUMNA 3: Argentina (ADRs & Acciones Líderes) */}
+              {/* COLUMNA 3: Argentina (ADRs & Header Macro) */}
               <div className="bg-bg2/60 border border-line rounded-[6px] flex flex-col overflow-hidden">
                 <div className="px-3 py-2 bg-bg2 border-b border-line flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
@@ -826,63 +1039,123 @@ export const BolsaView = () => {
                   <span className="text-[9.5px] font-mono text-dim">{argentinaRows.length}</span>
                 </div>
 
-                <div className="divide-y divide-line/40 overflow-y-auto max-h-[390px] px-1">
-                  {argentinaRows.map((item) => {
-                    const chg = item.change ?? 0;
-                    return (
-                      <div
-                        key={item.symbol}
-                        onClick={() =>
-                          setSelected({
-                            name: item.displayName,
-                            symbol: item.symbol,
-                            type: 'stock',
-                            price: item.price ?? 0,
-                            change: chg,
-                            bars: item.bars,
-                          })
-                        }
-                        className="flex items-center justify-between py-2 px-2 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <AssetIcon symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
-                          <div className="min-w-0">
-                            <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
-                              {item.symbol}{' '}
-                              <span className="font-normal text-dim text-[10.5px]">
-                                · {item.displayName}
-                              </span>
-                            </div>
-                            <span className="text-[9.5px] font-mono text-dim block truncate">
-                              {item.sector}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-[11.5px] font-mono font-medium text-text">
-                            ${formatPrice(item.price)}
-                          </div>
-                          <div
-                            className={`text-[10.5px] font-mono font-semibold ${
-                              chg >= 0 ? 'text-teal' : 'text-red'
-                            }`}
-                          >
-                            {formatPercent(item.change)}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                {/* Header Macro en Tiempo Real: Riesgo País, Dólar MEP, Dólar CCL y Brecha % */}
+                <div className="grid grid-cols-2 gap-1 p-1.5 bg-card/70 border-b border-line text-[9.5px] font-mono">
+                  <div className="px-1.5 py-1 rounded bg-bg2 border border-line/60 flex items-center justify-between">
+                    <span className="text-dim">Riesgo País</span>
+                    <b className="text-gold">
+                      {argMacro.riesgoPais != null ? `${argMacro.riesgoPais} pb` : '—'}
+                    </b>
+                  </div>
+                  <div className="px-1.5 py-1 rounded bg-bg2 border border-line/60 flex items-center justify-between">
+                    <span className="text-dim">MEP</span>
+                    <b className="text-text">{fmtPrice(argMacro.mep)}</b>
+                  </div>
+                  <div className="px-1.5 py-1 rounded bg-bg2 border border-line/60 flex items-center justify-between">
+                    <span className="text-dim">CCL</span>
+                    <b className="text-text">{fmtPrice(argMacro.ccl)}</b>
+                  </div>
+                  <div className="px-1.5 py-1 rounded bg-bg2 border border-line/60 flex items-center justify-between">
+                    <span className="text-dim">Brecha</span>
+                    <b className="text-teal">
+                      {argMacro.brechaPct != null ? fmtPct(argMacro.brechaPct) : '—'}
+                    </b>
+                  </div>
                 </div>
+
+                <div className="divide-y divide-line/40 px-1">
+                  {isInitialLoading
+                    ? Array.from({ length: INITIAL_CARD_ROWS }).map((_, idx) => (
+                        <div key={idx} className="h-11 my-1 rounded bg-bg2 animate-pulse" />
+                      ))
+                    : visibleArgentina.map((item) => {
+                        const hasChg = typeof item.change === 'number' && Number.isFinite(item.change);
+                        const isUp = hasChg && item.change! > 0;
+                        const isDown = hasChg && item.change! < 0;
+
+                        return (
+                          <div
+                            key={item.symbol}
+                            onClick={() =>
+                              setSelected({
+                                name: item.displayName,
+                                symbol: item.symbol,
+                                type: 'stock',
+                                price: item.price ?? 0,
+                                change: item.change ?? 0,
+                                bars: item.bars,
+                              })
+                            }
+                            className="flex items-center justify-between py-2 px-1.5 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              <AssetIcon symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
+                              <div className="min-w-0">
+                                <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
+                                  {item.symbol}{' '}
+                                  <span className="font-normal text-dim text-[10px]">
+                                    · {item.displayName}
+                                  </span>
+                                </div>
+                                <span className="text-[9.5px] font-mono text-dim block truncate">
+                                  {item.sector}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="w-[44px] h-[18px] flex-shrink-0 hidden 2xl:block">
+                              <Sparkline
+                                data={item.bars ?? []}
+                                change={item.change ?? 0}
+                                width={44}
+                                height={18}
+                              />
+                            </div>
+
+                            <div className="text-right flex-shrink-0 tabular-nums">
+                              <div className="text-[11px] font-mono font-medium text-text">
+                                {fmtPrice(item.price)}
+                              </div>
+                              <div
+                                className={`text-[10px] font-mono font-semibold whitespace-nowrap ${
+                                  isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
+                                }`}
+                              >
+                                {fmtPct(item.change, true)}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                </div>
+
+                {argentinaRows.length > INITIAL_CARD_ROWS && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandArgentina((prev) => !prev)}
+                    className="w-full py-2 px-3 bg-bg2/90 hover:bg-bg2 border-t border-line text-[11px] font-mono text-gold hover:text-text flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                  >
+                    {expandArgentina ? (
+                      <>
+                        <span>Mostrar menos</span>
+                        <ChevronUp size={12} />
+                      </>
+                    ) : (
+                      <>
+                        <span>Ver todos ({argentinaRows.length})</span>
+                        <ChevronDown size={12} />
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* BLOQUE 4: Noticias / Lanzamientos / Habló X Persona (47%) */}
+        {/* BLOQUE 4: Noticias / Balances (Quartr) / Habló X Persona (47%) */}
         <div className="w-full xl:w-[47%] min-w-0">
-          <BolsaNewsCard />
+          <BolsaNewsCard onSelectTicker={openTickerInDetail} />
         </div>
       </div>
 

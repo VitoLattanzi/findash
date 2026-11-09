@@ -13,6 +13,7 @@ interface MarketResult {
   price: number | null;
   change: number | null;
   volume?: number | null;
+  avgVolume?: number | null;
   name: string | null;
   currency: string | null;
   bars: number[] | null;
@@ -62,12 +63,12 @@ async function historyFor(symbol: string, timeframe: string): Promise<HistoryDat
       case '12h':
         daysBack = 5;
         interval = '15m';
-        sliceCount = 16; // Última media jornada / ventana intradiaria
+        sliceCount = 13; // Media jornada intradiaria
         break;
       case '24h':
         daysBack = 5;
         interval = '30m';
-        sliceCount = 16; // Última rueda completa
+        sliceCount = 13; // 1 rueda bursátil (6.5h = 13 barras de 30m)
         break;
       case '1sem':
         daysBack = 8;
@@ -98,7 +99,23 @@ async function historyFor(symbol: string, timeframe: string): Promise<HistoryDat
       (q: any) => typeof q?.close === 'number' && Number.isFinite(q.close) && q?.date
     );
 
-    const sliced = sliceCount ? rawQuotes.slice(-sliceCount) : rawQuotes;
+    if (rawQuotes.length < 2) {
+      historyCache.set(cacheKey, { ts: Date.now(), data: null });
+      return null;
+    }
+
+    // Para '24h' priorizamos únicamente las velas del último día hábil operado
+    let sliced = rawQuotes;
+    if (timeframe === '24h') {
+      const lastDay = toDateString(new Date(rawQuotes[rawQuotes.length - 1].date));
+      const sameDayQuotes = rawQuotes.filter(
+        (q: any) => toDateString(new Date(q.date)) === lastDay
+      );
+      sliced = sameDayQuotes.length >= 3 ? sameDayQuotes : rawQuotes.slice(-13);
+    } else if (sliceCount) {
+      sliced = rawQuotes.slice(-sliceCount);
+    }
+
     if (sliced.length < 2) {
       historyCache.set(cacheKey, { ts: Date.now(), data: null });
       return null;
@@ -200,6 +217,7 @@ export async function GET(request: NextRequest) {
           price: null,
           change: null,
           volume: null,
+          avgVolume: null,
           name: null,
           currency: null,
           bars: null,
@@ -209,21 +227,41 @@ export async function GET(request: NextRequest) {
       }
 
       const hist = historyBySymbol.get(symbol) ?? null;
-      const regularChange =
-        typeof q.regularMarketChangePercent === 'number' ? q.regularMarketChangePercent : null;
+      const rawRegChange =
+        typeof q.regularMarketChangePercent === 'number' &&
+        Number.isFinite(q.regularMarketChangePercent)
+          ? q.regularMarketChangePercent
+          : null;
 
-      // En '24h' priorizamos la variación oficial de la sesión de Yahoo Finance;
-      // en otros rangos ('12h', '1sem', '1mes', '3meses') usamos el cálculo del período.
+      // Prohibido caer en 0.0% falso cuando falta cotización real (ej: ^MERV sin sesión activa o sin precio)
+      const hasValidPrice =
+        typeof q.regularMarketPrice === 'number' &&
+        Number.isFinite(q.regularMarketPrice) &&
+        q.regularMarketPrice > 0;
+
+      const regularChange =
+        !hasValidPrice
+          ? null
+          : symbol === '^MERV' && rawRegChange === 0 && (!q.regularMarketVolume || q.regularMarketVolume === 0)
+            ? hist?.changePct ?? null
+            : rawRegChange;
+
+      // Para la vista del día ('24h' / 1D) o futuros (=F) en intradiario, SIEMPRE usar regularMarketChangePercent directo de quote()
+      const isFuture = symbol.endsWith('=F');
       const computedChange =
-        timeframe === '24h'
-          ? regularChange ?? hist?.changePct ?? null
+        timeframe === '24h' || (isFuture && timeframe === '12h')
+          ? regularChange
           : hist?.changePct ?? regularChange;
 
       return {
         symbol,
-        price: typeof q.regularMarketPrice === 'number' ? q.regularMarketPrice : null,
+        price: hasValidPrice ? q.regularMarketPrice : null,
         change: computedChange,
         volume: typeof q.regularMarketVolume === 'number' ? q.regularMarketVolume : null,
+        avgVolume:
+          typeof q.averageDailyVolume3Month === 'number'
+            ? q.averageDailyVolume3Month
+            : null,
         name: q.displayName || q.shortName || q.longName || null,
         currency: q.currency || null,
         bars: hist ? hist.bars : null,
@@ -239,9 +277,11 @@ export async function GET(request: NextRequest) {
                 : null,
         marketState: q.marketState || null,
         preMarketPrice: typeof q.preMarketPrice === 'number' ? q.preMarketPrice : null,
-        preMarketChange: typeof q.preMarketChangePercent === 'number' ? q.preMarketChangePercent : null,
+        preMarketChange:
+          typeof q.preMarketChangePercent === 'number' ? q.preMarketChangePercent : null,
         postMarketPrice: typeof q.postMarketPrice === 'number' ? q.postMarketPrice : null,
-        postMarketChange: typeof q.postMarketChangePercent === 'number' ? q.postMarketChangePercent : null,
+        postMarketChange:
+          typeof q.postMarketChangePercent === 'number' ? q.postMarketChangePercent : null,
       };
     });
 

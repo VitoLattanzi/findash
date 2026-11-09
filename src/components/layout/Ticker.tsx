@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useBinanceWebSocket } from '@/hooks/useBinanceWebSocket';
 import { AssetIcon } from '@/components/common/AssetIcon';
+import { fmtPct, fmtPrice } from '@/lib/format';
 import { Search } from 'lucide-react';
 
 const SYMBOLS = ['btcusdt', 'ethusdt', 'solusdt'];
@@ -22,17 +23,14 @@ interface TickerItem {
   up?: boolean;
 }
 
-const FX_META: Array<{ key: keyof FxRates; label: string; prefix: string; decimals: number }> = [
-  { key: 'ARS', label: 'USD/ARS', prefix: '$', decimals: 2 },
-  { key: 'BRL', label: 'USD/BRL', prefix: 'R$', decimals: 3 },
-  { key: 'EUR', label: 'USD/EUR', prefix: '€', decimals: 3 },
-  { key: 'GBP', label: 'USD/LIB', prefix: '£', decimals: 3 },
-  { key: 'JPY', label: 'USD/JPY', prefix: '¥', decimals: 2 },
-  { key: 'CNY', label: 'USD/CNY', prefix: '¥', decimals: 3 },
+const FX_META: Array<{ key: keyof FxRates; label: string; prefix: string }> = [
+  { key: 'ARS', label: 'USD/ARS', prefix: '$' },
+  { key: 'BRL', label: 'USD/BRL', prefix: 'R$' },
+  { key: 'EUR', label: 'USD/EUR', prefix: '€' },
+  { key: 'GBP', label: 'USD/LIB', prefix: '£' },
+  { key: 'JPY', label: 'USD/JPY', prefix: '¥' },
+  { key: 'CNY', label: 'USD/CNY', prefix: '¥' },
 ];
-
-const nf = (decimals: number) =>
-  new Intl.NumberFormat('es-AR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
 export const Ticker = ({ onOpenSearch }: { onOpenSearch?: () => void }) => {
   const cryptoPrices = useBinanceWebSocket(SYMBOLS);
@@ -63,11 +61,11 @@ export const Ticker = ({ onOpenSearch }: { onOpenSearch?: () => void }) => {
   const cryptoItems: TickerItem[] = Object.values(cryptoPrices).map((p) => {
     const price = parseFloat(p.c);
     const open = parseFloat(p.o);
-    const changePercent = ((price - open) / open) * 100;
+    const changePercent = open > 0 ? ((price - open) / open) * 100 : null;
     return {
       label: p.s.replace('USDT', ''),
-      value: `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      change: `${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%`,
+      value: fmtPrice(Number.isFinite(price) ? price : null, '$'),
+      change: changePercent != null ? fmtPct(changePercent) : undefined,
       up: price >= open,
     };
   });
@@ -76,7 +74,7 @@ export const Ticker = ({ onOpenSearch }: { onOpenSearch?: () => void }) => {
     fx && Object.values(fx).some((v) => v > 0)
       ? FX_META.filter((m) => fx[m.key] > 0).map((m) => ({
           label: m.label,
-          value: `${m.prefix}${nf(m.decimals).format(fx[m.key])}`,
+          value: fmtPrice(fx[m.key], m.prefix),
         }))
       : [];
 
@@ -95,11 +93,14 @@ export const Ticker = ({ onOpenSearch }: { onOpenSearch?: () => void }) => {
       <div className="overflow-hidden flex-1 relative">
         <div className="inline-flex animate-scroll py-2 hover:[animation-play-state:paused]">
           {[...items, ...items].map((d, i) => (
-            <span key={`${d.label}-${i}`} className="inline-flex items-center gap-1.5 px-4 text-[12.5px] text-dim border-r border-line">
+            <span
+              key={`${d.label}-${i}`}
+              className="inline-flex items-center gap-1.5 px-4 text-[12.5px] text-dim border-r border-line font-mono tabular-nums"
+            >
               <AssetIcon symbol={d.label} size="xs" />
               <span>{d.label}</span>
               <b className="text-text font-semibold">{d.value}</b>
-              {d.change && <i className={d.up ? 'text-teal' : 'text-red'}> {d.change}</i>}
+              {d.change && <i className={`not-italic ${d.up ? 'text-teal' : 'text-red'}`}> {d.change}</i>}
             </span>
           ))}
         </div>

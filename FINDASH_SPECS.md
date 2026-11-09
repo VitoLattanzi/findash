@@ -19,7 +19,7 @@
 - [x] Integrar `lightweight-charts` con tabs para alternar entre "Área" y "Velas", y selectores temporales (1D a 2A / ALL).
 - [x] **Crosshair Tooltip:** Implementar `chart.subscribeCrosshairMove` para mostrar O, H, L, C, Vol y Fecha exactos al pasar el cursor sobre el gráfico.
 - [x] **Pre/Post Market:** Modificar la cabecera del panel para mostrar el precio de pre-market o after-market en gris (`text-dim`) si el mercado está cerrado.
-- [x] **Widget de Mercados Globales Dinámico:** Rotador inferior en Sidebar con estados en vivo (Verde = abierto, Amarillo = cierra pronto, Azul = abre pronto, Rojo = cerrado) para EE.UU., Argentina, Londres, Tokio, Hong Kong y Cripto 24/7 con hora local y selector.
+- [x] **Widget de Mercados Globales Dinámico (Tira Fija 4 Mercados):** Tira inferior fija en Sidebar con los 4 mercados clave simultáneos (`🇺🇸 NYSE / NASDAQ`, `🇦🇷 BYMA`, `🇬🇧 LSE`, `🇯🇵 TSE`) consumiendo `marketState` real de Yahoo Finance (`REGULAR`, `PRE`, `POST`, `CLOSED`) y hora local.
 - [x] **Menú Desplegable de Sentimiento Mundial:** Popover/modal interactivo al clickear el widget de mercados, mostrando si cada plaza cotiza **Alcista** (`TrendingUp`) o **Bajista** (`TrendingDown`) según su índice representativo (S&P 500, Merval, FTSE 100, Nikkei 225, Hang Seng, y el **Índice Top 10 Altcoins líderes por capitalización**: ETH, SOL, BNB, XRP, ADA, DOGE, AVAX, LINK, DOT, NEAR) con barra de balance diario.
 
 ### Epic 3: Análisis Fundamental (Requerimientos de Pepo)
@@ -80,8 +80,29 @@
 - [x] **Integración en Vistas:**
   - En **Dashboard**, **Cripto**, **Bolsa** y **Países**, actualizar el toggle de visualización a `[ Lista | Cards | Mapa ]`.
 
-### Epic 8: Refactorización y Evolución de Bolsa & Materias Primas (v1.7)
-- [x] **Bloque 1 (Arriba Izquierda 53%): Mapa de Calor Bursátil (`<TradingViewStockHeatmap />`):** Widget oficial de TradingView Stock Heatmap (`SPX500` agrupado por sectores) con modo Pantalla Completa en el indicador inferior derecho y botón `X` superior derecho.
-- [x] **Bloque 2 (Arriba Derecha 47%): Principales Acciones & Conjuntos (estilo S&P 500):** Panel scrolleable (`h-[580px]`) con píldoras de conjuntos (`Todas`, `Mag 7 & IA`, `Finanzas`, `Consumo & Salud`, `Energía & Ind.`), ordenamiento por columna, popover de temporalidades (`12h` a `3meses`), `<Sparkline />`, estrella `★` para fijar al Dashboard y resultados globales de Yahoo Finance en vivo.
-- [x] **Bloque 3 (Abajo Izquierda 53%): Panel Triple en Paralelo (`Oro & Materias Primas` | `Mercado Global` | `Argentina`):** Grilla de 3 columnas verticales simultáneas sin pestañas ocultas, con barra superior compartida de ordenamiento y temporalidad (`12h` a `3meses`) y apertura directa del `<DetailPanel />`.
-- [x] **Bloque 4 (Abajo Derecha 47%): Noticias, Lanzamientos & Voces (`<BolsaNewsCard />`):** Feed inteligente en vivo (`/api/news?category=bolsa`) que clasifica automáticamente declaraciones clave (`Habló Fed / Powell`, `Habló Musk / Huang / Buffett / Economía`), balances trimestrales, lanzamientos y pulso de mercado con filtros rápidos y análisis de sentimiento.
+### Epic 8: Refactorización de Bolsa & Materias Primas, Precisión de Datos y Calendario Quartr (v1.7)
+- [x] **Fase 1 — Precisión de Datos & Formateo Unificado (`src/lib/format.ts`):**
+  - Formateadores unificados `fmtPrice`, `fmtPct` (con flechas `▲`/`▼` de accesibilidad) y `fmtCompact` con `useGrouping: 'always'` en `es-AR` (ej. `$2.119,12`).
+  - Eliminación total de fallbacks falsos `0,0%` (`—` cuando falta cotización real).
+  - Variación diaria (`Var. día` / `1D`) tomada directamente de `regularMarketChangePercent` de `yahooFinance.quote(symbols)` para eliminar desfasajes en índices y futuros.
+- [x] **Fase 2 — Endpoint por Lote (`/api/quotes`), Caché CDN y Polling Inteligente (`useQuotes.ts`):**
+  - Route Handler `/api/quotes` por lote con `Cache-Control: public, s-maxage=60, stale-while-revalidate=300`.
+  - Hook `useQuotes` con polling dinámico según `marketState` (`60s` en `REGULAR`, `10m` en `CLOSED`) y `keepPreviousData: true`.
+- [x] **Fase 3 — Heatmap S&P 500 Ampliado (`640px`) + Toggle Mono y Filtros de Rendimiento:**
+  - Contenedor de `640px` de alto con botón superior **`[ ⊞ Tamaño igual (Mono) ]`** (`isMonoSize`) para inspeccionar sectores pequeños.
+  - Tabla "Principales Acciones & Conjuntos" ordenada por defecto por `change` descendente, con filtros rápidos `🔥 Top Ganadoras`, `🩸 Top Perdedoras`, `⚡ Más Activas` y `⭐ Mis Favoritas` (`findash_fav_stocks` en `localStorage`).
+- [x] **Fase 4 — Rediseño de las 3 Tarjetas Inferiores (Sin Scroll Anidado + Header Macro Argentina):**
+  - Incorporación de `<Sparkline />` en cada fila de **Oro & Materias Primas**, **Mercado Global** y **Argentina (ADRs)**.
+  - Eliminación de los scrolls internos anidados mostrando los 7 activos principales con botón `Ver todos (X) ▾`.
+  - Tira superior de 4 chips macro en tiempo real en **Argentina (ADRs)**: `Riesgo País`, `Dólar MEP`, `Dólar CCL` y `Brecha %`.
+- [x] **Fase 5 — Noticias Confiables (`<SentimentChip />`) y Calendario de Balances Estilo Quartr:**
+  - Clasificador financiero contextual (reconoce que subas en Riesgo País/Inflación son bajistas) y `<SentimentChip />` que omite etiquetas neutrales redundantes.
+  - Deduplicación de titulares, filtrado de notas de relleno diario, limpieza de subtítulos (`"Ámbito"` en vez de `"Finanzas · Finanzas"`) e indicador real `Actualizado hace X min`.
+  - Tab **`Balances & Lanzamientos`** con vista **Calendario Estilo Quartr**: **Próximos Eventos (`Upcoming Earnings`)** con fecha, horario (`Premarket` / `After-hours`) y BPA estimado, más **Eventos Recientes (`Latest Earnings`)** con comparativa `BPA Real vs. Estimado` (`BEAT` / `MISS`) y resumen de guidance.
+- [x] **Fase 6 — Tira Fija de 4 Mercados en Sidebar y Contraste UI:**
+  - Lista compacta fija con los 4 mercados clave en simultáneo (`🇺🇸 NYSE / NASDAQ`, `🇦🇷 BYMA`, `🇬🇧 LSE`, `🇯🇵 TSE`) usando `marketState` en vivo.
+  - Mejora de contraste en `--dim` (`>= 4.5:1`) y *skeleton loaders* (`animate-pulse`) durante la carga.
+
+### Epic 9: Módulos Futuros en Roadmap (v1.8+)
+- [ ] **Dashboard Modular Drag & Drop (estilo Robinhood / Koyfin):** Paneles redimensionables y reordenables por el usuario con persistencia de layout en `localStorage`.
+- [ ] **Heatmap Nativo D3 por Sectores (estilo Finviz):** Motor jerárquico interactivo propio con agrupación sectorial/industrial, zoom semántico y tooltips enriquecidos sin depender de iframes externos.

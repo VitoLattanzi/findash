@@ -17,39 +17,39 @@ export const PLATFORM_UPDATES: ReleaseUpdate[] = [
   {
     version: 'v1.7',
     date: 'Noviembre 2026',
-    title: 'Bolsa & Materias Primas 2.0: Layout en 4 Bloques y Voces del Mercado',
+    title: 'Bolsa & Materias Primas 2.0: Precisión en Vivo, Calendario Quartr y Layout en 4 Bloques',
     isLatest: true,
-    highlight: 'Rediseño integral en 4 bloques sin pestañas ocultas: Mapa de Calor S&P 500 oficial de TradingView, Principales Acciones con conjuntos rápidos, Panel Triple en paralelo (Oro & Commodities | Mercado Global | Argentina ADRs) y radar de Noticias / "Habló X Persona".',
+    highlight: 'Rediseño integral en 4 bloques sin pestañas ocultas: Mapa S&P 500 (640px) con modo Tamaño Igual (Mono), filtros de Top Ganadoras/Perdedoras/Favoritas, Panel Triple con Header Macro Argentino, Calendario de Balances estilo Quartr y Tira Fija de 4 Mercados en el Sidebar.',
     items: [
       {
         type: 'nuevo',
-        title: 'Mapa de Calor S&P 500 de TradingView Integrado',
+        title: 'Heatmap S&P 500 Ampliado (640px) con Toggle "Tamaño Igual (Mono)"',
         description:
-          'Bloque superior izquierdo con el mapa de calor oficial del S&P 500 agrupado por sectores industriales (Tecnología, Finanzas, Salud, Energía, Consumo), con modo Pantalla Completa y tema oscuro nativo.',
+          'Bloque superior izquierdo con el mapa del S&P 500 agrupado por sectores, modo Pantalla Completa y nuevo botón [ ⊞ Tamaño igual (Mono) ] para inspeccionar sectores chicos con igual área por celda.',
       },
       {
         type: 'nuevo',
-        title: 'Principales Acciones & Conjuntos al Estilo S&P 500',
+        title: 'Principales Acciones con Filtros de Rendimiento y Favoritas',
         description:
-          'Bloque superior derecho con scroll interno para explorar líderes del S&P 500, pills rápidas de conjuntos (Todas, Mag 7 & IA, Finanzas, Consumo & Salud, Energía & Ind.), buscador global en vivo y ordenamiento con 5 temporalidades.',
+          'Orden por defecto por Variación del Día (Var. día ▲/▼), píldoras de conjuntos sectoriales y sub-tabs rápidos para 🔥 Top Ganadoras, 🩸 Top Perdedoras, ⚡ Más Activas y ⭐ Mis Favoritas.',
       },
       {
         type: 'nuevo',
-        title: 'Panel Triple en Paralelo: Oro | Mercado Global | Argentina',
+        title: 'Panel Triple sin Scroll Anidado + Header Macro en Argentina (ADRs)',
         description:
-          'Bloque inferior izquierdo dividido en 3 columnas simultáneas siempre visibles: Oro & Materias Primas (Oro, Plata, Petróleo WTI/Brent, Gas, Cobre, Soja), Mercado Global (Índices de EE.UU., Bono 10Y, VIX, TSM, ASML, BABA) y Argentina ADRs (MELI, YPF, GGAL, VIST, PAM).',
+          'Columnas simultáneas de Oro & Materias Primas, Mercado Global y Argentina ADRs con Sparklines integrados, botón desplegable "Ver todos (X)" y tira macro en vivo (Riesgo País, Dólar MEP, CCL y Brecha %).',
       },
       {
         type: 'nuevo',
-        title: 'Radar de Noticias, Balances & "Habló X Persona"',
+        title: 'Calendario de Balances Estilo Quartr y Clasificador de Sentimiento Confiable',
         description:
-          'Bloque inferior derecho con clasificación inteligente de noticias bursátiles en vivo: detecta declaraciones clave ("🎙️ Habló Powell / Fed", Trump, Elon Musk, Jensen Huang, Buffett), reportes de balances trimestrales y pulso de mercados.',
+          'El tab "Balances & Lanzamientos" incorpora Próximos Eventos (Premarket / After-hours y BPA estimado) y Eventos Recientes (BEAT / MISS con guidance), junto a un clasificador que detecta declaraciones ("Habló Powell / Fed") sin etiquetas neutrales redundantes.',
       },
       {
         type: 'mejora',
-        title: 'Mapa de Calor Cripto Unificado en TradingView',
+        title: 'Tira Fija de 4 Mercados en Sidebar, Formateo es-AR y Endpoint /api/quotes',
         description:
-          'Simplificación del bloque de mapa de calor en Cripto y Bolsa utilizando exclusivamente el motor interactivo de TradingView con botón de pantalla completa integrado en la barra inferior.',
+          'Visualización simultánea de NYSE/NASDAQ, BYMA, LSE y TSE con estado real (marketState), endpoint por lote con caché CDN, polling inteligente (60s abierto / 10m cerrado) y separador de miles garantizado ($2.119,12).',
       },
     ],
   },

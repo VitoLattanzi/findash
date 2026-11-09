@@ -10,6 +10,7 @@ interface TimeframeControlProps {
   sortDir?: 1 | -1;
   onSortClick?: () => void;
   align?: 'left' | 'right';
+  mode?: 'stock' | 'crypto';
 }
 
 export const TimeframeControl = ({
@@ -19,6 +20,7 @@ export const TimeframeControl = ({
   sortDir = -1,
   onSortClick,
   align = 'right',
+  mode = 'crypto',
 }: TimeframeControlProps) => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -34,6 +36,9 @@ export const TimeframeControl = ({
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
   }, [open]);
+
+  const buttonLabel =
+    mode === 'stock' && timeframe === '24h' ? 'Var. día' : `${current.label} %`;
 
   return (
     <div
@@ -53,7 +58,7 @@ export const TimeframeControl = ({
         }`}
         title="Cambiar período de variación porcentual"
       >
-        <span>{current.label} %</span>
+        <span>{buttonLabel}</span>
         <ChevronDown
           size={12}
           className={`transition-transform duration-150 ${open ? 'rotate-180 text-gold' : ''}`}
@@ -79,12 +84,14 @@ export const TimeframeControl = ({
       {open && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`absolute top-full mt-1 bg-[#12161e] border border-[#262d3b] rounded-[5px] shadow-xl z-30 py-1 min-w-[110px] text-left normal-case tracking-normal font-mono ${
+          className={`absolute top-full mt-1 bg-[#12161e] border border-[#262d3b] rounded-[5px] shadow-xl z-30 py-1 min-w-[125px] text-left normal-case tracking-normal font-mono ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
         >
           {CHANGE_TIMEFRAMES.map((opt) => {
             const isSelected = opt.key === timeframe;
+            const optLabel =
+              mode === 'stock' && opt.key === '24h' ? 'Var. día (1D)' : opt.label;
             return (
               <button
                 key={opt.key}
@@ -97,7 +104,7 @@ export const TimeframeControl = ({
                   isSelected ? 'text-[#d8ad3f] font-semibold bg-[#161b25]' : 'text-text/90'
                 }`}
               >
-                <span>{opt.label}</span>
+                <span>{optLabel}</span>
                 {isSelected && <span className="text-[#d8ad3f] text-[10px]">●</span>}
               </button>
             );

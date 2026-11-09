@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Parser from 'rss-parser';
+import { classifyFinancialSentiment } from '@/components/common/SentimentChip';
 
 const parser = new Parser({
   timeout: 8000,
@@ -34,34 +35,63 @@ const FEEDS: Record<string, string[]> = {
 
 const CATEGORIES = Object.keys(FEEDS);
 
+// Patrones de relleno diario genérico que debemos descartar del feed
+const FILLER_PATTERNS = [
+  'minuto a minuto',
+  'finanzas al día',
+  'novedades de bancos',
+  'a cuánto cotiza este',
+  'a cuánto opera este',
+  'quiniela',
+  'horóscopo',
+  'feriado',
+  'pronóstico del tiempo',
+];
+
+function isFillerHeadline(title: string): boolean {
+  const t = title.toLowerCase();
+  return FILLER_PATTERNS.some((p) => t.includes(p));
+}
+
 function splitGoogleTitle(title: string): { title: string; source: string } {
   const idx = title.lastIndexOf(' - ');
   if (idx > 20) {
-    return { title: title.slice(0, idx), source: title.slice(idx + 3) };
+    return { title: title.slice(0, idx).trim(), source: title.slice(idx + 3).trim() };
   }
-  return { title, source: 'Google News' };
+  return { title: title.trim(), source: 'Google News' };
 }
 
-function analyzeSentiment(title: string): 'positivo' | 'negativo' | 'neutral' {
-  const t = title.toLowerCase();
-  const positive = [
-    'sube', 'gana', 'alcista', 'récord', 'ath', 'máximo', 'aprob', 'adopción',
-    'listing', 'listado', 'nuevo', 'rally', 'dispara', 'impulsa', 'crece',
-    'victoria', 'bull', 'supera', 'aumenta', 'ganancia', 'verde', 'repunta',
-    'alianza', 'expande', 'inversión',
-  ];
-  const negative = [
-    'cae', 'baja', 'desploma', 'pérdida', 'hack', 'robo', 'demanda', 'sec',
-    'quiebra', 'colapso', 'alerta', 'miedo', 'estafa', 'investig', 'sanción',
-    'bajista', 'bear', 'rojo', 'liquid', 'caída', 'retrocede', 'multa', 'fuga',
-  ];
-  let pos = 0;
-  let neg = 0;
-  for (const w of positive) if (t.includes(w)) pos++;
-  for (const w of negative) if (t.includes(w)) neg++;
-  if (pos > neg) return 'positivo';
-  if (neg > pos) return 'negativo';
-  return 'neutral';
+function normalizeSourceName(rawSource: string, feedUrl: string): string {
+  const s = (rawSource || '').trim();
+  const lower = s.toLowerCase();
+
+  if (feedUrl.includes('ambito.com') || lower === 'finanzas' || lower === 'economía' || lower === 'economia' || lower === 'política') {
+    return 'Ámbito';
+  }
+  if (feedUrl.includes('ipro-up.com') || lower.includes('iproup')) {
+    return 'iProUP';
+  }
+  if (feedUrl.includes('cointelegraph.com') || lower.includes('cointelegraph')) {
+    return 'Cointelegraph';
+  }
+  // Evita "Finanzas · Finanzas" si el origen viene duplicado con separadores
+  const parts = s.split(/[·•|-]/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 2 && parts[0].toLowerCase() === parts[1].toLowerCase()) {
+    return parts[0];
+  }
+  return s || 'Mercados';
+}
+
+function normalizeTitleFingerprint(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter((w) => w.length > 3)
+    .slice(0, 7)
+    .join(' ');
 }
 
 async function fetchBinanceOfficialAnnouncements(): Promise<any[]> {
@@ -94,7 +124,7 @@ async function fetchBinanceOfficialAnnouncements(): Promise<any[]> {
       pubDate: a.releaseDate ? new Date(a.releaseDate).toISOString() : new Date().toISOString(),
       source: 'Binance Portal',
       category: 'cripto',
-      sentiment: analyzeSentiment(a.title),
+      sentiment: classifyFinancialSentiment(a.title),
       isBinance: true,
     }));
   } catch {
@@ -115,13 +145,14 @@ export async function GET(request: NextRequest) {
         .map((item) => {
           const isGoogle = url.includes('news.google.com');
           const parsed = isGoogle ? splitGoogleTitle(item.title as string) : null;
-          const title = parsed?.title ?? (item.title as string);
+          const title = (parsed?.title ?? (item.title as string)).trim();
           const rawSource =
             parsed?.source ??
             (typeof item.creator === 'string' ? item.creator : feed.title) ??
             'RSS';
+          const cleanSource = normalizeSourceName(rawSource, url);
           const isBinance =
-            rawSource.toLowerCase().includes('binance') ||
+            cleanSource.toLowerCase().includes('binance') ||
             title.toLowerCase().includes('binance') ||
             item.link?.includes('binance.com');
 
@@ -129,12 +160,13 @@ export async function GET(request: NextRequest) {
             title,
             link: item.link as string,
             pubDate: item.pubDate ?? item.isoDate ?? '',
-            source: isBinance ? 'Binance News' : rawSource,
+            source: isBinance ? 'Binance News' : cleanSource,
             category: cat,
-            sentiment: analyzeSentiment(title),
+            sentiment: classifyFinancialSentiment(title),
             isBinance,
           };
-        });
+        })
+        .filter((item) => !isFillerHeadline(item.title));
     })
   );
 
@@ -147,10 +179,15 @@ export async function GET(request: NextRequest) {
     .filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled')
     .flatMap((r) => r.value);
 
-  const seen = new Set<string>();
-  const unique = items.filter((n: { link: string }) => {
-    if (!n?.link || seen.has(n.link)) return false;
-    seen.add(n.link);
+  const seenLinks = new Set<string>();
+  const seenFingerprints = new Set<string>();
+
+  const unique = items.filter((n: { link: string; title: string }) => {
+    if (!n?.link || !n?.title || seenLinks.has(n.link)) return false;
+    const fp = normalizeTitleFingerprint(n.title);
+    if (fp.length > 10 && seenFingerprints.has(fp)) return false;
+    seenLinks.add(n.link);
+    if (fp.length > 10) seenFingerprints.add(fp);
     return true;
   });
 
