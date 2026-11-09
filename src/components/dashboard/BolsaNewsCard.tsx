@@ -256,28 +256,28 @@ const FALLBACK_BOLSA_NEWS: RawNewsItem[] = [
   {
     title: 'Jerome Powell señala que la Reserva Federal evaluará datos de inflación antes de próximos recortes de tasas',
     link: 'https://www.federalreserve.gov',
-    pubDate: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    pubDate: '',
     source: 'Wall Street Wire',
     sentiment: 'neutral',
   },
   {
     title: 'Nvidia presenta nueva arquitectura de chips para centros de datos de IA y supera expectativas de ingresos',
     link: 'https://www.cnbc.com',
-    pubDate: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
+    pubDate: '',
     source: 'MarketWatch',
     sentiment: 'positivo',
   },
   {
     title: 'El S&P 500 y el Nasdaq operan con firmeza impulsados por balances del sector tecnológico y consumo',
     link: 'https://finance.yahoo.com',
-    pubDate: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+    pubDate: '',
     source: 'Yahoo Finance',
     sentiment: 'positivo',
   },
   {
     title: 'Oro y petróleo registran alta volatilidad tras declaraciones sobre tasas del Tesoro de EE.UU. a 10 años',
     link: 'https://www.bloomberg.com',
-    pubDate: new Date(Date.now() - 1000 * 60 * 130).toISOString(),
+    pubDate: '',
     source: 'Bloomberg',
     sentiment: 'neutral',
   },
@@ -291,8 +291,8 @@ export const BolsaNewsCard = ({ onSelectTicker }: BolsaNewsCardProps) => {
   const [news, setNews] = useState<RawNewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<EventFilter>('todo');
-  const [lastFetchedAt, setLastFetchedAt] = useState<number>(Date.now());
-  const [nowTick, setNowTick] = useState<number>(Date.now());
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
+  const [nowTick, setNowTick] = useState<number | null>(null);
 
   const fetchBolsaNews = async () => {
     setLoading(true);
@@ -308,7 +308,9 @@ export const BolsaNewsCard = ({ onSelectTicker }: BolsaNewsCardProps) => {
       } else {
         setNews(FALLBACK_BOLSA_NEWS);
       }
-      setLastFetchedAt(Date.now());
+      const now = Date.now();
+      setLastFetchedAt(now);
+      setNowTick(now);
     } catch {
       setNews(FALLBACK_BOLSA_NEWS);
     } finally {
@@ -317,6 +319,9 @@ export const BolsaNewsCard = ({ onSelectTicker }: BolsaNewsCardProps) => {
   };
 
   useEffect(() => {
+    const initialNow = Date.now();
+    setLastFetchedAt(initialNow);
+    setNowTick(initialNow);
     fetchBolsaNews();
     const timer = setInterval(() => setNowTick(Date.now()), 60_000);
     return () => clearInterval(timer);
@@ -341,13 +346,16 @@ export const BolsaNewsCard = ({ onSelectTicker }: BolsaNewsCardProps) => {
     };
   }, [enriched, calendarCount]);
 
-  const updatedMinutesAgo = Math.max(0, Math.floor((nowTick - lastFetchedAt) / 60000));
+  const updatedMinutesAgo =
+    nowTick != null && lastFetchedAt != null
+      ? Math.max(0, Math.floor((nowTick - lastFetchedAt) / 60000))
+      : 0;
   const updatedLabel =
     updatedMinutesAgo < 1 ? 'Actualizado recién' : `Actualizado hace ${updatedMinutesAgo} min`;
 
   const formatTimeAgo = (pubDate: string) => {
-    if (!pubDate) return 'Reciente';
-    const diff = Date.now() - new Date(pubDate).getTime();
+    if (!pubDate || nowTick == null) return 'Reciente';
+    const diff = nowTick - new Date(pubDate).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'Hace instantes';
     if (mins < 60) return `Hace ${mins} min`;

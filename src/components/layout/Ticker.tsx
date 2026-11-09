@@ -35,11 +35,14 @@ const FX_META: Array<{ key: keyof FxRates; label: string; prefix: string }> = [
 export const Ticker = ({ onOpenSearch }: { onOpenSearch?: () => void }) => {
   const cryptoPrices = useBinanceWebSocket(SYMBOLS);
   const [fx, setFx] = useState<FxRates | null>(null);
-  const [lastTickAt, setLastTickAt] = useState<number>(Date.now());
-  const [nowMs, setNowMs] = useState<number>(Date.now());
+  const [lastTickAt, setLastTickAt] = useState<number | null>(null);
+  const [nowMs, setNowMs] = useState<number | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(true);
 
   useEffect(() => {
+    const initialNow = Date.now();
+    setLastTickAt(initialNow);
+    setNowMs(initialNow);
     const onOnline = () => setIsOnline(true);
     const onOffline = () => setIsOnline(false);
     if (typeof navigator !== 'undefined') setIsOnline(navigator.onLine);
@@ -109,7 +112,10 @@ export const Ticker = ({ onOpenSearch }: { onOpenSearch?: () => void }) => {
   const items = [...cryptoItems, ...fxItems];
 
   // Semáforo de frescura de datos
-  const minsAgo = Math.max(0, Math.floor((nowMs - lastTickAt) / 60_000));
+  const minsAgo =
+    nowMs != null && lastTickAt != null
+      ? Math.max(0, Math.floor((nowMs - lastTickAt) / 60_000))
+      : 0;
   const statusKind: 'live' | 'delayed' | 'offline' = !isOnline
     ? 'offline'
     : minsAgo >= 10
