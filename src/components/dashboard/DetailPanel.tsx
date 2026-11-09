@@ -6,14 +6,10 @@ import {
   LineChart,
   BarChart2,
   Building2,
-  Calendar,
   Target,
-  DollarSign,
-  Briefcase,
   TrendingUp,
   TrendingDown,
   Layers,
-  ChevronRight,
   Info,
   ArrowLeft,
   AlertTriangle,
@@ -22,7 +18,8 @@ import { Asset } from '@/types';
 import { useSeriesData } from '@/hooks/useSeriesData';
 import { PriceChart } from '@/components/common/PriceChart';
 import { AssetIcon } from '@/components/common/AssetIcon';
-import { formatCompactNumber, formatPrice } from '@/lib/format';
+import { fmtPrice, fmtPct, formatCompactNumber } from '@/lib/format';
+import { PriceCell, ChangeCell } from '@/components/common/PriceCell';
 import { getTradingViewUrl } from '@/lib/tradingview';
 import { FundamentalData } from '@/app/api/fundamentals/route';
 import { getCryptoProfile } from '@/data/cryptoData';
@@ -172,7 +169,6 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
     const diffX = touch.clientX - touchStartX.current;
     const diffY = touch.clientY - touchStartY.current;
 
-    // Si arrastra hacia la derecha desde el borde o área con menor componente vertical
     if (diffX > 10 && Math.abs(diffX) > Math.abs(diffY)) {
       setDragOffset(Math.max(0, diffX));
     }
@@ -221,10 +217,12 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
   const m = fundamentals?.metrics;
   const prof = fundamentals?.profile;
 
+  const currentAssetPrice = asset.price ?? last?.close ?? null;
+
   // Cálculo de Upside respecto a precio objetivo de analistas
   const targetUpside =
-    m?.targetPrice && asset.price > 0
-      ? ((m.targetPrice - asset.price) / asset.price) * 100
+    m?.targetPrice && currentAssetPrice != null && currentAssetPrice > 0
+      ? ((m.targetPrice - currentAssetPrice) / currentAssetPrice) * 100
       : null;
 
   // Comparativa Deuda vs Liquidez
@@ -284,15 +282,10 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
                   </div>
                   <div className="flex items-baseline gap-2.5 flex-wrap mt-0.5">
                     <span className="text-[20px] sm:text-[22px] font-display font-semibold text-text">
-                      ${formatPrice(asset.price)}
+                      <PriceCell price={currentAssetPrice} currency="$" />
                     </span>
-                    <span
-                      className={`text-[12.5px] font-medium ${
-                        asset.change >= 0 ? 'text-teal' : 'text-red'
-                      }`}
-                    >
-                      {asset.change >= 0 ? '+' : ''}
-                      {asset.change.toFixed(2)}% hoy
+                    <span className="text-[12.5px] font-medium">
+                      <ChangeCell change={asset.change} /> <span className="text-dim text-[11px]">hoy</span>
                     </span>
                   </div>
                 </div>
@@ -347,15 +340,14 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
 
                 {marketState !== 'REGULAR' && typeof prePrice === 'number' && (
                   <span className="text-dim">
-                    Pre-Mkt: <b className="text-dim font-medium">${formatPrice(prePrice)}</b>
+                    Pre-Mkt: <b className="text-dim font-medium">{fmtPrice(prePrice)}</b>
                     {typeof preChange === 'number' && (
                       <span
                         className={
                           preChange >= 0 ? ' text-teal/80 ml-1' : ' text-red/80 ml-1'
                         }
                       >
-                        ({preChange >= 0 ? '+' : ''}
-                        {preChange.toFixed(2)}%)
+                        ({fmtPct(preChange)})
                       </span>
                     )}
                   </span>
@@ -363,15 +355,14 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
 
                 {marketState !== 'REGULAR' && typeof postPrice === 'number' && (
                   <span className="text-dim">
-                    Post-Mkt: <b className="text-dim font-medium">${formatPrice(postPrice)}</b>
+                    Post-Mkt: <b className="text-dim font-medium">{fmtPrice(postPrice)}</b>
                     {typeof postChange === 'number' && (
                       <span
                         className={
                           postChange >= 0 ? ' text-teal/80 ml-1' : ' text-red/80 ml-1'
                         }
                       >
-                        ({postChange >= 0 ? '+' : ''}
-                        {postChange.toFixed(2)}%)
+                        ({fmtPct(postChange)})
                       </span>
                     )}
                   </span>
@@ -486,20 +477,20 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
                 <div className="grid grid-cols-3 gap-2.5 text-dim">
                   <div className="p-3 bg-bg2 rounded-xl border border-line">
                     <span className="text-[11px] block text-dim/80">Apertura</span>
-                    <b className="block text-text text-[15px] font-mono mt-0.5">
-                      ${formatPrice(last?.open)}
+                    <b className="block text-text text-[15px] font-mono mt-0.5 tabular-nums">
+                      {fmtPrice(last?.open)}
                     </b>
                   </div>
                   <div className="p-3 bg-bg2 rounded-xl border border-line">
                     <span className="text-[11px] block text-dim/80">Máximo</span>
-                    <b className="block text-text text-[15px] font-mono mt-0.5">
-                      ${formatPrice(last?.high)}
+                    <b className="block text-text text-[15px] font-mono mt-0.5 tabular-nums">
+                      {fmtPrice(last?.high)}
                     </b>
                   </div>
                   <div className="p-3 bg-bg2 rounded-xl border border-line">
                     <span className="text-[11px] block text-dim/80">Mínimo</span>
-                    <b className="block text-text text-[15px] font-mono mt-0.5">
-                      ${formatPrice(last?.low)}
+                    <b className="block text-text text-[15px] font-mono mt-0.5 tabular-nums">
+                      {fmtPrice(last?.low)}
                     </b>
                   </div>
                 </div>
@@ -535,17 +526,17 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className="p-3.5 bg-bg2 border border-line rounded-xl">
                         <span className="text-[11px] text-dim block">Máximo Histórico (ATH)</span>
-                        <span className="text-[16px] font-mono font-semibold text-text mt-0.5 block">
-                          ${formatPrice(asset.ath || cryptoProfile?.ath || 0)}
+                        <span className="text-[16px] font-mono font-semibold text-text mt-0.5 block tabular-nums">
+                          {fmtPrice(asset.ath || cryptoProfile?.ath || null)}
                         </span>
-                        {asset.price > 0 && (asset.ath || cryptoProfile?.ath) && (
-                          <span className="text-[10.5px] font-mono text-red block mt-0.5">
-                            {(
-                              ((asset.price - (asset.ath || cryptoProfile!.ath)) /
+                        {currentAssetPrice != null && currentAssetPrice > 0 && (asset.ath || cryptoProfile?.ath) && (
+                          <span className="text-[10.5px] font-mono text-red block mt-0.5 tabular-nums">
+                            {fmtPct(
+                              ((currentAssetPrice - (asset.ath || cryptoProfile!.ath)) /
                                 (asset.ath || cryptoProfile!.ath)) *
-                              100
-                            ).toFixed(1)}
-                            % vs ATH
+                                100
+                            )}{' '}
+                            vs ATH
                           </span>
                         )}
                       </div>
@@ -616,7 +607,7 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       <div className="p-3 bg-bg2 border border-line rounded-xl">
                         <span className="text-[11px] text-dim block">PER (Trailing P/E)</span>
-                        <span className="text-[16px] font-mono font-semibold text-text mt-0.5 block">
+                        <span className="text-[16px] font-mono font-semibold text-text mt-0.5 block tabular-nums">
                           {m.pe != null ? `${m.pe.toFixed(1)}x` : '—'}
                         </span>
                         {m.forwardPe != null && (
@@ -628,12 +619,12 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
 
                       <div className="p-3 bg-bg2 border border-line rounded-xl">
                         <span className="text-[11px] text-dim block">BPA / EPS (Trailing)</span>
-                        <span className="text-[16px] font-mono font-semibold text-text mt-0.5 block">
-                          {m.eps != null ? `$${m.eps.toFixed(2)}` : '—'}
+                        <span className="text-[16px] font-mono font-semibold text-text mt-0.5 block tabular-nums">
+                          {m.eps != null ? fmtPrice(m.eps) : '—'}
                         </span>
                         {m.forwardEps != null && (
                           <span className="text-[10.5px] text-dim block mt-0.5">
-                            Forward EPS: ${m.forwardEps.toFixed(2)}
+                            Forward EPS: {fmtPrice(m.forwardEps)}
                           </span>
                         )}
                       </div>
@@ -649,12 +640,12 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
                         <span className="text-[11px] text-dim block">Dividendos</span>
                         {m.dividendYield != null && m.dividendYield > 0 ? (
                           <>
-                            <span className="text-[16px] font-mono font-semibold text-teal mt-0.5 block">
-                              {m.dividendYield.toFixed(2)}%
+                            <span className="text-[16px] font-mono font-semibold text-teal mt-0.5 block tabular-nums">
+                              {fmtPct(m.dividendYield)}
                             </span>
                             <span className="text-[10.5px] text-dim font-medium block mt-0.5 truncate">
                               {m.dividendFrequency || 'Trimestral'}
-                              {m.dividendRate != null ? ` · $${m.dividendRate.toFixed(2)}/acc` : ''}
+                              {m.dividendRate != null ? ` · ${fmtPrice(m.dividendRate)}/acc` : ''}
                             </span>
                           </>
                         ) : (
@@ -699,18 +690,17 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
 
                         <div className="flex items-center gap-3">
                           <div className="text-right">
-                            <span className="text-[17px] font-mono font-semibold text-text block">
-                              ${formatPrice(m.targetPrice)}
+                            <span className="text-[17px] font-mono font-semibold text-text block tabular-nums">
+                              {fmtPrice(m.targetPrice)}
                             </span>
                             {targetUpside != null && (
                               <span
-                                className={`text-[11.5px] font-mono font-medium inline-flex items-center gap-0.5 ${
+                                className={`text-[11.5px] font-mono font-medium inline-flex items-center gap-0.5 tabular-nums ${
                                   targetUpside >= 0 ? 'text-teal' : 'text-red'
                                 }`}
                               >
                                 {targetUpside >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                                {targetUpside >= 0 ? '+' : ''}
-                                {targetUpside.toFixed(1)}% Upside
+                                {fmtPct(targetUpside)} Upside
                               </span>
                             )}
                           </div>
@@ -784,14 +774,14 @@ export const DetailPanel = ({ asset, isOpen, onClose }: DetailPanelProps) => {
                     {m.fiftyTwoWeekLow != null && m.fiftyTwoWeekHigh != null && (
                       <div className="p-3.5 bg-bg2 border border-line rounded-xl">
                         <div className="flex items-center justify-between text-[11.5px] text-dim mb-1.5 font-mono">
-                          <span>52w Mín: ${formatPrice(m.fiftyTwoWeekLow)}</span>
+                          <span>52w Mín: {fmtPrice(m.fiftyTwoWeekLow)}</span>
                           <span className="text-text font-medium">Rango 52 Semanas</span>
-                          <span>52w Máx: ${formatPrice(m.fiftyTwoWeekHigh)}</span>
+                          <span>52w Máx: {fmtPrice(m.fiftyTwoWeekHigh)}</span>
                         </div>
                         {(() => {
                           const min = m.fiftyTwoWeekLow;
                           const max = m.fiftyTwoWeekHigh;
-                          const current = asset.price;
+                          const current = currentAssetPrice ?? min;
                           const pct = Math.max(0, Math.min(100, ((current - min) / (max - min)) * 100));
                           return (
                             <div className="w-full h-2 bg-line rounded-full relative overflow-hidden">

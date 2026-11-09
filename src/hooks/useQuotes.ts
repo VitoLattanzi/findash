@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChangeTimeframe } from '@/lib/timeframe';
+import { getQuotes } from '@/lib/quotes';
 
 export interface UnifiedQuote {
   symbol: string;
@@ -44,6 +45,7 @@ export function useQuotes(
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const hasDataRef = useRef(false);
 
   const fetchBatch = useCallback(
@@ -61,66 +63,13 @@ export function useQuotes(
       setError(null);
 
       try {
-        if (withSpark || timeframe !== '24h') {
-          const res = await fetch(
-            `/api/market?tickers=${encodeURIComponent(symbolsStr)}&timeframe=${encodeURIComponent(timeframe)}&spark=${withSpark ? '1' : '0'}`
-          );
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            const nextMap: Record<string, UnifiedQuote> = {};
-            for (const item of data) {
-              if (!item?.symbol) continue;
-              const chg = typeof item.change === 'number' ? item.change : null;
-              nextMap[item.symbol] = {
-                symbol: item.symbol,
-                name: item.name ?? item.symbol,
-                price: typeof item.price === 'number' ? item.price : null,
-                change: chg,
-                changePct: chg,
-                volume: typeof item.volume === 'number' ? item.volume : null,
-                avgVolume: typeof item.avgVolume === 'number' ? item.avgVolume : null,
-                marketCap: typeof item.marketCap === 'number' ? item.marketCap : null,
-                marketState: item.marketState ?? 'CLOSED',
-                preMarketPrice: item.preMarketPrice ?? null,
-                preMarketChangePct: item.preMarketChange ?? null,
-                postMarketPrice: item.postMarketPrice ?? null,
-                postMarketChangePct: item.postMarketChange ?? null,
-                bars: item.bars ?? null,
-              };
-            }
-            setQuotesMap((prev) => (keepPreviousData ? { ...prev, ...nextMap } : nextMap));
-            hasDataRef.current = true;
-          } else {
-            setError(data?.error || 'No se pudo obtener la data de mercado');
-          }
-        } else {
-          const res = await fetch(`/api/quotes?s=${encodeURIComponent(symbolsStr)}`);
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            const nextMap: Record<string, UnifiedQuote> = {};
-            for (const q of data) {
-              if (!q?.symbol) continue;
-              const chg = typeof q.changePct === 'number' ? q.changePct : null;
-              nextMap[q.symbol] = {
-                symbol: q.symbol,
-                name: q.name ?? q.symbol,
-                price: typeof q.price === 'number' ? q.price : null,
-                change: chg,
-                changePct: chg,
-                volume: typeof q.volume === 'number' ? q.volume : null,
-                avgVolume: typeof q.avgVolume === 'number' ? q.avgVolume : null,
-                marketCap: typeof q.marketCap === 'number' ? q.marketCap : null,
-                marketState: q.marketState ?? 'CLOSED',
-                preMarketPrice: q.preMarketPrice ?? null,
-                preMarketChangePct: q.preMarketChangePct ?? null,
-                postMarketPrice: q.postMarketPrice ?? null,
-                postMarketChangePct: q.postMarketChangePct ?? null,
-                ts: q.ts ?? null,
-              };
-            }
-            setQuotesMap((prev) => (keepPreviousData ? { ...prev, ...nextMap } : nextMap));
-            hasDataRef.current = true;
-          }
+        const nextMap = await getQuotes(symbolsStr, { timeframe, withSpark });
+        if (Object.keys(nextMap).length > 0) {
+          setQuotesMap((prev) => (keepPreviousData ? { ...prev, ...nextMap } : nextMap));
+          hasDataRef.current = true;
+          setLastUpdatedAt(Date.now());
+        } else if (!hasDataRef.current) {
+          setError('No se pudo obtener la data de mercado');
         }
       } catch {
         if (!isBackground) {
@@ -158,6 +107,7 @@ export function useQuotes(
     loading,
     refreshing,
     error,
+    lastUpdatedAt,
     refetch: () => fetchBatch(true),
   };
 }

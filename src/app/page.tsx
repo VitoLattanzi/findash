@@ -73,9 +73,19 @@ export default function Dashboard() {
         <Sidebar activeView={activeView} setActiveView={setActiveView} />
         <main
           key={activeView}
-          className="flex-1 min-w-0 p-4 pb-24 sm:p-[26px_28px] sm:pb-24 md:pb-[26px] view-enter"
+          className="flex-1 min-w-0 p-4 pb-24 sm:p-[26px_28px] sm:pb-24 md:pb-[26px] view-enter flex flex-col"
         >
-          {renderView()}
+          <div className="flex-1">{renderView()}</div>
+
+          {/* Footer Disclaimer Financiero */}
+          <footer className="mt-8 pt-4 border-t border-line/60 text-[11px] text-dim flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p>
+              Datos con fines informativos y educativos; pueden presentar demoras. No constituye asesoramiento financiero.
+            </p>
+            <span className="font-mono text-[10px] text-dim/80">
+              FinDash v1.8 · Wall St · Cripto · BYMA
+            </span>
+          </footer>
         </main>
       </div>
 

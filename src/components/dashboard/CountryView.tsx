@@ -1,8 +1,9 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { Country } from '@/types';
-import { formatPercent, formatPrice } from '@/lib/format';
+import { Country, Asset } from '@/types';
+import { fmtPrice, fmtPct, fmtCompact } from '@/lib/format';
+import { PriceCell, ChangeCell } from '@/components/common/PriceCell';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { PriceChart } from '@/components/common/PriceChart';
 import { CountryFlag } from '@/components/common/CountryFlag';
@@ -10,8 +11,8 @@ import { Sparkline } from '@/components/common/Sparkline';
 import { TimeframeControl } from '@/components/common/TimeframeHeader';
 import { ChangeTimeframe } from '@/lib/timeframe';
 import { MarketHeatmap } from '@/components/common/MarketHeatmap';
-import { Asset } from '@/types';
 import { X } from 'lucide-react';
+import type { ArIndicatorsResponse } from '@/app/api/ar-indicators/route';
 
 const DEFAULT_COUNTRIES: Country[] = [
   { name: 'Argentina', etf: 'ARGT' },
@@ -102,14 +103,6 @@ interface FxRates {
 
 type CountrySortField = 'name' | 'price' | 'change' | 'volume';
 
-const formatVolumeCompact = (v?: number | null) => {
-  if (v == null || v <= 0) return '—';
-  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`;
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
-  return String(v);
-};
-
 const volatility = (bars?: number[] | null): number | null => {
   if (!bars || bars.length < 6) return null;
   const rets: number[] = [];
@@ -130,7 +123,7 @@ const riskTone = (vol: number | null) => {
 };
 
 export const CountryView = () => {
-  const [countries, setCountries] = useLocalStorage<Country[]>('findash_countries', DEFAULT_COUNTRIES);
+  const [countries, setCountries] = useLocalStorage<Country[]>('findash:countries:v1', DEFAULT_COUNTRIES);
   const [input, setInput] = useState('');
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [loading, setLoading] = useState(true);
@@ -180,9 +173,11 @@ export const CountryView = () => {
       .then((res) => res.json())
       .then((data) => data?.rates && setFx(data.rates))
       .catch(() => {});
-    fetch('https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo')
+    fetch('/api/ar-indicators')
       .then((res) => res.json())
-      .then((data) => typeof data?.valor === 'number' && setRiskAr(data.valor))
+      .then((data: ArIndicatorsResponse) => {
+        if (typeof data?.riesgoPais === 'number') setRiskAr(data.riesgoPais);
+      })
       .catch(() => {});
   }, []);
 
@@ -241,9 +236,9 @@ export const CountryView = () => {
       const qa = quotes[a.etf];
       const qb = quotes[b.etf];
       if (sort.field === 'name') return a.name.localeCompare(b.name, 'es') * sort.dir;
-      if (sort.field === 'price') return ((qa?.price ?? 0) - (qb?.price ?? 0)) * sort.dir;
-      if (sort.field === 'volume') return ((qa?.volume ?? 0) - (qb?.volume ?? 0)) * sort.dir;
-      return ((qa?.change ?? 0) - (qb?.change ?? 0)) * sort.dir;
+      if (sort.field === 'price') return ((qa?.price ?? -Infinity) - (qb?.price ?? -Infinity)) * sort.dir;
+      if (sort.field === 'volume') return ((qa?.volume ?? -Infinity) - (qb?.volume ?? -Infinity)) * sort.dir;
+      return ((qa?.change ?? -Infinity) - (qb?.change ?? -Infinity)) * sort.dir;
     });
   }, [countries, quotes, sort]);
 
@@ -294,7 +289,7 @@ export const CountryView = () => {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addCountry()}
           placeholder="Agregar país o ETF (ej: Brasil / EWZ) y Enter"
-          className="flex-1 bg-bg2 border border-line text-text p-[8px_10px] rounded-[5px] text-[13px]"
+          className="flex-1 bg-bg2 border border-line text-text p-[8px_10px] rounded-[5px] text-[16px] sm:text-[13px]"
         />
         <button onClick={addCountry} className="bg-gold text-bg p-[8px_14px] rounded-[5px] font-semibold text-[13px]">
           Agregar
@@ -334,6 +329,7 @@ export const CountryView = () => {
           sortDir={sort.dir}
           onSortClick={() => toggleSort('change')}
           align="right"
+          mode="stock"
         />
       </div>
 
@@ -399,6 +395,7 @@ export const CountryView = () => {
                     sortDir={sort.dir}
                     onSortClick={() => toggleSort('change')}
                     align="right"
+                    mode="stock"
                   />
                 </th>
                 <th
@@ -416,7 +413,7 @@ export const CountryView = () => {
             <tbody className="divide-y divide-line">
               {sortedCountries.map((c) => {
                 const q = quotes[c.etf];
-                const change = q?.change ?? 0;
+                const change = q?.change ?? null;
                 return (
                   <tr
                     key={c.etf}
@@ -425,7 +422,7 @@ export const CountryView = () => {
                         name: c.name,
                         symbol: c.etf,
                         type: 'stock',
-                        price: q?.price ?? 0,
+                        price: q?.price ?? null,
                         change,
                         bars: q?.bars ?? [],
                       })
@@ -439,16 +436,18 @@ export const CountryView = () => {
                       </div>
                     </td>
                     <td className="p-3 font-mono text-gold font-semibold">{c.etf}</td>
-                    <td className="p-3 text-right font-mono">${formatPrice(q?.price)}</td>
-                    <td className={`p-3 text-right font-mono font-medium ${change >= 0 ? 'text-teal' : 'text-red'}`}>
-                      {formatPercent(q?.price == null ? null : change)}
+                    <td className="p-3 text-right font-mono">
+                      <PriceCell price={q?.price} currency="$" />
                     </td>
-                    <td className="p-3 text-right font-mono text-dim hidden md:table-cell">
-                      {formatVolumeCompact(q?.volume)}
+                    <td className="p-3 text-right font-mono font-medium">
+                      <ChangeCell change={q?.price == null ? null : change} />
+                    </td>
+                    <td className="p-3 text-right font-mono text-dim hidden md:table-cell tabular-nums">
+                      {fmtCompact(q?.volume)}
                     </td>
                     <td className="p-3 text-right">
                       <div className="inline-flex justify-end">
-                        <Sparkline data={q?.bars ?? []} change={change} width={76} height={22} />
+                        <Sparkline data={q?.bars ?? []} change={change ?? 0} width={76} height={22} />
                       </div>
                     </td>
                     <td className="p-3 text-center">
@@ -473,7 +472,7 @@ export const CountryView = () => {
           {sortedCountries.map((c) => {
             const key = c.name;
             const q = quotes[c.etf];
-            const change = q?.change ?? 0;
+            const change = q?.change ?? null;
             const vol = volatility(q?.bars);
             const code = currencyOf(c);
             const { rate, symbol } = fxFor(code);
@@ -489,7 +488,7 @@ export const CountryView = () => {
                     name: c.name,
                     symbol: c.etf,
                     type: 'stock',
-                    price: q?.price ?? 0,
+                    price: q?.price ?? null,
                     change,
                     bars: q?.bars ?? [],
                   })
@@ -508,11 +507,13 @@ export const CountryView = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <Sparkline data={q?.bars ?? []} change={change} width={68} height={22} />
+                    <Sparkline data={q?.bars ?? []} change={change ?? 0} width={68} height={22} />
                     <div className="text-right">
-                      <div className="text-[16px] font-semibold">${formatPrice(q?.price)}</div>
-                      <div className={`text-[11.5px] font-semibold ${change >= 0 ? 'text-teal' : 'text-red'}`}>
-                        {formatPercent(q?.price == null ? null : change)}
+                      <div className="text-[16px] font-semibold">
+                        <PriceCell price={q?.price} currency="$" />
+                      </div>
+                      <div className="text-[11.5px] font-semibold">
+                        <ChangeCell change={q?.price == null ? null : change} />
                       </div>
                     </div>
                   </div>
@@ -535,24 +536,24 @@ export const CountryView = () => {
                 <div className="grid grid-cols-3 gap-2 mt-3 border-t border-line pt-3">
                   <div className="min-w-0">
                     <div className="text-[10px] uppercase tracking-wide text-dim">Dólar local</div>
-                    <div className="text-[12.5px] font-semibold truncate">
+                    <div className="text-[12.5px] font-semibold truncate tabular-nums">
                       {code === 'USD'
                         ? 'Base'
                         : rate != null && rate > 0
-                          ? `${symbol}${rate.toLocaleString('es-AR', { maximumFractionDigits: 2 })}`
+                          ? fmtPrice(rate, symbol)
                           : '—'}
                     </div>
                   </div>
                   <div className="min-w-0">
                     <div className="text-[10px] uppercase tracking-wide text-dim">Riesgo país</div>
-                    <div className="text-[12.5px] font-semibold truncate">
-                      {c.etf === 'ARGT' && riskAr != null ? `${riskAr} pb` : '—'}
+                    <div className="text-[12.5px] font-semibold truncate tabular-nums">
+                      {c.etf === 'ARGT' && riskAr != null ? `${riskAr.toLocaleString('es-AR')} pb` : '—'}
                     </div>
                   </div>
                   <div className="min-w-0">
                     <div className="text-[10px] uppercase tracking-wide text-dim">Vol 30d</div>
-                    <div className={`text-[12.5px] font-semibold truncate ${riskTone(vol)}`}>
-                      {vol != null ? `${vol.toFixed(1)}%` : '—'}
+                    <div className={`text-[12.5px] font-semibold truncate tabular-nums ${riskTone(vol)}`}>
+                      {vol != null ? fmtPct(vol) : '—'}
                     </div>
                   </div>
                 </div>

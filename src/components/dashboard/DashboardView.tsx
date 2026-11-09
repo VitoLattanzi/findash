@@ -1,35 +1,23 @@
 'use client';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AssetList } from '@/components/dashboard/AssetList';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { MarketHeatmap, HeatmapItem } from '@/components/common/MarketHeatmap';
 import { estimateCryptoMarketCap } from '@/data/cryptoData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useBinanceWebSocket } from '@/hooks/useBinanceWebSocket';
+import { useQuotes } from '@/hooks/useQuotes';
+import { fmtPct, fmtPrice } from '@/lib/format';
 import { Asset } from '@/types';
 import { CATALOG, CATALOG_GROUPS, DEFAULT_PINNED, PinnedAsset } from '@/lib/catalog';
 import { ChangeTimeframe, getTimeframeOption } from '@/lib/timeframe';
-
-interface QuoteResponse {
-  symbol: string;
-  price: number | null;
-  change: number | null;
-  bars: number[] | null;
-  marketCap?: number | null;
-  volume?: number | null;
-}
+import type { ArIndicatorsResponse } from '@/app/api/ar-indicators/route';
+import { Download, Upload } from 'lucide-react';
 
 interface CryptoKlineSeries {
   firstOpen: number;
   lastClose: number;
   bars: number[];
-}
-
-interface DollarQuote {
-  casa: string;
-  nombre: string;
-  compra: number;
-  venta: number;
 }
 
 interface Headline {
@@ -53,20 +41,18 @@ const FNG_LABEL: Record<string, string> = {
 };
 
 export const DashboardView = () => {
-  const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned_v2', DEFAULT_PINNED);
+  const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash:pinned:v1', DEFAULT_PINNED);
   const [view, setView] = useState<'list' | 'card' | 'map'>('list');
   const [timeframe, setTimeframe] = useState<ChangeTimeframe>('24h');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
-  const [quotes, setQuotes] = useState<Record<string, QuoteResponse>>({});
   const [klines, setKlines] = useState<Record<string, CryptoKlineSeries>>({});
-  const [loadingStocks, setLoadingStocks] = useState(false);
-  const [dollars, setDollars] = useState<DollarQuote[]>([]);
-  const [risk, setRisk] = useState<number | null>(null);
+  const [arIndicators, setArIndicators] = useState<ArIndicatorsResponse | null>(null);
   const [headlines, setHeadlines] = useState<Headline[]>([]);
   const [loadingNews, setLoadingNews] = useState(true);
   const [fng, setFng] = useState<Fng | null>(null);
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState<string>('crypto');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cryptoPinned = useMemo(
     () => pinned.filter((p) => p.type === 'crypto').map((p) => `${p.symbol.toLowerCase()}usdt`),
@@ -76,33 +62,12 @@ export const DashboardView = () => {
 
   const liveCrypto = useBinanceWebSocket(cryptoPinned);
 
-  useEffect(() => {
-    if (stockPinned.length === 0) {
-      setQuotes({});
-      return;
-    }
-    let cancelled = false;
-    setLoadingStocks(true);
-
-    fetch(
-      `/api/market?tickers=${encodeURIComponent(stockPinned.join(','))}&spark=1&timeframe=${encodeURIComponent(timeframe)}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled || !Array.isArray(data)) return;
-        const map: Record<string, QuoteResponse> = {};
-        for (const item of data) map[item.symbol] = item;
-        setQuotes(map);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoadingStocks(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [stockPinned.join(','), timeframe]);
+  // Cotizaciones de acciones fijadas con useQuotes (inicializa en null, cero efecto $0,00)
+  const { quotesMap: quotes, loading: loadingStocks } = useQuotes(stockPinned, {
+    timeframe,
+    withSpark: true,
+    keepPreviousData: true,
+  });
 
   useEffect(() => {
     if (cryptoPinned.length === 0) {
@@ -136,23 +101,18 @@ export const DashboardView = () => {
     };
   }, [cryptoPinned.join(','), timeframe]);
 
+  // Indicadores Argentinos reales desde /api/ar-indicators
   useEffect(() => {
-    fetch('https://dolarapi.com/v1/dolares')
+    let cancelled = false;
+    fetch('/api/ar-indicators')
       .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setDollars(data.filter((d: DollarQuote) => ['oficial', 'blue', 'bolsa', 'contadoconliqui'].includes(d.casa)));
-        }
+      .then((data: ArIndicatorsResponse) => {
+        if (!cancelled && data) setArIndicators(data);
       })
       .catch(() => {});
-
-    fetch('https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo')
-      .then((res) => res.json())
-      .then((data) => {
-        const v = data?.valor;
-        if (typeof v === 'number') setRisk(v);
-      })
-      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -191,24 +151,28 @@ export const DashboardView = () => {
     };
   }, []);
 
+  // Jamás inicializamos price: 0 ni change: 0; usamos null mientras cargan
   const assets: Asset[] = useMemo(() => {
     return pinned.map((p) => {
       if (p.type === 'crypto') {
         const pair = `${p.symbol.toUpperCase()}USDT`;
         const t = liveCrypto[pair];
         const kline = klines[pair];
-        const livePrice = t ? parseFloat(t.c) : 0;
-        const price = livePrice || kline?.lastClose || 0;
-        const open24h = t ? parseFloat(t.o) : 0;
-        const liveChange24h = t && open24h ? ((price - open24h) / open24h) * 100 : 0;
+        const livePrice = t ? parseFloat(t.c) : null;
+        const rawPrice = livePrice && livePrice > 0 ? livePrice : kline?.lastClose && kline.lastClose > 0 ? kline.lastClose : null;
+        const open24h = t ? parseFloat(t.o) : null;
+        const liveChange24h =
+          rawPrice != null && open24h != null && open24h > 0
+            ? ((rawPrice - open24h) / open24h) * 100
+            : null;
 
         let change = liveChange24h;
-        if (kline && kline.firstOpen > 0 && price > 0) {
-          change = ((price - kline.firstOpen) / kline.firstOpen) * 100;
+        if (kline && kline.firstOpen > 0 && rawPrice != null && rawPrice > 0) {
+          change = ((rawPrice - kline.firstOpen) / kline.firstOpen) * 100;
         }
 
         const bars = kline
-          ? livePrice > 0
+          ? livePrice && livePrice > 0
             ? [...kline.bars.slice(0, -1), livePrice]
             : kline.bars
           : [];
@@ -217,7 +181,7 @@ export const DashboardView = () => {
           name: p.label || p.symbol,
           symbol: p.symbol,
           type: 'crypto' as const,
-          price,
+          price: rawPrice,
           change,
           bars,
         };
@@ -227,8 +191,8 @@ export const DashboardView = () => {
         name: p.label || p.symbol,
         symbol: p.symbol,
         type: 'stock' as const,
-        price: q?.price ?? 0,
-        change: q?.change ?? 0,
+        price: q?.price ?? null,
+        change: q?.change ?? null,
         bars: q?.bars ?? [],
       };
     });
@@ -236,24 +200,62 @@ export const DashboardView = () => {
 
   const unpin = (symbol: string) => setPinned(pinned.filter((p) => p.symbol !== symbol));
 
-  // Ítems para el mapa de calor (mezcla cripto + acciones + commodities + ETFs)
+  // Exportar / Importar configuración JSON de activos fijados
+  const handleExportJson = () => {
+    try {
+      const payload = JSON.stringify({ version: 'v1', pinned }, null, 2);
+      const blob = new Blob([payload], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'findash-config.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        const list = Array.isArray(parsed) ? parsed : parsed?.pinned;
+        if (Array.isArray(list) && list.every((it) => it && typeof it.symbol === 'string')) {
+          setPinned(list);
+        }
+      } catch {
+        // ignore invalid json
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // Ítems para el mapa de calor
   const heatmapItems: Array<HeatmapItem & { asset: Asset }> = useMemo(
     () =>
-      assets.map((a) => ({
-        id: `${a.type}-${a.symbol ?? a.name}`,
-        symbol: a.symbol ?? a.name,
-        name: a.name,
-        type: a.type ?? 'stock',
-        price: a.price,
-        change: a.change,
-        marketCap:
-          a.type === 'crypto'
-            ? estimateCryptoMarketCap(a.symbol ?? a.name, a.price)
-            : quotes[a.symbol ?? '']?.marketCap ?? null,
-        asset: a,
-      })),
+      assets
+        .filter((a) => a.price != null && a.price > 0)
+        .map((a) => ({
+          id: `${a.type}-${a.symbol ?? a.name}`,
+          symbol: a.symbol ?? a.name,
+          name: a.name,
+          type: a.type ?? 'stock',
+          price: a.price ?? 0,
+          change: a.change ?? 0,
+          marketCap:
+            a.type === 'crypto'
+              ? estimateCryptoMarketCap(a.symbol ?? a.name, a.price ?? 0)
+              : quotes[a.symbol ?? '']?.marketCap ?? null,
+          asset: a,
+        })),
     [assets, quotes]
   );
+
   const pin = (item: (typeof CATALOG)[number]) =>
     setPinned([...pinned, { symbol: item.symbol, label: item.label, type: item.type }]);
 
@@ -261,12 +263,7 @@ export const DashboardView = () => {
     (c) => c.group === group && c.symbol.toLowerCase().includes(search.toLowerCase())
   );
 
-  const dollarLabel: Record<string, string> = {
-    oficial: 'Dólar Oficial',
-    blue: 'Dólar Blue',
-    bolsa: 'Dólar MEP',
-    contadoconliqui: 'Dólar CCL',
-  };
+  const d = arIndicators?.dolares;
 
   return (
     <>
@@ -308,13 +305,41 @@ export const DashboardView = () => {
       <div className="flex flex-col lg:flex-row gap-5 items-stretch lg:items-start">
         <div className="w-full lg:w-auto lg:flex-[2] min-w-0 flex flex-col gap-4">
           <div className="bg-card border border-line rounded-[6px] p-4">
-            <h3 className="text-[13.5px] text-dim font-medium mb-2.5">ACTIVOS FIJADOS</h3>
+            <div className="flex items-center justify-between mb-2.5 gap-2 flex-wrap">
+              <h3 className="text-[13.5px] text-dim font-medium">ACTIVOS FIJADOS</h3>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleExportJson}
+                  title="Exportar lista de activos en JSON"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-bg2 hover:bg-bg border border-line text-[10.5px] font-mono text-dim hover:text-gold transition-colors cursor-pointer"
+                >
+                  <Download size={11} />
+                  <span>Exportar JSON</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Importar lista de activos desde JSON"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-bg2 hover:bg-bg border border-line text-[10.5px] font-mono text-dim hover:text-gold transition-colors cursor-pointer"
+                >
+                  <Upload size={11} />
+                  <span>Importar</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/json"
+                  onChange={handleImportJson}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
             {pinned.length === 0 ? (
               <div className="text-dim text-[12.5px]">
                 Todavía no fijaste ningún activo. Usá el catálogo de abajo para agregarlos.
               </div>
-            ) : loadingStocks && assets.every((a) => a.type === 'stock') ? (
-              <div className="text-dim text-[12.5px]">Cargando activos...</div>
             ) : (
               <AssetList
                 assets={assets}
@@ -323,6 +348,7 @@ export const DashboardView = () => {
                 onRemove={(a) => unpin(a.symbol ?? a.name)}
                 timeframe={timeframe}
                 onTimeframeChange={setTimeframe}
+                loading={loadingStocks}
               />
             )}
           </div>
@@ -379,21 +405,49 @@ export const DashboardView = () => {
         <div className="w-full lg:w-auto lg:flex-[1] lg:min-w-[260px] min-w-0 flex flex-col gap-3.5">
           <div className="bg-card border border-line rounded-[6px] p-4">
             <h3 className="text-[13.5px] text-dim font-medium mb-2.5">INDICADORES ARGENTINA</h3>
-            {dollars.length === 0 && risk === null ? (
-              <div className="text-dim text-[12px]">Cargando indicadores...</div>
-            ) : (
-              <>
-                {dollars.map((d) => (
-                  <div key={d.casa} className="flex justify-between text-[12.5px] py-1.5 border-b border-line last:border-none">
-                    <span>{dollarLabel[d.casa] ?? d.nombre}</span>
-                    <b className="font-semibold">${d.venta?.toLocaleString('es-AR')}</b>
-                  </div>
+            {!arIndicators ? (
+              <div className="space-y-2 py-1">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-5 rounded bg-white/5 animate-pulse" />
                 ))}
-                <div className="flex justify-between text-[12.5px] py-1.5">
-                  <span>Riesgo País</span>
-                  <b className="font-semibold">{risk !== null ? `${risk} pb` : '—'}</b>
+              </div>
+            ) : (
+              <div className="divide-y divide-line">
+                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                  <span className="font-sans">Dólar Oficial</span>
+                  <b className="font-semibold">{fmtPrice(d?.oficial)}</b>
                 </div>
-              </>
+                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                  <span className="font-sans">Dólar Blue</span>
+                  <b className="font-semibold">{fmtPrice(d?.blue)}</b>
+                </div>
+                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                  <span className="font-sans">Dólar MEP</span>
+                  <b className="font-semibold text-gold">{fmtPrice(d?.mep)}</b>
+                </div>
+                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                  <span className="font-sans">Dólar CCL</span>
+                  <b className="font-semibold">{fmtPrice(d?.ccl)}</b>
+                </div>
+                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                  <span className="font-sans">Brecha Cambiaria (MEP)</span>
+                  <b className="font-semibold text-teal">{fmtPct(d?.brechaMep)}</b>
+                </div>
+                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                  <span className="font-sans">Riesgo País (EMBI)</span>
+                  <b className="font-semibold text-gold">
+                    {arIndicators.riesgoPais != null
+                      ? `${arIndicators.riesgoPais.toLocaleString('es-AR')} pb`
+                      : '—'}
+                  </b>
+                </div>
+                {arIndicators.inflacionMensual != null && (
+                  <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                    <span className="font-sans">Inflación Mensual (INDEC)</span>
+                    <b className="font-semibold">{fmtPct(arIndicators.inflacionMensual)}</b>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -423,14 +477,18 @@ export const DashboardView = () => {
                 </div>
               </>
             ) : (
-              <div className="text-dim text-[12px]">Cargando índice...</div>
+              <div className="h-12 rounded bg-white/5 animate-pulse" />
             )}
           </div>
 
           <div className="bg-card border border-line rounded-[6px] p-4">
             <h3 className="text-[13.5px] text-dim font-medium mb-2.5">RESUMEN DEL DÍA</h3>
             {loadingNews ? (
-              <div className="text-dim text-[12px]">Cargando titulares...</div>
+              <div className="space-y-2 py-1">
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="h-10 rounded bg-white/5 animate-pulse" />
+                ))}
+              </div>
             ) : headlines.length === 0 ? (
               <div className="text-dim text-[12px]">Sin titulares disponibles.</div>
             ) : (

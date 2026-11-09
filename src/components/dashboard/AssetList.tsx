@@ -2,10 +2,10 @@
 import React, { useMemo, useState } from 'react';
 import { Asset } from '@/types';
 import { Sparkline } from '@/components/common/Sparkline';
-import { AssetIcon } from '@/components/common/AssetIcon';
+import { AssetLogo } from '@/components/common/AssetLogo';
+import { PriceCell, ChangeCell } from '@/components/common/PriceCell';
 import { TimeframeControl } from '@/components/common/TimeframeHeader';
 import { ChangeTimeframe } from '@/lib/timeframe';
-import { fmtPct, fmtPrice } from '@/lib/format';
 
 type AssetSortKey = 'name' | 'price' | 'change';
 
@@ -16,6 +16,7 @@ interface AssetListProps {
   onRemove?: (asset: Asset) => void;
   timeframe?: ChangeTimeframe;
   onTimeframeChange?: (tf: ChangeTimeframe) => void;
+  loading?: boolean;
 }
 
 export const AssetList = ({
@@ -25,6 +26,7 @@ export const AssetList = ({
   onRemove,
   timeframe = '24h',
   onTimeframeChange,
+  loading = false,
 }: AssetListProps) => {
   const [sort, setSort] = useState<{ key: AssetSortKey; dir: 1 | -1 }>({
     key: 'name',
@@ -45,8 +47,11 @@ export const AssetList = ({
       if (sort.key === 'name') {
         return (a.name || a.symbol || '').localeCompare(b.name || b.symbol || '', 'es') * sort.dir;
       }
-      const va = a[sort.key] ?? 0;
-      const vb = b[sort.key] ?? 0;
+      const va = a[sort.key];
+      const vb = b[sort.key];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
       return (va - vb) * sort.dir;
     });
   }, [assets, sort]);
@@ -109,8 +114,7 @@ export const AssetList = ({
 
       <div className={view === 'list' ? 'flex flex-col' : 'grid grid-cols-1 sm:grid-cols-2 gap-2.5'}>
         {sortedAssets.map((a) => {
-          const validPrice = a.price > 0 ? a.price : null;
-          const validChange = validPrice != null ? a.change : null;
+          const isPending = a.price == null;
 
           return (
             <div
@@ -123,15 +127,15 @@ export const AssetList = ({
               onClick={() => onAssetClick(a)}
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <AssetIcon symbol={a.symbol} name={a.name} type={a.type} size="md" />
+                <AssetLogo symbol={a.symbol} name={a.name} type={a.type} size="md" />
                 <div className="min-w-0 flex-1">
                   <b className="text-[13.5px] truncate block">{a.name}</b>
-                  <div className="text-dim text-[12px] font-mono tabular-nums">
-                    {fmtPrice(validPrice)}
+                  <div className="text-dim text-[12px]">
+                    <PriceCell price={a.price} loading={loading || isPending} />
                   </div>
                   {view === 'card' && (
                     <div className="mt-2 h-[30px]">
-                      <Sparkline data={a.bars} change={a.change} width={140} height={30} />
+                      <Sparkline data={a.bars} change={a.change ?? 0} width={140} height={30} />
                     </div>
                   )}
                 </div>
@@ -139,22 +143,12 @@ export const AssetList = ({
 
               {view === 'list' && (
                 <div className="w-[90px] h-[30px] flex-shrink-0 hidden sm:block">
-                  <Sparkline data={a.bars} change={a.change} width={90} height={30} />
+                  <Sparkline data={a.bars} change={a.change ?? 0} width={90} height={30} />
                 </div>
               )}
 
-              <div
-                className={`w-[82px] text-right font-mono font-semibold text-[12px] tabular-nums whitespace-nowrap ${
-                  validChange == null
-                    ? 'text-dim'
-                    : validChange > 0
-                      ? 'text-teal'
-                      : validChange < 0
-                        ? 'text-red'
-                        : 'text-dim'
-                }`}
-              >
-                {fmtPct(validChange, true)}
+              <div className="w-[82px] text-right text-[12px]">
+                <ChangeCell change={a.change} loading={loading || isPending} />
               </div>
 
               {onRemove && (

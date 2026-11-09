@@ -108,6 +108,13 @@ const DOMAIN_MAP: Record<string, string> = {
   CRWD: 'crowdstrike.com',
   NKE: 'nike.com',
   INTC: 'intel.com',
+  TSM: 'tsmc.com',
+  ASML: 'asml.com',
+  BABA: 'alibabagroup.com',
+  NVO: 'novonordisk.com',
+  NU: 'nubank.com.br',
+  SHEL: 'shell.com',
+  TM: 'global.toyota',
 
   // Argentina & ADRs
   MELI: 'mercadolibre.com',
@@ -117,6 +124,7 @@ const DOMAIN_MAP: Record<string, string> = {
   BMA: 'macro.com.ar',
   PAM: 'pampa.com',
   TGS: 'tgs.com.ar',
+  CEPU: 'centralpuerto.com',
   CRESY: 'cresud.com.ar',
   CRES: 'cresud.com.ar',
   LOMA: 'lomanegra.com',
@@ -156,7 +164,7 @@ const DOMAIN_MAP: Record<string, string> = {
   EWG: 'ishares.com',
 };
 
-// Logos verificados de alta fidelidad para Criptomonedas (CoinGecko CDN)
+// Logos verificados de alta fidelidad para Criptomonedas
 const CRYPTO_LOGOS: Record<string, string> = {
   BTC: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
   ETH: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
@@ -176,9 +184,13 @@ const COMMODITY_ICONS: Record<string, { label: string; bg: string }> = {
   'GC=F': { label: '🪙', bg: 'bg-amber-500/20 text-amber-300' },
   'SI=F': { label: '🥈', bg: 'bg-slate-400/20 text-slate-200' },
   'CL=F': { label: '🛢️', bg: 'bg-stone-600/30 text-stone-200' },
+  'BZ=F': { label: '🛢️', bg: 'bg-stone-600/30 text-stone-200' },
   'NG=F': { label: '🔥', bg: 'bg-orange-500/20 text-orange-400' },
   'ZS=F': { label: '🌱', bg: 'bg-emerald-500/20 text-emerald-400' },
+  'ZW=F': { label: '🌾', bg: 'bg-amber-500/20 text-amber-300' },
+  'ZC=F': { label: '🌽', bg: 'bg-yellow-500/20 text-yellow-300' },
   'HG=F': { label: '🧱', bg: 'bg-amber-700/20 text-amber-500' },
+  'PL=F': { label: '💍', bg: 'bg-slate-300/20 text-slate-100' },
 };
 
 const BRAND_COLORS: Record<string, string> = {
@@ -198,29 +210,28 @@ const BRAND_COLORS: Record<string, string> = {
   SOL: 'bg-purple-600 text-white',
 };
 
-// Aliases para resolver si el input viene como nombre en vez de ticker
 const NAME_ALIASES: Record<string, string> = {
-  'BITCOIN': 'BTC',
-  'ETHEREUM': 'ETH',
-  'SOLANA': 'SOL',
+  BITCOIN: 'BTC',
+  ETHEREUM: 'ETH',
+  SOLANA: 'SOL',
   'BINANCE COIN': 'BNB',
-  'DOGECOIN': 'DOGE',
-  'CARDANO': 'ADA',
+  DOGECOIN: 'DOGE',
+  CARDANO: 'ADA',
   'SHIBA INU': 'SHIB',
-  'PEPE': 'PEPE',
+  PEPE: 'PEPE',
   'OFFICIAL TRUMP': 'TRUMP',
-  'DOGWIFHAT': 'WIF',
-  'BONK': 'BONK',
+  DOGWIFHAT: 'WIF',
+  BONK: 'BONK',
   'S&P 500': '^GSPC',
   'NASDAQ COMPOSITE': '^IXIC',
   'DOW JONES': '^DJI',
-  'ORO': 'GC=F',
-  'PLATA': 'SI=F',
-  'PETROLEO': 'CL=F',
+  ORO: 'GC=F',
+  PLATA: 'SI=F',
+  PETROLEO: 'CL=F',
   'PETRÓLEO': 'CL=F',
   'GAS NATURAL': 'NG=F',
-  'SOJA': 'ZS=F',
-  'COBRE': 'HG=F',
+  SOJA: 'ZS=F',
+  COBRE: 'HG=F',
   'BONO 20Y USA': 'TLT',
   'BONO 7-10Y USA': 'IEF',
 };
@@ -229,14 +240,11 @@ function normalizeSymbol(symbol?: string, name?: string): string {
   const s = (symbol || '').trim().toUpperCase();
   const n = (name || '').trim().toUpperCase();
 
-  // 1. Quitar sufijo de mercado .BA o .US si existe (ej: AAPL.BA -> AAPL)
   const cleanS = s.replace(/\.BA$/, '').replace(/\.US$/, '');
 
-  // 2. Revisar si coincide con algún alias de nombre
   if (NAME_ALIASES[cleanS]) return NAME_ALIASES[cleanS];
   if (NAME_ALIASES[n]) return NAME_ALIASES[n];
 
-  // 3. Quitar sufijo USDT para criptomonedas (ej: BTCUSDT -> BTC)
   if (cleanS.endsWith('USDT') && cleanS.length > 4) {
     return cleanS.slice(0, -4);
   }
@@ -270,7 +278,7 @@ export const AssetIcon = ({
     lg: 'w-8 h-8 text-[13px]',
   }[size];
 
-  // 1. Commodities especiales (Oro, Plata, Petróleo, etc.)
+  // 1. Commodities especiales
   if (COMMODITY_ICONS[clean]) {
     const item = COMMODITY_ICONS[clean];
     return (
@@ -283,8 +291,11 @@ export const AssetIcon = ({
     );
   }
 
-  // 2. Bonos soberanos argentinos (AL30, GD30, etc.)
-  if (['AL30', 'GD30', 'AL35', 'GD35', 'AE38', 'GD38', 'AL29', 'GD29', 'AL41', 'GD41'].includes(clean)) {
+  // 2. Bonos soberanos argentinos (con fallback si falla la bandera)
+  if (
+    ['AL30', 'GD30', 'AL35', 'GD35', 'AE38', 'GD38', 'AL29', 'GD29', 'AL41', 'GD41'].includes(clean) &&
+    !imgError
+  ) {
     return (
       <span
         aria-hidden
@@ -294,14 +305,16 @@ export const AssetIcon = ({
         <img
           src="https://hatscripts.github.io/circle-flags/flags/ar.svg"
           alt="Bandera Argentina"
+          onError={() => setImgError(true)}
           className="w-full h-full object-cover"
+          loading="lazy"
         />
       </span>
     );
   }
 
-  // 3. Índices y Bonos del Tesoro de EE.UU. (^GSPC, ^IXIC, ^DJI, TLT, IEF)
-  if (['^GSPC', '^IXIC', '^DJI', 'TLT', 'IEF'].includes(clean)) {
+  // 3. Índices y Bonos del Tesoro de EE.UU. (^GSPC, ^IXIC, ^DJI, ^TNX, ^VIX, TLT, IEF)
+  if (['^GSPC', '^IXIC', '^DJI', '^TNX', '^VIX', 'TLT', 'IEF'].includes(clean) && !imgError) {
     return (
       <span
         aria-hidden
@@ -311,13 +324,15 @@ export const AssetIcon = ({
         <img
           src="https://hatscripts.github.io/circle-flags/flags/us.svg"
           alt="EE.UU."
+          onError={() => setImgError(true)}
           className="w-full h-full object-cover"
+          loading="lazy"
         />
       </span>
     );
   }
 
-  // 4. Pares de Divisas FX (USD/ARS, USD/EUR, USD/BRL, etc.)
+  // 4. Pares de Divisas FX
   const FX_FLAGS: Record<string, string> = {
     'USD/ARS': 'ar',
     'USD/BRL': 'br',
@@ -327,7 +342,7 @@ export const AssetIcon = ({
     'USD/JPY': 'jp',
     'USD/CNY': 'cn',
   };
-  if (FX_FLAGS[clean]) {
+  if (FX_FLAGS[clean] && !imgError) {
     return (
       <span
         aria-hidden
@@ -337,13 +352,15 @@ export const AssetIcon = ({
         <img
           src={`https://hatscripts.github.io/circle-flags/flags/${FX_FLAGS[clean]}.svg`}
           alt={clean}
+          onError={() => setImgError(true)}
           className="w-full h-full object-cover"
+          loading="lazy"
         />
       </span>
     );
   }
 
-  // 4. Criptomonedas (CoinCap CDN oficial con fallback garantizado)
+  // 5. Criptomonedas (CoinCap CDN con fallback onError)
   const isCrypto = type === 'crypto' || CRYPTO_LOGOS[clean] != null;
   if (isCrypto && !imgError) {
     const cryptoUrl = `https://assets.coincap.io/assets/icons/${clean.toLowerCase()}@2x.png`;
@@ -363,7 +380,7 @@ export const AssetIcon = ({
     );
   }
 
-  // 5. Acciones / ETFs / CEDEARs (Google Favicon CDN en resolución 128px)
+  // 6. Acciones / ETFs / CEDEARs (Google Favicon CDN con fallback onError)
   const domain = DOMAIN_MAP[clean];
   if (domain && !imgError) {
     const faviconUrl = `https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=128`;
@@ -383,14 +400,14 @@ export const AssetIcon = ({
     );
   }
 
-  // 6. Monograma de Respaldo estilizado (Fallback garantizado con iniciales y color)
-  const fallbackColor = BRAND_COLORS[clean] || 'bg-bg2 border border-line text-gold';
+  // 7. Monograma Universal de Respaldo estilizado (2 o 3 primeras letras)
+  const fallbackColor = BRAND_COLORS[clean] || 'bg-bg2 border border-line text-text';
   const label = clean.replace(/[^A-Z0-9]/g, '').slice(0, 3) || '—';
 
   return (
     <span
       aria-hidden
-      className={`inline-flex items-center justify-center rounded-full flex-shrink-0 font-mono font-bold select-none uppercase ${dimensions} ${fallbackColor} ${className}`}
+      className={`inline-flex items-center justify-center rounded-full flex-shrink-0 font-mono font-semibold select-none uppercase ${dimensions} ${fallbackColor} ${className}`}
     >
       {label}
     </span>

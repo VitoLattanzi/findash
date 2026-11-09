@@ -7,12 +7,14 @@ import { fmtCompact, fmtPct, fmtPrice } from '@/lib/format';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { BolsaNewsCard } from '@/components/dashboard/BolsaNewsCard';
 import { TradingViewStockHeatmap } from '@/components/common/TradingViewStockHeatmap';
-import { AssetIcon } from '@/components/common/AssetIcon';
+import { AssetLogo } from '@/components/common/AssetLogo';
+import { PriceCell, ChangeCell } from '@/components/common/PriceCell';
 import { Sparkline } from '@/components/common/Sparkline';
 import { TimeframeControl } from '@/components/common/TimeframeHeader';
 import { ChangeTimeframe } from '@/lib/timeframe';
 import { Asset } from '@/types';
 import { SearchResultItem } from '@/app/api/search/route';
+import type { ArIndicatorsResponse } from '@/app/api/ar-indicators/route';
 import {
   Search,
   Globe,
@@ -23,6 +25,7 @@ import {
   Landmark,
   ChevronDown,
   ChevronUp,
+  Gauge,
 } from 'lucide-react';
 
 type SortKey = 'symbol' | 'name' | 'price' | 'change' | 'volume';
@@ -35,7 +38,7 @@ const INITIAL_CARD_ROWS = 7;
 const SECTOR_GROUPS: Array<{
   key: SectorGroup;
   label: string;
-  symbols: string[] | null; // null = todas las S&P 500
+  symbols: string[] | null;
 }> = [
   { key: 'all', label: 'Todas (S&P 500)', symbols: null },
   {
@@ -160,18 +163,15 @@ export const BolsaView = () => {
   const [perfFilter, setPerfFilter] = useState<PerformanceFilter>('all');
   const [search, setSearch] = useState('');
   const [timeframe, setTimeframe] = useState<ChangeTimeframe>('24h');
-  // Orden por defecto: Variación % (changePct descendente) en lugar de Volumen nominal
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'change', dir: -1 });
-  const [favStocks, setFavStocks] = useLocalStorage<string[]>('findash_fav_stocks', DEFAULT_FAV_STOCKS);
-  const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash_pinned_v2', DEFAULT_PINNED);
+  const [favStocks, setFavStocks] = useLocalStorage<string[]>('findash:fav_stocks:v1', DEFAULT_FAV_STOCKS);
+  const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash:pinned:v1', DEFAULT_PINNED);
   const [selected, setSelected] = useState<Asset | null>(null);
 
-  // Estados de expansión para las 3 tarjetas inferiores (elimina la trampa de 5 scrolls anidados)
   const [expandCommodities, setExpandCommodities] = useState(false);
   const [expandGlobal, setExpandGlobal] = useState(false);
   const [expandArgentina, setExpandArgentina] = useState(false);
 
-  // Header Macro para la tarjeta Argentina (Riesgo País, Dólar MEP, Dólar CCL, Brecha %)
   const [argMacro, setArgMacro] = useState<ArgMacroState>({
     riesgoPais: null,
     mep: null,
@@ -179,11 +179,9 @@ export const BolsaView = () => {
     brechaPct: null,
   });
 
-  // Búsqueda global en vivo vía API
   const [globalResults, setGlobalResults] = useState<SearchResultItem[]>([]);
   const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
 
-  // Lista unificada de todos los tickers que alimentan los paneles en simultáneo
   const allTickersList = useMemo(() => {
     const spList = SP500_TICKERS.split(',');
     const commList = COMMODITIES_ITEMS.map((i) => i.symbol);
@@ -192,47 +190,28 @@ export const BolsaView = () => {
     return Array.from(new Set([...spList, ...commList, ...globList, ...argList]));
   }, []);
 
-  // Polling inteligente según marketState (60s en REGULAR, 10m cerrado) con keepPreviousData
   const { quotesMap, loading, error } = useQuotes(allTickersList, {
     timeframe,
     withSpark: true,
     keepPreviousData: true,
   });
 
-  // Carga de indicadores Macro de Argentina para el Header de la tarjeta Argentina (ADRs)
+  // Carga de indicadores Macro de Argentina desde /api/ar-indicators
   useEffect(() => {
     let cancelled = false;
 
-    Promise.allSettled([
-      fetch('https://dolarapi.com/v1/dolares').then((r) => r.json()),
-      fetch('https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo').then((r) => r.json()),
-    ]).then(([dolaresRes, riesgoRes]) => {
-      if (cancelled) return;
-
-      let mep: number | null = null;
-      let ccl: number | null = null;
-      let oficial: number | null = null;
-      let riesgoPais: number | null = null;
-
-      if (dolaresRes.status === 'fulfilled' && Array.isArray(dolaresRes.value)) {
-        for (const d of dolaresRes.value) {
-          if (d?.casa === 'bolsa' && typeof d.venta === 'number' && d.venta > 0) mep = d.venta;
-          if (d?.casa === 'contadoconliqui' && typeof d.venta === 'number' && d.venta > 0) ccl = d.venta;
-          if (d?.casa === 'oficial' && typeof d.venta === 'number' && d.venta > 0) oficial = d.venta;
-        }
-      }
-
-      if (riesgoRes.status === 'fulfilled' && typeof riesgoRes.value?.valor === 'number') {
-        riesgoPais = riesgoRes.value.valor;
-      }
-
-      const brechaPct =
-        ccl != null && oficial != null && oficial > 0
-          ? ((ccl - oficial) / oficial) * 100
-          : null;
-
-      setArgMacro({ riesgoPais, mep, ccl, brechaPct });
-    });
+    fetch('/api/ar-indicators')
+      .then((r) => r.json())
+      .then((data: ArIndicatorsResponse) => {
+        if (cancelled || !data) return;
+        setArgMacro({
+          riesgoPais: data.riesgoPais ?? null,
+          mep: data.dolares?.mep ?? null,
+          ccl: data.dolares?.ccl ?? null,
+          brechaPct: data.dolares?.brechaMep ?? data.dolares?.brechaCcl ?? null,
+        });
+      })
+      .catch(() => {});
 
     return () => {
       cancelled = true;
@@ -302,7 +281,6 @@ export const BolsaView = () => {
       setFavStocks([...favStocks, symbol]);
     }
 
-    // También sincronizamos con el pin del Dashboard principal
     const isPinned = pinned.some((p) => p.symbol === symbol);
     if (existsFav && isPinned) {
       setPinned(pinned.filter((p) => p.symbol !== symbol));
@@ -311,20 +289,53 @@ export const BolsaView = () => {
     }
   };
 
-  // Filas para el Bloque 2 (Arriba a la Derecha: Principales Acciones & Conjuntos S&P 500)
+  // VIX (^VIX) como termómetro de Miedo y Volatilidad en Wall Street
+  const vixQuote = quotesMap['^VIX'];
+  const vixValue = vixQuote?.price ?? null;
+  const vixStatus = useMemo(() => {
+    if (vixValue == null) return null;
+    if (vixValue < 16) {
+      return {
+        label: 'Calma / Complacencia',
+        dot: 'bg-teal',
+        tone: 'text-teal border-teal/30 bg-teal/10',
+      };
+    }
+    if (vixValue < 25) {
+      return {
+        label: 'Volatilidad Normal',
+        dot: 'bg-gold',
+        tone: 'text-gold border-gold/30 bg-gold/10',
+      };
+    }
+    return {
+      label: 'Miedo / Tensión',
+      dot: 'bg-red animate-pulse',
+      tone: 'text-red border-red/30 bg-red/10',
+    };
+  }, [vixValue]);
+
+  // Filas para el Bloque 2 (Principales Acciones & Conjuntos S&P 500): jamás inicializadas con 0
   const sp500Rows = useMemo(() => {
     const activeGroupObj = SECTOR_GROUPS.find((g) => g.key === sectorGroup);
     const allowedSymbols = activeGroupObj?.symbols
-      ? new Set(activeGroupObj.symbols)
-      : new Set(SP500_TICKERS.split(','));
+      ? activeGroupObj.symbols
+      : SP500_TICKERS.split(',');
 
     const favSet = new Set(favStocks);
     const q = search.trim().toLowerCase();
     const list = [];
 
     for (const sym of allowedSymbols) {
-      const item = quotesMap[sym];
-      if (!item) continue;
+      const item = quotesMap[sym] ?? {
+        symbol: sym,
+        name: labelFor(sym),
+        price: null,
+        change: null,
+        changePct: null,
+        volume: null,
+        bars: [],
+      };
 
       if (perfFilter === 'favorites' && !favSet.has(sym)) continue;
       if (perfFilter === 'gainers' && (item.change == null || item.change <= 0)) continue;
@@ -425,16 +436,16 @@ export const BolsaView = () => {
       name: q?.name || name || symbol,
       symbol,
       type: 'stock',
-      price: q?.price ?? 0,
-      change: q?.change ?? 0,
+      price: q?.price ?? null,
+      change: q?.change ?? null,
       bars: q?.bars ?? [],
     });
   };
 
   return (
     <section className="space-y-5">
-      {/* BARRA SUPERIOR: Título + Buscador Global Universal */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card border border-line rounded-[6px] p-4 shadow-sm">
+      {/* BARRA SUPERIOR: Título + Termómetro VIX (^VIX) + Buscador Global Universal */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-card border border-line rounded-[6px] p-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-[20px] font-display font-semibold text-text">
@@ -443,6 +454,29 @@ export const BolsaView = () => {
             <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-gold/15 text-gold border border-gold/30">
               Wall St · Global · BYMA
             </span>
+
+            {/* Chip de Volatilidad & Sentimiento Wall St (VIX ^VIX) */}
+            <button
+              type="button"
+              onClick={() => openTickerInDetail('^VIX', 'Índice Volatilidad VIX')}
+              title="Termómetro de Miedo y Volatilidad de Wall Street (CBOE VIX)"
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[11px] font-mono border transition-colors cursor-pointer ${
+                vixStatus ? vixStatus.tone : 'bg-bg2 border-line text-dim'
+              }`}
+            >
+              <Gauge size={12} />
+              <span>VIX:</span>
+              {vixValue != null && vixStatus ? (
+                <>
+                  <b className="font-semibold tabular-nums">
+                    {fmtPrice(vixValue, '')}
+                  </b>
+                  <span className="opacity-85">· {vixStatus.label}</span>
+                </>
+              ) : (
+                <span className="inline-block h-3.5 w-20 animate-pulse rounded bg-white/10" />
+              )}
+            </button>
           </div>
           <p className="text-[12px] text-dim mt-0.5">
             Mapa de calor sectorial S&amp;P 500, conjuntos líderes, materias primas, índices globales, ADRs argentinos y calendario Quartr.
@@ -450,7 +484,7 @@ export const BolsaView = () => {
         </div>
 
         {/* Input de búsqueda universal */}
-        <div className="relative w-full sm:w-80">
+        <div className="relative w-full lg:w-80">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim" />
           <input
             value={search}
@@ -494,7 +528,7 @@ export const BolsaView = () => {
                 <h3 className="text-[13.5px] font-semibold text-text flex items-center gap-2">
                   <span>Principales Acciones &amp; Conjuntos</span>
                   <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-bg2 border border-line text-dim">
-                    {isInitialLoading ? '...' : `${sp500Rows.length} activos`}
+                    {`${sp500Rows.length} activos`}
                   </span>
                 </h3>
               </div>
@@ -502,7 +536,7 @@ export const BolsaView = () => {
               {error && <span className="text-[11px] text-red font-mono">{error}</span>}
             </div>
 
-            {/* Píldoras de Sectores (Todas | Mag 7 & IA | Finanzas | Consumo & Salud | Energía & Ind.) */}
+            {/* Píldoras de Sectores */}
             <div className="flex items-center gap-1.5 pt-2 pb-1.5 overflow-x-auto no-scrollbar flex-shrink-0">
               {SECTOR_GROUPS.map((g) => (
                 <button
@@ -520,7 +554,7 @@ export const BolsaView = () => {
               ))}
             </div>
 
-            {/* Sub-tabs de Rendimiento: Todas | 🔥 Top Ganadoras | 🩸 Top Perdedoras | ⚡ Más Activas | ⭐ Mis Favoritas */}
+            {/* Sub-tabs de Rendimiento */}
             <div className="flex items-center gap-1.5 pb-2 border-b border-line/60 overflow-x-auto no-scrollbar flex-shrink-0">
               {(
                 [
@@ -546,145 +580,210 @@ export const BolsaView = () => {
               ))}
             </div>
 
-            {/* Tabla Scrolleable de Principales Acciones */}
+            {/* Tabla Scrolleable de Principales Acciones (Cero "$0,00" inicial con <PriceCell/> y <ChangeCell/>) */}
             <div className="flex-1 overflow-y-auto overflow-x-auto pr-0.5 min-h-0">
-              {isInitialLoading ? (
-                <div className="space-y-2 py-3 px-1">
-                  {Array.from({ length: 10 }).map((_, idx) => (
-                    <div
-                      key={idx}
-                      className="h-10 rounded-[5px] bg-bg2/70 border border-line/40 animate-pulse"
-                    />
-                  ))}
-                </div>
-              ) : (
-                <table className="w-full text-left text-[12px] border-collapse min-w-[340px]">
-                  <thead className="sticky top-0 bg-card z-20">
-                    <tr className="border-b border-line text-dim font-medium text-[10.5px] uppercase tracking-wider">
-                      <th
-                        onClick={() => toggleSort('symbol')}
-                        className={`py-2 px-2 cursor-pointer select-none hover:text-text ${
-                          sort.key === 'symbol' ? 'text-gold' : ''
-                        }`}
-                      >
-                        Activo <span className="text-[9px] ml-0.5">{sortArrow('symbol')}</span>
-                      </th>
-                      <th
-                        onClick={() => toggleSort('price')}
-                        className={`py-2 px-2 text-right cursor-pointer select-none hover:text-text ${
-                          sort.key === 'price' ? 'text-gold' : ''
-                        }`}
-                      >
-                        Precio <span className="text-[9px] ml-0.5">{sortArrow('price')}</span>
-                      </th>
-                      <th className="py-2 px-2 text-right">
-                        <TimeframeControl
-                          timeframe={timeframe}
-                          onTimeframeChange={setTimeframe}
-                          sortActive={sort.key === 'change'}
-                          sortDir={sort.dir}
-                          onSortClick={() => toggleSort('change')}
-                          align="right"
-                          mode="stock"
-                        />
-                      </th>
-                      <th
-                        onClick={() => toggleSort('volume')}
-                        className={`hidden sm:table-cell py-2 px-2 text-right cursor-pointer select-none hover:text-text ${
-                          sort.key === 'volume' ? 'text-gold' : ''
-                        }`}
-                      >
-                        Volumen <span className="text-[9px] ml-0.5">{sortArrow('volume')}</span>
-                      </th>
-                      <th className="hidden md:table-cell py-2 px-2 text-center">Gráfico</th>
-                      <th className="py-2 px-1 text-center w-7">★</th>
+              <table className="w-full text-left text-[12px] border-collapse min-w-[340px]">
+                <thead className="sticky top-0 bg-card z-20">
+                  <tr className="border-b border-line text-dim font-medium text-[10.5px] uppercase tracking-wider">
+                    <th
+                      onClick={() => toggleSort('symbol')}
+                      className={`py-2 px-2 cursor-pointer select-none hover:text-text ${
+                        sort.key === 'symbol' ? 'text-gold' : ''
+                      }`}
+                    >
+                      Activo <span className="text-[9px] ml-0.5">{sortArrow('symbol')}</span>
+                    </th>
+                    <th
+                      onClick={() => toggleSort('price')}
+                      className={`py-2 px-2 text-right cursor-pointer select-none hover:text-text ${
+                        sort.key === 'price' ? 'text-gold' : ''
+                      }`}
+                    >
+                      Precio <span className="text-[9px] ml-0.5">{sortArrow('price')}</span>
+                    </th>
+                    <th className="py-2 px-2 text-right">
+                      <TimeframeControl
+                        timeframe={timeframe}
+                        onTimeframeChange={setTimeframe}
+                        sortActive={sort.key === 'change'}
+                        sortDir={sort.dir}
+                        onSortClick={() => toggleSort('change')}
+                        align="right"
+                        mode="stock"
+                      />
+                    </th>
+                    <th
+                      onClick={() => toggleSort('volume')}
+                      className={`hidden sm:table-cell py-2 px-2 text-right cursor-pointer select-none hover:text-text ${
+                        sort.key === 'volume' ? 'text-gold' : ''
+                      }`}
+                    >
+                      Volumen <span className="text-[9px] ml-0.5">{sortArrow('volume')}</span>
+                    </th>
+                    <th className="hidden md:table-cell py-2 px-2 text-center">Gráfico</th>
+                    <th className="py-2 px-1 text-center w-7">★</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line/40">
+                  {sp500Rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-dim text-[12px]">
+                        No hay acciones que coincidan con el filtro seleccionado.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line/40">
-                    {sp500Rows.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-12 text-center text-dim text-[12px]">
-                          No hay acciones que coincidan con el filtro seleccionado.
+                  ) : (
+                    sp500Rows.map((q) => {
+                      const isFav = favStocks.includes(q.symbol);
+
+                      return (
+                        <tr
+                          key={q.symbol}
+                          onClick={() =>
+                            setSelected({
+                              name: q.name || q.symbol,
+                              symbol: q.symbol,
+                              type: 'stock',
+                              price: q.price,
+                              change: q.change,
+                              bars: q.bars ?? [],
+                            })
+                          }
+                          className="cursor-pointer hover:bg-bg2/70 transition-colors group"
+                        >
+                          <td className="py-2 px-2">
+                            <div className="flex items-center gap-2">
+                              <AssetLogo
+                                symbol={q.symbol}
+                                name={q.name ?? undefined}
+                                type="stock"
+                                size="sm"
+                              />
+                              <div className="min-w-0">
+                                <div className="font-mono font-bold text-text group-hover:text-gold transition-colors leading-tight">
+                                  {q.symbol}
+                                </div>
+                                <span className="text-[10.5px] text-dim block truncate max-w-[125px]">
+                                  {q.name || '—'}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-2 px-2 text-right font-medium text-text">
+                            <PriceCell price={q.price} loading={isInitialLoading} />
+                          </td>
+
+                          <td className="py-2 px-2 text-right">
+                            <ChangeCell change={q.change} loading={isInitialLoading} />
+                          </td>
+
+                          <td className="hidden sm:table-cell py-2 px-2 text-right font-mono text-dim text-[11px] tabular-nums">
+                            {isInitialLoading && q.volume == null ? (
+                              <span className="inline-block h-3.5 w-10 animate-pulse rounded bg-white/10" />
+                            ) : (
+                              fmtCompact(q.volume)
+                            )}
+                          </td>
+
+                          <td className="hidden md:table-cell py-2 px-2 text-center">
+                            <div className="w-[64px] h-[20px] mx-auto">
+                              <Sparkline
+                                data={q.bars ?? []}
+                                change={q.change ?? 0}
+                                width={64}
+                                height={20}
+                              />
+                            </div>
+                          </td>
+
+                          <td
+                            className="py-2 px-1 text-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(q.symbol, q.name || q.symbol);
+                            }}
+                          >
+                            <button
+                              title={isFav ? 'Quitar de Mis Favoritas' : 'Agregar a Mis Favoritas'}
+                              className={`text-[14px] transition-transform active:scale-125 ${
+                                isFav ? 'text-gold' : 'text-dim hover:text-text'
+                              }`}
+                            >
+                              {isFav ? '★' : '☆'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+
+                  {/* Resultados Globales en Vivo cuando el usuario busca cualquier ticker fuera de la lista */}
+                  {search.trim().length >= 2 && globalResults.length > 0 && (
+                    <>
+                      <tr className="bg-bg2/90 border-t border-line">
+                        <td
+                          colSpan={6}
+                          className="py-1.5 px-2 text-[10px] font-mono text-gold uppercase tracking-wider"
+                        >
+                          <span className="flex items-center gap-1.5 font-semibold">
+                            <Globe size={11} />
+                            Resultados globales en Yahoo Finance ({globalResults.length})
+                          </span>
                         </td>
                       </tr>
-                    ) : (
-                      sp500Rows.map((q) => {
-                        const isFav = favStocks.includes(q.symbol);
-                        const hasChange = typeof q.change === 'number' && Number.isFinite(q.change);
-                        const isUp = hasChange && q.change! > 0;
-                        const isDown = hasChange && q.change! < 0;
+                      {globalResults.map((r) => {
+                        const isFav = favStocks.includes(r.symbol);
 
                         return (
                           <tr
-                            key={q.symbol}
+                            key={r.symbol}
                             onClick={() =>
                               setSelected({
-                                name: q.name || q.symbol,
-                                symbol: q.symbol,
-                                type: 'stock',
-                                price: q.price ?? 0,
-                                change: q.change ?? 0,
-                                bars: q.bars ?? [],
+                                name: r.name || r.symbol,
+                                symbol: r.symbol,
+                                type: r.type === 'crypto' ? 'crypto' : 'stock',
+                                price: r.price ?? null,
+                                change: r.change ?? null,
+                                bars: [],
                               })
                             }
-                            className="cursor-pointer hover:bg-bg2/70 transition-colors group"
+                            className="cursor-pointer hover:bg-bg2/80 transition-colors bg-card/40"
                           >
                             <td className="py-2 px-2">
                               <div className="flex items-center gap-2">
-                                <AssetIcon
-                                  symbol={q.symbol}
-                                  name={q.name ?? undefined}
-                                  type="stock"
-                                  size="sm"
-                                />
+                                <AssetLogo symbol={r.symbol} name={r.name} type="stock" size="sm" />
                                 <div className="min-w-0">
-                                  <div className="font-mono font-bold text-text group-hover:text-gold transition-colors leading-tight">
-                                    {q.symbol}
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-mono font-bold text-text">{r.symbol}</span>
+                                    {r.exchange && (
+                                      <span className="text-[9px] font-mono px-1 rounded bg-bg border border-line text-dim">
+                                        {r.exchange}
+                                      </span>
+                                    )}
                                   </div>
-                                  <span className="text-[10.5px] text-dim block truncate max-w-[125px]">
-                                    {q.name || '—'}
+                                  <span className="text-[10px] text-dim block truncate max-w-[120px]">
+                                    {r.name}
                                   </span>
                                 </div>
                               </div>
                             </td>
-
-                            <td className="py-2 px-2 text-right font-mono font-medium text-text tabular-nums">
-                              {fmtPrice(q.price)}
+                            <td className="py-2 px-2 text-right font-medium">
+                              <PriceCell price={r.price} />
                             </td>
-
-                            <td
-                              className={`py-2 px-2 text-right font-mono font-semibold tabular-nums whitespace-nowrap ${
-                                isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
-                              }`}
-                            >
-                              {fmtPct(q.change, true)}
+                            <td className="py-2 px-2 text-right">
+                              <ChangeCell change={r.change} />
                             </td>
-
-                            <td className="hidden sm:table-cell py-2 px-2 text-right font-mono text-dim text-[11px] tabular-nums">
-                              {fmtCompact(q.volume)}
-                            </td>
-
-                            <td className="hidden md:table-cell py-2 px-2 text-center">
-                              <div className="w-[64px] h-[20px] mx-auto">
-                                <Sparkline
-                                  data={q.bars ?? []}
-                                  change={q.change ?? 0}
-                                  width={64}
-                                  height={20}
-                                />
-                              </div>
-                            </td>
-
+                            <td className="hidden sm:table-cell py-2 px-2 text-right text-dim">—</td>
+                            <td className="hidden md:table-cell py-2 px-2 text-center text-dim">—</td>
                             <td
                               className="py-2 px-1 text-center"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleFavorite(q.symbol, q.name || q.symbol);
+                                toggleFavorite(r.symbol, r.name || r.symbol);
                               }}
                             >
                               <button
-                                title={isFav ? 'Quitar de Mis Favoritas' : 'Agregar a Mis Favoritas'}
-                                className={`text-[14px] transition-transform active:scale-125 ${
+                                className={`text-[14px] ${
                                   isFav ? 'text-gold' : 'text-dim hover:text-text'
                                 }`}
                               >
@@ -693,97 +792,11 @@ export const BolsaView = () => {
                             </td>
                           </tr>
                         );
-                      })
-                    )}
-
-                    {/* Resultados Globales en Vivo cuando el usuario busca cualquier ticker fuera de la lista */}
-                    {search.trim().length >= 2 && globalResults.length > 0 && (
-                      <>
-                        <tr className="bg-bg2/90 border-t border-line">
-                          <td
-                            colSpan={6}
-                            className="py-1.5 px-2 text-[10px] font-mono text-gold uppercase tracking-wider"
-                          >
-                            <span className="flex items-center gap-1.5 font-semibold">
-                              <Globe size={11} />
-                              Resultados globales en Yahoo Finance ({globalResults.length})
-                            </span>
-                          </td>
-                        </tr>
-                        {globalResults.map((r) => {
-                          const isFav = favStocks.includes(r.symbol);
-                          const hasChg = typeof r.change === 'number' && Number.isFinite(r.change);
-                          const isUp = hasChg && r.change! > 0;
-                          const isDown = hasChg && r.change! < 0;
-
-                          return (
-                            <tr
-                              key={r.symbol}
-                              onClick={() =>
-                                setSelected({
-                                  name: r.name || r.symbol,
-                                  symbol: r.symbol,
-                                  type: r.type === 'crypto' ? 'crypto' : 'stock',
-                                  price: r.price ?? 0,
-                                  change: r.change ?? 0,
-                                  bars: [],
-                                })
-                              }
-                              className="cursor-pointer hover:bg-bg2/80 transition-colors bg-card/40"
-                            >
-                              <td className="py-2 px-2">
-                                <div className="flex items-center gap-2">
-                                  <AssetIcon symbol={r.symbol} name={r.name} type="stock" size="sm" />
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-1">
-                                      <span className="font-mono font-bold text-text">{r.symbol}</span>
-                                      {r.exchange && (
-                                        <span className="text-[9px] font-mono px-1 rounded bg-bg border border-line text-dim">
-                                          {r.exchange}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <span className="text-[10px] text-dim block truncate max-w-[120px]">
-                                      {r.name}
-                                    </span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-2 px-2 text-right font-mono font-medium tabular-nums">
-                                {fmtPrice(r.price)}
-                              </td>
-                              <td
-                                className={`py-2 px-2 text-right font-mono font-semibold tabular-nums whitespace-nowrap ${
-                                  isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
-                                }`}
-                              >
-                                {fmtPct(r.change, true)}
-                              </td>
-                              <td className="hidden sm:table-cell py-2 px-2 text-right text-dim">—</td>
-                              <td className="hidden md:table-cell py-2 px-2 text-center text-dim">—</td>
-                              <td
-                                className="py-2 px-1 text-center"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleFavorite(r.symbol, r.name || r.symbol);
-                                }}
-                              >
-                                <button
-                                  className={`text-[14px] ${
-                                    isFav ? 'text-gold' : 'text-dim hover:text-text'
-                                  }`}
-                                >
-                                  {isFav ? '★' : '☆'}
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </>
-                    )}
-                  </tbody>
-                </table>
-              )}
+                      })}
+                    </>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -835,7 +848,7 @@ export const BolsaView = () => {
               </div>
             </div>
 
-            {/* Grilla de 3 Columnas Verticales Lado a Lado (Sin scroll anidado: top 7 + Ver todos) */}
+            {/* Grilla de 3 Columnas Verticales Lado a Lado */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 items-start">
               {/* COLUMNA 1: Oro & Materias Primas */}
               <div className="bg-bg2/60 border border-line rounded-[6px] flex flex-col overflow-hidden">
@@ -848,66 +861,52 @@ export const BolsaView = () => {
                 </div>
 
                 <div className="divide-y divide-line/40 px-1">
-                  {isInitialLoading
-                    ? Array.from({ length: INITIAL_CARD_ROWS }).map((_, idx) => (
-                        <div key={idx} className="h-11 my-1 rounded bg-bg2 animate-pulse" />
-                      ))
-                    : visibleCommodities.map((item) => {
-                        const hasChg = typeof item.change === 'number' && Number.isFinite(item.change);
-                        const isUp = hasChg && item.change! > 0;
-                        const isDown = hasChg && item.change! < 0;
-
-                        return (
-                          <div
-                            key={item.symbol}
-                            onClick={() =>
-                              setSelected({
-                                name: item.displayName,
-                                symbol: item.symbol,
-                                type: 'stock',
-                                price: item.price ?? 0,
-                                change: item.change ?? 0,
-                                bars: item.bars,
-                              })
-                            }
-                            className="flex items-center justify-between py-2 px-1.5 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
-                          >
-                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                              <AssetIcon symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
-                              <div className="min-w-0">
-                                <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
-                                  {item.displayName}
-                                </div>
-                                <span className="text-[9.5px] font-mono text-dim block">
-                                  {item.symbol.replace('=F', '')} · {item.unit}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="w-[44px] h-[18px] flex-shrink-0 hidden 2xl:block">
-                              <Sparkline
-                                data={item.bars ?? []}
-                                change={item.change ?? 0}
-                                width={44}
-                                height={18}
-                              />
-                            </div>
-
-                            <div className="text-right flex-shrink-0 tabular-nums">
-                              <div className="text-[11px] font-mono font-medium text-text">
-                                {fmtPrice(item.price)}
-                              </div>
-                              <div
-                                className={`text-[10px] font-mono font-semibold whitespace-nowrap ${
-                                  isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
-                                }`}
-                              >
-                                {fmtPct(item.change, true)}
-                              </div>
-                            </div>
+                  {visibleCommodities.map((item) => (
+                    <div
+                      key={item.symbol}
+                      onClick={() =>
+                        setSelected({
+                          name: item.displayName,
+                          symbol: item.symbol,
+                          type: 'stock',
+                          price: item.price,
+                          change: item.change,
+                          bars: item.bars,
+                        })
+                      }
+                      className="flex items-center justify-between py-2 px-1.5 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <AssetLogo symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
+                        <div className="min-w-0">
+                          <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
+                            {item.displayName}
                           </div>
-                        );
-                      })}
+                          <span className="text-[9.5px] font-mono text-dim block">
+                            {item.symbol.replace('=F', '')} · {item.unit}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="w-[44px] h-[18px] flex-shrink-0 hidden 2xl:block">
+                        <Sparkline
+                          data={item.bars ?? []}
+                          change={item.change ?? 0}
+                          width={44}
+                          height={18}
+                        />
+                      </div>
+
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-[11px] font-medium text-text">
+                          <PriceCell price={item.price} loading={isInitialLoading} />
+                        </div>
+                        <div className="text-[10px]">
+                          <ChangeCell change={item.change} loading={isInitialLoading} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {commoditiesRows.length > INITIAL_CARD_ROWS && (
@@ -942,70 +941,57 @@ export const BolsaView = () => {
                 </div>
 
                 <div className="divide-y divide-line/40 px-1">
-                  {isInitialLoading
-                    ? Array.from({ length: INITIAL_CARD_ROWS }).map((_, idx) => (
-                        <div key={idx} className="h-11 my-1 rounded bg-bg2 animate-pulse" />
-                      ))
-                    : visibleGlobal.map((item) => {
-                        const hasChg = typeof item.change === 'number' && Number.isFinite(item.change);
-                        const isUp = hasChg && item.change! > 0;
-                        const isDown = hasChg && item.change! < 0;
-
-                        return (
-                          <div
-                            key={item.symbol}
-                            onClick={() =>
-                              setSelected({
-                                name: item.displayName,
-                                symbol: item.symbol,
-                                type: 'stock',
-                                price: item.price ?? 0,
-                                change: item.change ?? 0,
-                                bars: item.bars,
-                              })
-                            }
-                            className="flex items-center justify-between py-2 px-1.5 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
-                          >
-                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                              <AssetIcon symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
-                              <div className="min-w-0">
-                                <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
-                                  {item.displayName}
-                                </div>
-                                <span className="text-[9.5px] font-mono text-dim block">
-                                  {item.symbol} · <span className="text-gold/90">{item.region}</span>
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="w-[44px] h-[18px] flex-shrink-0 hidden 2xl:block">
-                              <Sparkline
-                                data={item.bars ?? []}
-                                change={item.change ?? 0}
-                                width={44}
-                                height={18}
-                              />
-                            </div>
-
-                            <div className="text-right flex-shrink-0 tabular-nums">
-                              <div className="text-[11px] font-mono font-medium text-text">
-                                {item.symbol === '^TNX'
-                                  ? item.price != null
-                                    ? `${fmtPrice(item.price, '')}%`
-                                    : '—'
-                                  : fmtPrice(item.price)}
-                              </div>
-                              <div
-                                className={`text-[10px] font-mono font-semibold whitespace-nowrap ${
-                                  isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
-                                }`}
-                              >
-                                {fmtPct(item.change, true)}
-                              </div>
-                            </div>
+                  {visibleGlobal.map((item) => (
+                    <div
+                      key={item.symbol}
+                      onClick={() =>
+                        setSelected({
+                          name: item.displayName,
+                          symbol: item.symbol,
+                          type: 'stock',
+                          price: item.price,
+                          change: item.change,
+                          bars: item.bars,
+                        })
+                      }
+                      className="flex items-center justify-between py-2 px-1.5 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <AssetLogo symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
+                        <div className="min-w-0">
+                          <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
+                            {item.displayName}
                           </div>
-                        );
-                      })}
+                          <span className="text-[9.5px] font-mono text-dim block">
+                            {item.symbol} · <span className="text-gold/90">{item.region}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="w-[44px] h-[18px] flex-shrink-0 hidden 2xl:block">
+                        <Sparkline
+                          data={item.bars ?? []}
+                          change={item.change ?? 0}
+                          width={44}
+                          height={18}
+                        />
+                      </div>
+
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-[11px] font-medium text-text">
+                          <PriceCell
+                            price={item.price}
+                            currency={item.symbol === '^TNX' ? '' : '$'}
+                            suffix={item.symbol === '^TNX' ? '%' : ''}
+                            loading={isInitialLoading}
+                          />
+                        </div>
+                        <div className="text-[10px]">
+                          <ChangeCell change={item.change} loading={isInitialLoading} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {globalRows.length > INITIAL_CARD_ROWS && (
@@ -1029,7 +1015,7 @@ export const BolsaView = () => {
                 )}
               </div>
 
-              {/* COLUMNA 3: Argentina (ADRs & Header Macro) */}
+              {/* COLUMNA 3: Argentina (ADRs & Header Macro desde /api/ar-indicators) */}
               <div className="bg-bg2/60 border border-line rounded-[6px] flex flex-col overflow-hidden">
                 <div className="px-3 py-2 bg-bg2 border-b border-line flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
@@ -1043,90 +1029,96 @@ export const BolsaView = () => {
                 <div className="grid grid-cols-2 gap-1 p-1.5 bg-card/70 border-b border-line text-[9.5px] font-mono">
                   <div className="px-1.5 py-1 rounded bg-bg2 border border-line/60 flex items-center justify-between">
                     <span className="text-dim">Riesgo País</span>
-                    <b className="text-gold">
-                      {argMacro.riesgoPais != null ? `${argMacro.riesgoPais} pb` : '—'}
+                    <b className="text-gold tabular-nums">
+                      {argMacro.riesgoPais != null ? (
+                        `${argMacro.riesgoPais.toLocaleString('es-AR')} pb`
+                      ) : (
+                        <span className="inline-block h-3 w-10 animate-pulse rounded bg-white/10" />
+                      )}
                     </b>
                   </div>
                   <div className="px-1.5 py-1 rounded bg-bg2 border border-line/60 flex items-center justify-between">
                     <span className="text-dim">MEP</span>
-                    <b className="text-text">{fmtPrice(argMacro.mep)}</b>
+                    <b className="text-text tabular-nums">
+                      {argMacro.mep != null ? (
+                        fmtPrice(argMacro.mep)
+                      ) : (
+                        <span className="inline-block h-3 w-12 animate-pulse rounded bg-white/10" />
+                      )}
+                    </b>
                   </div>
                   <div className="px-1.5 py-1 rounded bg-bg2 border border-line/60 flex items-center justify-between">
                     <span className="text-dim">CCL</span>
-                    <b className="text-text">{fmtPrice(argMacro.ccl)}</b>
+                    <b className="text-text tabular-nums">
+                      {argMacro.ccl != null ? (
+                        fmtPrice(argMacro.ccl)
+                      ) : (
+                        <span className="inline-block h-3 w-12 animate-pulse rounded bg-white/10" />
+                      )}
+                    </b>
                   </div>
                   <div className="px-1.5 py-1 rounded bg-bg2 border border-line/60 flex items-center justify-between">
                     <span className="text-dim">Brecha</span>
-                    <b className="text-teal">
-                      {argMacro.brechaPct != null ? fmtPct(argMacro.brechaPct) : '—'}
+                    <b className="text-teal tabular-nums">
+                      {argMacro.brechaPct != null ? (
+                        fmtPct(argMacro.brechaPct)
+                      ) : (
+                        <span className="inline-block h-3 w-10 animate-pulse rounded bg-white/10" />
+                      )}
                     </b>
                   </div>
                 </div>
 
                 <div className="divide-y divide-line/40 px-1">
-                  {isInitialLoading
-                    ? Array.from({ length: INITIAL_CARD_ROWS }).map((_, idx) => (
-                        <div key={idx} className="h-11 my-1 rounded bg-bg2 animate-pulse" />
-                      ))
-                    : visibleArgentina.map((item) => {
-                        const hasChg = typeof item.change === 'number' && Number.isFinite(item.change);
-                        const isUp = hasChg && item.change! > 0;
-                        const isDown = hasChg && item.change! < 0;
-
-                        return (
-                          <div
-                            key={item.symbol}
-                            onClick={() =>
-                              setSelected({
-                                name: item.displayName,
-                                symbol: item.symbol,
-                                type: 'stock',
-                                price: item.price ?? 0,
-                                change: item.change ?? 0,
-                                bars: item.bars,
-                              })
-                            }
-                            className="flex items-center justify-between py-2 px-1.5 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
-                          >
-                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                              <AssetIcon symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
-                              <div className="min-w-0">
-                                <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
-                                  {item.symbol}{' '}
-                                  <span className="font-normal text-dim text-[10px]">
-                                    · {item.displayName}
-                                  </span>
-                                </div>
-                                <span className="text-[9.5px] font-mono text-dim block truncate">
-                                  {item.sector}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="w-[44px] h-[18px] flex-shrink-0 hidden 2xl:block">
-                              <Sparkline
-                                data={item.bars ?? []}
-                                change={item.change ?? 0}
-                                width={44}
-                                height={18}
-                              />
-                            </div>
-
-                            <div className="text-right flex-shrink-0 tabular-nums">
-                              <div className="text-[11px] font-mono font-medium text-text">
-                                {fmtPrice(item.price)}
-                              </div>
-                              <div
-                                className={`text-[10px] font-mono font-semibold whitespace-nowrap ${
-                                  isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
-                                }`}
-                              >
-                                {fmtPct(item.change, true)}
-                              </div>
-                            </div>
+                  {visibleArgentina.map((item) => (
+                    <div
+                      key={item.symbol}
+                      onClick={() =>
+                        setSelected({
+                          name: item.displayName,
+                          symbol: item.symbol,
+                          type: 'stock',
+                          price: item.price,
+                          change: item.change,
+                          bars: item.bars,
+                        })
+                      }
+                      className="flex items-center justify-between py-2 px-1.5 hover:bg-card/80 rounded transition-colors cursor-pointer group gap-1.5"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <AssetLogo symbol={item.symbol} name={item.displayName} type="stock" size="sm" />
+                        <div className="min-w-0">
+                          <div className="text-[11.5px] font-semibold text-text group-hover:text-gold transition-colors truncate">
+                            {item.symbol}{' '}
+                            <span className="font-normal text-dim text-[10px]">
+                              · {item.displayName}
+                            </span>
                           </div>
-                        );
-                      })}
+                          <span className="text-[9.5px] font-mono text-dim block truncate">
+                            {item.sector}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="w-[44px] h-[18px] flex-shrink-0 hidden 2xl:block">
+                        <Sparkline
+                          data={item.bars ?? []}
+                          change={item.change ?? 0}
+                          width={44}
+                          height={18}
+                        />
+                      </div>
+
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-[11px] font-medium text-text">
+                          <PriceCell price={item.price} loading={isInitialLoading} />
+                        </div>
+                        <div className="text-[10px]">
+                          <ChangeCell change={item.change} loading={isInitialLoading} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {argentinaRows.length > INITIAL_CARD_ROWS && (

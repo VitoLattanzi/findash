@@ -90,7 +90,7 @@
   - Hook `useQuotes` con polling dinámico según `marketState` (`60s` en `REGULAR`, `10m` en `CLOSED`) y `keepPreviousData: true`.
 - [x] **Fase 3 — Heatmap S&P 500 Ampliado (`640px`) + Toggle Mono y Filtros de Rendimiento:**
   - Contenedor de `640px` de alto con botón superior **`[ ⊞ Tamaño igual (Mono) ]`** (`isMonoSize`) para inspeccionar sectores pequeños.
-  - Tabla "Principales Acciones & Conjuntos" ordenada por defecto por `change` descendente, con filtros rápidos `🔥 Top Ganadoras`, `🩸 Top Perdedoras`, `⚡ Más Activas` y `⭐ Mis Favoritas` (`findash_fav_stocks` en `localStorage`).
+  - Tabla "Principales Acciones & Conjuntos" ordenada por defecto por `change` descendente, con filtros rápidos `🔥 Top Ganadoras`, `🩸 Top Perdedoras`, `⚡ Más Activas` y `⭐ Mis Favoritas` (`findash:fav_stocks:v1` en `localStorage`).
 - [x] **Fase 4 — Rediseño de las 3 Tarjetas Inferiores (Sin Scroll Anidado + Header Macro Argentina):**
   - Incorporación de `<Sparkline />` en cada fila de **Oro & Materias Primas**, **Mercado Global** y **Argentina (ADRs)**.
   - Eliminación de los scrolls internos anidados mostrando los 7 activos principales con botón `Ver todos (X) ▾`.
@@ -102,6 +102,12 @@
 - [x] **Fase 6 — Tira Fija de 4 Mercados en Sidebar y Contraste UI:**
   - Lista compacta fija con los 4 mercados clave en simultáneo (`🇺🇸 NYSE / NASDAQ`, `🇦🇷 BYMA`, `🇬🇧 LSE`, `🇯🇵 TSE`) usando `marketState` en vivo.
   - Mejora de contraste en `--dim` (`>= 4.5:1`) y *skeleton loaders* (`animate-pulse`) durante la carga.
+- [x] **Fase 7 — Datos Reales de Argentina (`/api/ar-indicators`), Cero `"$0,00"` Inicial (`<PriceCell />`), VIX (`^VIX`), `<AssetLogo />` y Metadata Open Graph:**
+  - Endpoint `/api/ar-indicators` conectando `dolarapi.com` y `argentinadatos.com` (Riesgo País EMBI+ e Inflación INDEC) con caché de 300s y cálculo de `brechaMep`.
+  - Inicialización de precios en `null` + componentes `<PriceCell />` y `<ChangeCell />` (`src/components/common/PriceCell.tsx`) con skeleton inline para eliminar cualquier flash de `"$0,00 (+0,00%)"`.
+  - Termómetro de Volatilidad VIX (`^VIX`) en la cabecera de Bolsa (`🟢 Calma / Complacencia`, `🟡 Volatilidad Normal`, `🔴 Miedo / Tensión en el Mercado`).
+  - Componente universal `<AssetLogo />` (`src/components/common/AssetLogo.tsx`) con fallback `onError` a círculo de iniciales para acciones, cripto y banderas.
+  - Semáforo de frescura global en el Ticker (`🟢 En vivo · act. hace Xm` / `🟡 Demorado` / `🔴 Sin conexión`), claves versionadas en `localStorage` (`:v1`) con exportar/importar JSON, pie de página con disclaimer financiero y metadata Open Graph completa (`es_AR`).
 
 ### Epic 9: Módulos Futuros en Roadmap (v1.8+)
 - [ ] **Dashboard Modular Drag & Drop (estilo Robinhood / Koyfin):** Paneles redimensionables y reordenables por el usuario con persistencia de layout en `localStorage`.

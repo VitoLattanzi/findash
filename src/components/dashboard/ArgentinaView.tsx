@@ -5,18 +5,19 @@ import {
   BONOS_SOBERANOS,
   INSTRUMENTOS_PESOS,
   CedearInfo,
-  DolarRate,
   calculateCedearArs,
 } from '@/lib/argentina';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
-import { AssetIcon } from '@/components/common/AssetIcon';
+import { AssetLogo } from '@/components/common/AssetLogo';
+import { PriceCell, ChangeCell } from '@/components/common/PriceCell';
 import { Sparkline } from '@/components/common/Sparkline';
 import { TimeframeControl } from '@/components/common/TimeframeHeader';
 import { ChangeTimeframe } from '@/lib/timeframe';
 import { Asset } from '@/types';
-import { formatPercent } from '@/lib/format';
+import { fmtPrice, fmtPct, fmtCompact } from '@/lib/format';
 import { Search, Calculator, ArrowRightLeft, ShieldAlert, Sparkles, TrendingUp, ExternalLink } from 'lucide-react';
 import { getTradingViewUrl } from '@/lib/tradingview';
+import type { ArIndicatorsResponse } from '@/app/api/ar-indicators/route';
 
 interface Quote {
   symbol: string;
@@ -30,18 +31,9 @@ interface Quote {
 type TabMode = 'cedears' | 'bonos' | 'calculadora';
 type CedearSortField = 'ticker' | 'name' | 'usd' | 'ars' | 'change' | 'volume';
 
-const formatVolumeCompact = (v?: number | null) => {
-  if (v == null || v <= 0) return '—';
-  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`;
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
-  return String(v);
-};
-
 export const ArgentinaView = () => {
   const [tab, setTab] = useState<TabMode>('cedears');
-  const [dolares, setDolares] = useState<Record<string, DolarRate>>({});
-  const [riskCountry, setRiskCountry] = useState<number | null>(null);
+  const [arIndicators, setArIndicators] = useState<ArIndicatorsResponse | null>(null);
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [loadingQuotes, setLoadingQuotes] = useState(true);
   const [search, setSearch] = useState('');
@@ -55,26 +47,23 @@ export const ArgentinaView = () => {
   const [calcArsAmount, setCalcArsAmount] = useState<string>('500000');
   const [mepPesosInput, setMepPesosInput] = useState<string>('1000000');
 
-  // Carga de cotizaciones de dólares y riesgo país
+  // Carga de indicadores argentinos desde /api/ar-indicators
   useEffect(() => {
-    fetch('https://dolarapi.com/v1/dolares')
-      .then((res) => res.json())
-      .then((data) => {
-        if (!Array.isArray(data)) return;
-        const map: Record<string, DolarRate> = {};
-        for (const item of data) {
-          if (item?.casa) map[item.casa] = item;
-        }
-        setDolares(map);
-      })
-      .catch(() => {});
-
-    fetch('https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo')
-      .then((res) => res.json())
-      .then((data) => {
-        if (typeof data?.valor === 'number') setRiskCountry(data.valor);
-      })
-      .catch(() => {});
+    let cancelled = false;
+    const load = () => {
+      fetch('/api/ar-indicators')
+        .then((res) => res.json())
+        .then((data: ArIndicatorsResponse) => {
+          if (!cancelled && data) setArIndicators(data);
+        })
+        .catch(() => {});
+    };
+    load();
+    const id = setInterval(load, 120_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, []);
 
   // Carga de cotizaciones de acciones subyacentes de CEDEARs desde Yahoo Finance con el rango elegido
@@ -103,16 +92,20 @@ export const ArgentinaView = () => {
     };
   }, [timeframe]);
 
-  // Referencias de dólares
-  const cclPrice = dolares['contadoconliqui']?.venta || 0;
-  const mepPrice = dolares['bolsa']?.venta || 0;
-  const bluePrice = dolares['blue']?.venta || 0;
-  const oficialPrice = dolares['oficial']?.venta || 0;
+  // Referencias de dólares desde /api/ar-indicators
+  const cclPrice = arIndicators?.ccl ?? 0;
+  const mepPrice = arIndicators?.mep ?? 0;
+  const bluePrice = arIndicators?.blue ?? 0;
+  const oficialPrice = arIndicators?.oficial ?? 0;
+  const mayoristaPrice = arIndicators?.mayorista ?? null;
+  const riskCountry = arIndicators?.riesgoPais ?? null;
+  const inflacionMensual = arIndicators?.inflacionMensual ?? null;
 
   // Cálculos de brechas cambiarias
-  const brechaCcl = oficialPrice > 0 ? ((cclPrice - oficialPrice) / oficialPrice) * 100 : 0;
-  const brechaBlue = oficialPrice > 0 ? ((bluePrice - oficialPrice) / oficialPrice) * 100 : 0;
-  const canjeRate = mepPrice > 0 ? ((cclPrice - mepPrice) / mepPrice) * 100 : 0;
+  const brechaMep = arIndicators?.brechaMep ?? (oficialPrice > 0 && mepPrice > 0 ? ((mepPrice / oficialPrice) - 1) * 100 : null);
+  const brechaCcl = oficialPrice > 0 && cclPrice > 0 ? ((cclPrice - oficialPrice) / oficialPrice) * 100 : null;
+  const brechaBlue = oficialPrice > 0 && bluePrice > 0 ? ((bluePrice - oficialPrice) / oficialPrice) * 100 : null;
+  const canjeRate = mepPrice > 0 && cclPrice > 0 ? ((cclPrice - mepPrice) / mepPrice) * 100 : null;
 
   const toggleSort = (field: CedearSortField) => {
     setSort((prev) =>
@@ -136,14 +129,14 @@ export const ArgentinaView = () => {
       const qb = quotes[b.underlying];
       if (sort.field === 'ticker') return a.ticker.localeCompare(b.ticker, 'es') * sort.dir;
       if (sort.field === 'name') return a.name.localeCompare(b.name, 'es') * sort.dir;
-      if (sort.field === 'usd') return ((qa?.price ?? 0) - (qb?.price ?? 0)) * sort.dir;
+      if (sort.field === 'usd') return ((qa?.price ?? -Infinity) - (qb?.price ?? -Infinity)) * sort.dir;
       if (sort.field === 'ars') {
-        const arsA = calculateCedearArs(qa?.price ?? 0, a.ratio, cclPrice);
-        const arsB = calculateCedearArs(qb?.price ?? 0, b.ratio, cclPrice);
+        const arsA = qa?.price != null ? calculateCedearArs(qa.price, a.ratio, cclPrice) : -Infinity;
+        const arsB = qb?.price != null ? calculateCedearArs(qb.price, b.ratio, cclPrice) : -Infinity;
         return (arsA - arsB) * sort.dir;
       }
-      if (sort.field === 'volume') return ((qa?.volume ?? 0) - (qb?.volume ?? 0)) * sort.dir;
-      return ((qa?.change ?? 0) - (qb?.change ?? 0)) * sort.dir;
+      if (sort.field === 'volume') return ((qa?.volume ?? -Infinity) - (qb?.volume ?? -Infinity)) * sort.dir;
+      return ((qa?.change ?? -Infinity) - (qb?.change ?? -Infinity)) * sort.dir;
     });
   }, [categoryFilter, search, quotes, sort, cclPrice]);
 
@@ -152,7 +145,7 @@ export const ArgentinaView = () => {
     return CEDEARS_LIST.find((c) => c.ticker === calcTicker) || CEDEARS_LIST[0];
   }, [calcTicker]);
 
-  const calcUsdPrice = quotes[selectedCalcCedear.underlying]?.price || 0;
+  const calcUsdPrice = quotes[selectedCalcCedear.underlying]?.price ?? 0;
   const calcEstimatedArsPerCedear = calculateCedearArs(calcUsdPrice, selectedCalcCedear.ratio, cclPrice);
   const parsedArs = parseFloat(calcArsAmount) || 0;
   const qtyCedears = calcEstimatedArsPerCedear > 0 ? Math.floor(parsedArs / calcEstimatedArsPerCedear) : 0;
@@ -169,8 +162,8 @@ export const ArgentinaView = () => {
       name: `${cedear.name} (CEDEAR)`,
       symbol: cedear.underlying,
       type: 'stock',
-      price: q?.price ?? 0,
-      change: q?.change ?? 0,
+      price: q?.price ?? null,
+      change: q?.change ?? null,
       bars: q?.bars ?? [],
     });
   };
@@ -184,7 +177,14 @@ export const ArgentinaView = () => {
       <div>
         <div className="flex flex-wrap items-center gap-2 mb-1">
           <span className="text-gold font-mono text-[13px] font-semibold">◆ BYMA / MERCADO ARGENTINO</span>
-          <span className="text-[11px] bg-bg2 border border-line text-dim px-2 py-0.5 rounded-[3px]">Sin API Keys</span>
+          <span className="text-[11px] bg-bg2 border border-line text-dim px-2 py-0.5 rounded-[3px]">
+            DolarAPI + ArgentinaDatos
+          </span>
+          {inflacionMensual != null && (
+            <span className="text-[11px] bg-bg2 border border-line text-gold px-2 py-0.5 rounded-[3px] font-mono">
+              IPC Mensual INDEC: {fmtPct(inflacionMensual)}
+            </span>
+          )}
         </div>
         <h1 className="text-[26px] tracking-tight">CEDEARs, Bonos &amp; Dólares</h1>
         <p className="text-dim text-[13px] max-w-2xl mt-0.5">
@@ -200,10 +200,10 @@ export const ArgentinaView = () => {
             <span className="text-[9px] text-teal">Libre</span>
           </div>
           <div className="text-[17px] font-mono font-semibold mt-1">
-            ${bluePrice.toLocaleString('es-AR', { minimumFractionDigits: 1 })}
+            <PriceCell price={arIndicators?.blue ?? null} currency="$" />
           </div>
-          <div className="text-[10px] text-dim mt-0.5">
-            C: ${dolares['blue']?.compra?.toLocaleString('es-AR') ?? '—'}
+          <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
+            Brecha: {fmtPct(brechaBlue)}
           </div>
         </div>
 
@@ -213,10 +213,10 @@ export const ArgentinaView = () => {
             <span className="text-[9px] text-gold">AL30</span>
           </div>
           <div className="text-[17px] font-mono font-semibold mt-1 text-gold">
-            ${mepPrice.toLocaleString('es-AR', { minimumFractionDigits: 1 })}
+            <PriceCell price={arIndicators?.mep ?? null} currency="$" />
           </div>
-          <div className="text-[10px] text-dim mt-0.5">
-            Brecha: +{brechaBlue.toFixed(1)}% vs Of.
+          <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
+            Brecha: {fmtPct(brechaMep)} vs Of.
           </div>
         </div>
 
@@ -226,10 +226,10 @@ export const ArgentinaView = () => {
             <span className="text-[9px] text-teal">GD30 / Cable</span>
           </div>
           <div className="text-[17px] font-mono font-semibold mt-1">
-            ${cclPrice.toLocaleString('es-AR', { minimumFractionDigits: 1 })}
+            <PriceCell price={arIndicators?.ccl ?? null} currency="$" />
           </div>
-          <div className="text-[10px] text-dim mt-0.5">
-            Canje (CCL/MEP): {canjeRate >= 0 ? '+' : ''}{canjeRate.toFixed(2)}%
+          <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
+            Canje (CCL/MEP): {fmtPct(canjeRate)}
           </div>
         </div>
 
@@ -239,23 +239,23 @@ export const ArgentinaView = () => {
             <span className="text-[9px] text-dim">BNA</span>
           </div>
           <div className="text-[17px] font-mono font-semibold mt-1">
-            ${oficialPrice.toLocaleString('es-AR', { minimumFractionDigits: 1 })}
+            <PriceCell price={arIndicators?.oficial ?? null} currency="$" />
           </div>
-          <div className="text-[10px] text-dim mt-0.5">
-            Mayorista: ${dolares['mayorista']?.venta?.toLocaleString('es-AR') ?? '—'}
+          <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
+            Mayorista: {fmtPrice(mayoristaPrice)}
           </div>
         </div>
 
         <div className="bg-card border border-line p-3 rounded-[6px]">
           <div className="text-[11px] text-dim flex items-center justify-between">
             <span>Brecha Cambiaria</span>
-            <span className="text-[9px] text-dim">CCL vs BNA</span>
+            <span className="text-[9px] text-dim">MEP vs BNA</span>
           </div>
           <div className="text-[17px] font-mono font-semibold mt-1 text-teal">
-            +{brechaCcl.toFixed(1)}%
+            <ChangeCell change={brechaMep} />
           </div>
-          <div className="text-[10px] text-dim mt-0.5">
-            Blue vs Of: +{brechaBlue.toFixed(1)}%
+          <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
+            CCL vs Of: {fmtPct(brechaCcl)}
           </div>
         </div>
 
@@ -264,8 +264,12 @@ export const ArgentinaView = () => {
             <span>Riesgo País</span>
             <span className="text-[9px] text-dim">EMBI+</span>
           </div>
-          <div className="text-[17px] font-mono font-semibold mt-1 text-gold">
-            {riskCountry != null ? `${riskCountry.toLocaleString('es-AR')} bps` : '— bps'}
+          <div className="text-[17px] font-mono font-semibold mt-1 text-gold tabular-nums">
+            {riskCountry != null ? (
+              `${riskCountry.toLocaleString('es-AR')} pb`
+            ) : (
+              <span className="inline-block h-4 w-16 animate-pulse rounded bg-white/10 align-middle" />
+            )}
           </div>
           <div className="text-[10px] text-dim mt-0.5">
             ArgentinaDatos API
@@ -343,7 +347,7 @@ export const ArgentinaView = () => {
                 placeholder="Buscar CEDEAR (ej: SPY, NVDA)..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-card border border-line rounded-[5px] pl-8 pr-3 py-1.5 text-[12.5px] focus:outline-none focus:border-gold"
+                className="w-full bg-card border border-line rounded-[5px] pl-8 pr-3 py-1.5 text-[16px] sm:text-[12.5px] focus:outline-none focus:border-gold"
               />
             </div>
           </div>
@@ -395,6 +399,7 @@ export const ArgentinaView = () => {
                         sortDir={sort.dir}
                         onSortClick={() => toggleSort('change')}
                         align="right"
+                        mode="stock"
                       />
                     </th>
                     <th
@@ -411,9 +416,12 @@ export const ArgentinaView = () => {
                 <tbody className="divide-y divide-line">
                   {filteredCedears.map((item) => {
                     const q = quotes[item.underlying];
-                    const usdPrice = q?.price ?? 0;
-                    const change = q?.change ?? 0;
-                    const arsPrice = calculateCedearArs(usdPrice, item.ratio, cclPrice);
+                    const usdPrice = q?.price ?? null;
+                    const change = q?.change ?? null;
+                    const arsPrice =
+                      usdPrice != null && usdPrice > 0 && cclPrice > 0
+                        ? calculateCedearArs(usdPrice, item.ratio, cclPrice)
+                        : null;
 
                     return (
                       <tr
@@ -423,7 +431,7 @@ export const ArgentinaView = () => {
                       >
                         <td className="p-3 font-mono font-semibold text-text">
                           <div className="flex items-center gap-2">
-                            <AssetIcon symbol={item.underlying} name={item.name} type="stock" size="sm" />
+                            <AssetLogo symbol={item.underlying} name={item.name} type="stock" size={22} />
                             <span className="text-gold font-bold">{item.ticker}</span>
                           </div>
                         </td>
@@ -434,30 +442,20 @@ export const ArgentinaView = () => {
                           </span>
                         </td>
                         <td className="p-3 text-right font-mono">
-                          {loadingQuotes ? (
-                            <span className="text-dim/60">...</span>
-                          ) : usdPrice > 0 ? (
-                            `$${usdPrice.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                          ) : (
-                            '—'
-                          )}
+                          <PriceCell price={loadingQuotes && usdPrice == null ? null : usdPrice} currency="$" />
                         </td>
                         <td className="p-3 text-right font-mono font-semibold text-teal">
-                          {arsPrice > 0
-                            ? `$${arsPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`
-                            : '—'}
+                          <PriceCell price={loadingQuotes && arsPrice == null ? null : arsPrice} currency="$" />
                         </td>
                         <td className="p-3 text-right font-mono">
-                          <span className={change >= 0 ? 'text-teal' : 'text-red'}>
-                            {formatPercent(change)}
-                          </span>
+                          <ChangeCell change={loadingQuotes && change == null ? null : change} />
                         </td>
-                        <td className="p-3 text-right font-mono text-dim text-[11.5px] hidden lg:table-cell">
-                          {formatVolumeCompact(q?.volume)}
+                        <td className="p-3 text-right font-mono text-dim text-[11.5px] hidden lg:table-cell tabular-nums">
+                          {fmtCompact(q?.volume)}
                         </td>
                         <td className="p-3 text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <Sparkline data={q?.bars ?? []} change={change} width={68} height={22} />
+                            <Sparkline data={q?.bars ?? []} change={change ?? 0} width={68} height={22} />
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -491,7 +489,7 @@ export const ArgentinaView = () => {
 
           <div className="text-[11px] text-dim flex items-center justify-between px-1">
             <span>
-              💡 <b>¿Cómo se calcula el precio en pesos?</b> <code>(Precio USD / Ratio) × Dólar CCL actual (${cclPrice.toFixed(0)})</code>.
+              💡 <b>¿Cómo se calcula el precio en pesos?</b> <code>(Precio USD / Ratio) × Dólar CCL actual ({fmtPrice(cclPrice || null)})</code>.
             </span>
             <span>Hacé click en cualquier fila para ver el gráfico técnico.</span>
           </div>
@@ -527,7 +525,7 @@ export const ArgentinaView = () => {
                 <h3 className="font-semibold text-[14px]">Dólar CCL vs MEP (El &quot;Canje&quot; o Cable)</h3>
               </div>
               <p className="text-[12px] text-dim leading-relaxed">
-                El <b>Dólar CCL</b> (Contado con Liquidación) se opera con bonos ley extranjera (como <b>GD30 / GD30C</b>) o CEDEARs y permite enviar divisas a cuentas bancarias del exterior (o ingresarlas). El diferencial de precio entre el dólar cable (CCL) y el dólar MEP se conoce como <b>tasa de canje</b> (actualmente <span className="text-gold font-mono font-semibold">{canjeRate.toFixed(2)}%</span>).
+                El <b>Dólar CCL</b> (Contado con Liquidación) se opera con bonos ley extranjera (como <b>GD30 / GD30C</b>) o CEDEARs y permite enviar divisas a cuentas bancarias del exterior (o ingresarlas). El diferencial de precio entre el dólar cable (CCL) y el dólar MEP se conoce como <b>tasa de canje</b> (actualmente <span className="text-gold font-mono font-semibold">{fmtPct(canjeRate)}</span>).
               </p>
             </div>
           </div>
@@ -557,7 +555,7 @@ export const ArgentinaView = () => {
                     <tr key={b.ticker} className="hover:bg-[#1a2030] transition-colors">
                       <td className="p-3 font-mono font-bold text-gold">
                         <div className="flex items-center gap-2">
-                          <AssetIcon symbol={b.ticker} size="sm" />
+                          <AssetLogo symbol={b.ticker} type="stock" size={22} />
                           <span>{b.ticker}</span>
                         </div>
                       </td>
@@ -638,7 +636,7 @@ export const ArgentinaView = () => {
               <select
                 value={calcTicker}
                 onChange={(e) => setCalcTicker(e.target.value)}
-                className="w-full bg-bg2 border border-line rounded-[5px] p-2 text-[13px] text-text focus:outline-none focus:border-gold"
+                className="w-full bg-bg2 border border-line rounded-[5px] p-2 text-[16px] sm:text-[13px] text-text focus:outline-none focus:border-gold"
               >
                 {CEDEARS_LIST.map((c) => (
                   <option key={c.ticker} value={c.ticker}>
@@ -656,7 +654,7 @@ export const ArgentinaView = () => {
                   type="number"
                   value={calcArsAmount}
                   onChange={(e) => setCalcArsAmount(e.target.value)}
-                  className="w-full bg-bg2 border border-line rounded-[5px] pl-7 pr-3 py-2 text-[13.5px] font-mono focus:outline-none focus:border-gold"
+                  className="w-full bg-bg2 border border-line rounded-[5px] pl-7 pr-3 py-2 text-[16px] sm:text-[13.5px] font-mono focus:outline-none focus:border-gold"
                 />
               </div>
             </div>
@@ -664,20 +662,20 @@ export const ArgentinaView = () => {
             <div className="bg-bg2 border border-line p-3.5 rounded-[5px] space-y-2.5 text-[12px]">
               <div className="flex justify-between">
                 <span className="text-dim">Cotización subyacente en USA:</span>
-                <span className="font-mono text-text">
-                  ${calcUsdPrice.toFixed(2)} USD
+                <span className="font-mono text-text tabular-nums">
+                  {fmtPrice(calcUsdPrice || null)} USD
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-dim">Dólar CCL de referencia:</span>
-                <span className="font-mono text-text">
-                  ${cclPrice.toFixed(0)} ARS
+                <span className="font-mono text-text tabular-nums">
+                  {fmtPrice(cclPrice || null)} ARS
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-dim">Precio teórico por CEDEAR:</span>
-                <span className="font-mono text-teal font-semibold">
-                  ${calcEstimatedArsPerCedear.toLocaleString('es-AR', { maximumFractionDigits: 0 })} ARS
+                <span className="font-mono text-teal font-semibold tabular-nums">
+                  {fmtPrice(calcEstimatedArsPerCedear || null)} ARS
                 </span>
               </div>
               <div className="border-t border-line pt-2 flex justify-between text-[13px]">
@@ -690,7 +688,7 @@ export const ArgentinaView = () => {
               </div>
               <div className="flex justify-between text-[11px] text-dim">
                 <span>Valuación aproximada en USD:</span>
-                <span className="font-mono text-teal">${totalInvestedUsd.toFixed(2)} USD</span>
+                <span className="font-mono text-teal tabular-nums">{fmtPrice(totalInvestedUsd || null)} USD</span>
               </div>
             </div>
           </div>
@@ -713,7 +711,7 @@ export const ArgentinaView = () => {
                   type="number"
                   value={mepPesosInput}
                   onChange={(e) => setMepPesosInput(e.target.value)}
-                  className="w-full bg-bg2 border border-line rounded-[5px] pl-7 pr-3 py-2 text-[13.5px] font-mono focus:outline-none focus:border-gold"
+                  className="w-full bg-bg2 border border-line rounded-[5px] pl-7 pr-3 py-2 text-[16px] sm:text-[13.5px] font-mono focus:outline-none focus:border-gold"
                 />
               </div>
             </div>
@@ -721,11 +719,11 @@ export const ArgentinaView = () => {
             <div className="bg-bg2 border border-line p-3.5 rounded-[5px] space-y-2.5 text-[12px]">
               <div className="flex justify-between">
                 <span className="text-dim">Cotización Dólar MEP (Bolsa):</span>
-                <span className="font-mono text-gold font-semibold">${mepPrice.toFixed(2)} ARS</span>
+                <span className="font-mono text-gold font-semibold tabular-nums">{fmtPrice(mepPrice || null)} ARS</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-dim">Arancel / Comisión broker estimada:</span>
-                <span className="font-mono text-dim">~0.5%</span>
+                <span className="font-mono text-dim">~0,5%</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-dim">Parking requerido:</span>
@@ -733,8 +731,8 @@ export const ArgentinaView = () => {
               </div>
               <div className="border-t border-line pt-2 flex justify-between text-[14px]">
                 <span className="font-semibold text-text">Dólares netos estimados:</span>
-                <span className="font-mono font-bold text-teal text-[16px]">
-                  US$ {estimatedMepUsd.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <span className="font-mono font-bold text-teal text-[16px] tabular-nums">
+                  {fmtPrice(estimatedMepUsd || null, 'US$ ')}
                 </span>
               </div>
               <p className="text-[10.5px] text-dim/80 pt-1 leading-relaxed">

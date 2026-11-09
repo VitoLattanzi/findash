@@ -4,8 +4,8 @@ export interface Asset {
   name: string;
   symbol?: string;
   type?: AssetType;
-  price: number;
-  change: number;
+  price: number | null;
+  change: number | null;
   open?: number;
   high?: number;
   low?: number;
