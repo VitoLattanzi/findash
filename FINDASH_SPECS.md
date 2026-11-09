@@ -1,4 +1,4 @@
-# FinDash — Master Specification & Roadmap (v1.7)
+# FinDash — Master Specification & Roadmap (v1.8)
 
 ## 1. Identidad Visual y UI/UX (Estricto)
 - **Regla de Oro:** Respetar la paleta oscura: `--bg: #0c0f14`, `--bg2: #12161e`, `--card: #161b25`, `--line: #262d3b`, `--gold: #d8ad3f`, `--teal: #4fc7bd`, `--red: #d9685f`.
@@ -109,6 +109,12 @@
   - Componente universal `<AssetLogo />` (`src/components/common/AssetLogo.tsx`) con fallback `onError` a círculo de iniciales para acciones, cripto y banderas.
   - Semáforo de frescura global en el Ticker (`🟢 En vivo · act. hace Xm` / `🟡 Demorado` / `🔴 Sin conexión`), claves versionadas en `localStorage` (`:v1`) con exportar/importar JSON, pie de página con disclaimer financiero y metadata Open Graph completa (`es_AR`).
 
-### Epic 9: Módulos Futuros en Roadmap (v1.8+)
+### Epic 9: Refactorización Estructural (ARG/CEDEARs + Países) (v1.8)
+- [ ] **1.8.1 — Refactorización de ARG y CEDEARs:**
+  - Consolidar lógica de conversión, ratios y visualización.
+- [ ] **1.8.2 — Refactorización de Sección Países:**
+  - Mejorar estructura, datos y visualización de índices globales.
+
+### Epic 10: Módulos Futuros
 - [ ] **Dashboard Modular Drag & Drop (estilo Robinhood / Koyfin):** Paneles redimensionables y reordenables por el usuario con persistencia de layout en `localStorage`.
 - [ ] **Heatmap Nativo D3 por Sectores (estilo Finviz):** Motor jerárquico interactivo propio con agrupación sectorial/industrial, zoom semántico y tooltips enriquecidos sin depender de iframes externos.
