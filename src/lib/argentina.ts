@@ -187,12 +187,35 @@ export interface DolarRate {
   fechaActualizacion: string;
 }
 
-export const calculateCedearArs = (usdPrice: number, ratio: number, cclRate: number): number => {
-  if (ratio <= 0) return 0;
+export const calculateCedearArs = (usdPrice: number | null, ratio: number, cclRate: number): number | null => {
+  if (usdPrice == null || usdPrice <= 0 || ratio <= 0) return null;
   return (usdPrice / ratio) * cclRate;
 };
 
-export const calculateImplicitCcl = (arsPrice: number, usdPrice: number, ratio: number): number => {
-  if (usdPrice <= 0) return 0;
+export const calculateImplicitCcl = (arsPrice: number | null, usdPrice: number | null, ratio: number): number | null => {
+  if (arsPrice == null || usdPrice == null || usdPrice <= 0 || ratio <= 0) return null;
   return (arsPrice * ratio) / usdPrice;
+};
+
+export const calculateCalculatorData = (
+  ticker: string,
+  arsAmount: number,
+  usdPrice: number | null,
+  cclRate: number
+) => {
+  const cedear = CEDEARS_LIST.find((c) => c.ticker === ticker) || CEDEARS_LIST[0];
+  const priceArs = calculateCedearArs(usdPrice, cedear.ratio, cclRate) || 0;
+  
+  const qtyCedears = priceArs > 0 ? Math.floor(arsAmount / priceArs) : 0;
+  const totalInvestedUsd = cclRate > 0 ? arsAmount / cclRate : 0;
+  const equivalentUnderlyingShares = cedear.ratio > 0 ? qtyCedears / cedear.ratio : 0;
+
+  return {
+    cedear,
+    priceArs,
+    qtyCedears,
+    totalInvestedUsd,
+    equivalentUnderlyingShares,
+    usdPrice,
+  };
 };

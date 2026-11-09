@@ -6,6 +6,7 @@ import {
   INSTRUMENTOS_PESOS,
   CedearInfo,
   calculateCedearArs,
+  calculateCalculatorData,
 } from '@/lib/argentina';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { AssetLogo } from '@/components/common/AssetLogo';
@@ -131,8 +132,8 @@ export const ArgentinaView = () => {
       if (sort.field === 'name') return a.name.localeCompare(b.name, 'es') * sort.dir;
       if (sort.field === 'usd') return ((qa?.price ?? -Infinity) - (qb?.price ?? -Infinity)) * sort.dir;
       if (sort.field === 'ars') {
-        const arsA = qa?.price != null ? calculateCedearArs(qa.price, a.ratio, cclPrice) : -Infinity;
-        const arsB = qb?.price != null ? calculateCedearArs(qb.price, b.ratio, cclPrice) : -Infinity;
+        const arsA = qa?.price != null ? calculateCedearArs(qa.price, a.ratio, cclPrice) ?? -Infinity : -Infinity;
+        const arsB = qb?.price != null ? calculateCedearArs(qb.price, b.ratio, cclPrice) ?? -Infinity : -Infinity;
         return (arsA - arsB) * sort.dir;
       }
       if (sort.field === 'volume') return ((qa?.volume ?? -Infinity) - (qb?.volume ?? -Infinity)) * sort.dir;
@@ -140,17 +141,21 @@ export const ArgentinaView = () => {
     });
   }, [categoryFilter, search, quotes, sort, cclPrice]);
 
-  // Selección de CEDEAR para la calculadora
-  const selectedCalcCedear = useMemo(() => {
-    return CEDEARS_LIST.find((c) => c.ticker === calcTicker) || CEDEARS_LIST[0];
-  }, [calcTicker]);
-
-  const calcUsdPrice = quotes[selectedCalcCedear.underlying]?.price ?? 0;
-  const calcEstimatedArsPerCedear = calculateCedearArs(calcUsdPrice, selectedCalcCedear.ratio, cclPrice);
   const parsedArs = parseFloat(calcArsAmount) || 0;
-  const qtyCedears = calcEstimatedArsPerCedear > 0 ? Math.floor(parsedArs / calcEstimatedArsPerCedear) : 0;
-  const totalInvestedUsd = cclPrice > 0 ? parsedArs / cclPrice : 0;
-  const equivalentUnderlyingShares = selectedCalcCedear.ratio > 0 ? qtyCedears / selectedCalcCedear.ratio : 0;
+
+  // Selección de CEDEAR para la calculadora
+  const calcData = useMemo(() => {
+    const usdPrice = quotes[calcTicker]?.price ?? null;
+    return calculateCalculatorData(calcTicker, parsedArs, usdPrice, cclPrice);
+  }, [calcTicker, parsedArs, quotes, cclPrice]);
+
+  const {
+    priceArs: calcEstimatedArsPerCedear,
+    qtyCedears,
+    totalInvestedUsd,
+    equivalentUnderlyingShares,
+    usdPrice: calcUsdPrice,
+  } = calcData;
 
   // Calculadora de Dólar MEP
   const parsedMepPesos = parseFloat(mepPesosInput) || 0;

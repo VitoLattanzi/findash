@@ -12,7 +12,9 @@ import { TimeframeControl } from '@/components/common/TimeframeHeader';
 import { ChangeTimeframe } from '@/lib/timeframe';
 import { MarketHeatmap } from '@/components/common/MarketHeatmap';
 import { X } from 'lucide-react';
+import { CountryNewsCard } from '@/components/dashboard/CountryNewsCard';
 import type { ArIndicatorsResponse } from '@/app/api/ar-indicators/route';
+
 
 const DEFAULT_COUNTRIES: Country[] = [
   { name: 'Argentina', etf: 'ARGT' },
@@ -559,65 +561,19 @@ export const CountryView = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 border-t border-line pt-3 flex-1">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-teal mb-1.5">
-                      Buenas {pos.length ? `(${pos.length})` : ''}
-                    </div>
-                    {newsLoading && !items ? (
-                      <div className="text-dim text-[11px]">Analizando titulares...</div>
-                    ) : pos.length === 0 ? (
-                      <div className="text-dim text-[11px]">Sin novedades positivas.</div>
-                    ) : (
-                      <ul className="space-y-1.5">
-                        {pos.slice(0, 2).map((n, idx) => (
-                          <li key={`${n.link}-${idx}`}>
-                            <a
-                              href={n.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="block text-[11.5px] leading-snug text-text/90 hover:text-teal line-clamp-2"
-                            >
-                              {n.title}
-                            </a>
-                            <span className="text-[9.5px] text-dim">
-                              {n.source}
-                              {n.pubDate ? ` · ${new Date(n.pubDate).toLocaleDateString('es-AR')}` : ''}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
+                  <CountryNewsCard 
+                    title="Buenas" 
+                    items={pos} 
+                    color="teal" 
+                    isLoading={newsLoading && !items}
+                  />
                   <div className="sm:border-l sm:border-line sm:pl-2">
-                    <div className="text-[10px] uppercase tracking-wide text-red mb-1.5">
-                      Malas {neg.length ? `(${neg.length})` : ''}
-                    </div>
-                    {newsLoading && !items ? (
-                      <div className="text-dim text-[11px]">Analizando titulares...</div>
-                    ) : neg.length === 0 ? (
-                      <div className="text-dim text-[11px]">Sin novedades negativas.</div>
-                    ) : (
-                      <ul className="space-y-1.5">
-                        {neg.slice(0, 2).map((n, idx) => (
-                          <li key={`${n.link}-${idx}`}>
-                            <a
-                              href={n.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="block text-[11.5px] leading-snug text-text/90 hover:text-red line-clamp-2"
-                            >
-                              {n.title}
-                            </a>
-                            <span className="text-[9.5px] text-dim">
-                              {n.source}
-                              {n.pubDate ? ` · ${new Date(n.pubDate).toLocaleDateString('es-AR')}` : ''}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    <CountryNewsCard 
+                      title="Malas" 
+                      items={neg} 
+                      color="red" 
+                      isLoading={newsLoading && !items}
+                    />
                   </div>
                 </div>
 

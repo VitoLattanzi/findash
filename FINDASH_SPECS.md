@@ -110,9 +110,9 @@
   - Semáforo de frescura global en el Ticker (`🟢 En vivo · act. hace Xm` / `🟡 Demorado` / `🔴 Sin conexión`), claves versionadas en `localStorage` (`:v1`) con exportar/importar JSON, pie de página con disclaimer financiero y metadata Open Graph completa (`es_AR`).
 
 ### Epic 9: Refactorización Estructural (ARG/CEDEARs + Países) (v1.8)
-- [ ] **1.8.1 — Refactorización de ARG y CEDEARs:**
+- [x] **1.8.1 — Refactorización de ARG y CEDEARs:**
   - Consolidar lógica de conversión, ratios y visualización.
-- [ ] **1.8.2 — Refactorización de Sección Países:**
+- [x] **1.8.2 — Refactorización de Sección Países:**
   - Mejorar estructura, datos y visualización de índices globales.
 
 ### Epic 10: Módulos Futuros
