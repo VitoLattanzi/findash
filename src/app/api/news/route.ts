@@ -5,8 +5,12 @@ import { classifyFinancialSentiment } from '@/components/common/SentimentChip';
 const parser = new Parser({
   timeout: 8000,
   headers: {
-    'User-Agent': 'Mozilla/5.0 (compatible; FinDashBot/1.0)',
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     Accept: 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8',
+  },
+  customFields: {
+    item: ['source'],
   },
 });
 
@@ -65,7 +69,13 @@ function normalizeSourceName(rawSource: string, feedUrl: string): string {
   const s = (rawSource || '').trim();
   const lower = s.toLowerCase();
 
-  if (feedUrl.includes('ambito.com') || lower === 'finanzas' || lower === 'economía' || lower === 'economia' || lower === 'política') {
+  if (
+    feedUrl.includes('ambito.com') ||
+    lower === 'finanzas' ||
+    lower === 'economía' ||
+    lower === 'economia' ||
+    lower === 'política'
+  ) {
     return 'Ámbito';
   }
   if (feedUrl.includes('ipro-up.com') || lower.includes('iproup')) {
@@ -139,34 +149,40 @@ export async function GET(request: NextRequest) {
 
   const rssJobs = categories.flatMap((cat) =>
     FEEDS[cat].map(async (url) => {
-      const feed = await parser.parseURL(url);
-      return (feed.items ?? [])
-        .filter((item) => item.title && item.link)
-        .map((item) => {
-          const isGoogle = url.includes('news.google.com');
-          const parsed = isGoogle ? splitGoogleTitle(item.title as string) : null;
-          const title = (parsed?.title ?? (item.title as string)).trim();
-          const rawSource =
-            parsed?.source ??
-            (typeof item.creator === 'string' ? item.creator : feed.title) ??
-            'RSS';
-          const cleanSource = normalizeSourceName(rawSource, url);
-          const isBinance =
-            cleanSource.toLowerCase().includes('binance') ||
-            title.toLowerCase().includes('binance') ||
-            item.link?.includes('binance.com');
+      try {
+        const feed = await parser.parseURL(url);
+        return (feed.items ?? [])
+          .filter((item) => item.title && item.link)
+          .map((item) => {
+            const isGoogle = url.includes('news.google.com');
+            const parsed = isGoogle ? splitGoogleTitle(item.title as string) : null;
+            const title = (parsed?.title ?? (item.title as string)).trim();
+            const rawSource =
+              (typeof (item as any).source === 'string' && (item as any).source.trim()
+                ? (item as any).source
+                : parsed?.source) ??
+              (typeof item.creator === 'string' ? item.creator : feed.title) ??
+              'RSS';
+            const cleanSource = normalizeSourceName(rawSource, url);
+            const isBinance =
+              cleanSource.toLowerCase().includes('binance') ||
+              title.toLowerCase().includes('binance') ||
+              item.link?.includes('binance.com');
 
-          return {
-            title,
-            link: item.link as string,
-            pubDate: item.pubDate ?? item.isoDate ?? '',
-            source: isBinance ? 'Binance News' : cleanSource,
-            category: cat,
-            sentiment: classifyFinancialSentiment(title),
-            isBinance,
-          };
-        })
-        .filter((item) => !isFillerHeadline(item.title));
+            return {
+              title,
+              link: item.link as string,
+              pubDate: item.pubDate ?? item.isoDate ?? '',
+              source: isBinance ? 'Binance News' : cleanSource,
+              category: cat,
+              sentiment: classifyFinancialSentiment(title),
+              isBinance,
+            };
+          })
+          .filter((item) => !isFillerHeadline(item.title));
+      } catch {
+        return [];
+      }
     })
   );
 

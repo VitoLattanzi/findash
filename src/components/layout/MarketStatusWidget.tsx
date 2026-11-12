@@ -2,6 +2,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   Globe,
+  ChevronLeft,
+  ChevronRight,
   TrendingUp,
   TrendingDown,
   Minus,
@@ -30,11 +32,10 @@ export interface MarketDef {
   closeMin: number;
 }
 
-// Los 4 mercados clave fijos en la tira del Sidebar + Hong Kong y Cripto para el modal completo
-const SIDEBAR_MARKETS: MarketDef[] = [
+const MARKETS: MarketDef[] = [
   {
     id: 'us',
-    name: 'NYSE / NASDAQ',
+    name: 'Wall Street',
     shortName: 'NYSE / NASDAQ',
     flag: '🇺🇸',
     city: 'Nueva York',
@@ -49,7 +50,7 @@ const SIDEBAR_MARKETS: MarketDef[] = [
   },
   {
     id: 'ar',
-    name: 'BYMA (Buenos Aires)',
+    name: 'BCBA / BYMA',
     shortName: 'BYMA (Bs. As.)',
     flag: '🇦🇷',
     city: 'Buenos Aires',
@@ -64,7 +65,7 @@ const SIDEBAR_MARKETS: MarketDef[] = [
   },
   {
     id: 'uk',
-    name: 'LSE (Londres)',
+    name: 'Londres (LSE)',
     shortName: 'LSE (Londres)',
     flag: '🇬🇧',
     city: 'Londres',
@@ -79,7 +80,7 @@ const SIDEBAR_MARKETS: MarketDef[] = [
   },
   {
     id: 'jp',
-    name: 'TSE (Tokio)',
+    name: 'Tokio (TSE)',
     shortName: 'TSE (Tokio)',
     flag: '🇯🇵',
     city: 'Tokio',
@@ -92,13 +93,10 @@ const SIDEBAR_MARKETS: MarketDef[] = [
     closeHour: 15,
     closeMin: 30,
   },
-];
-
-const EXTRA_MODAL_MARKETS: MarketDef[] = [
   {
     id: 'cn',
     name: 'Hong Kong / SSE',
-    shortName: 'HKEX',
+    shortName: 'HKEX (Hong Kong)',
     flag: '🇭🇰',
     city: 'Hong Kong',
     indexName: 'Hang Seng',
@@ -127,8 +125,6 @@ const EXTRA_MODAL_MARKETS: MarketDef[] = [
     closeMin: 0,
   },
 ];
-
-const ALL_MARKETS: MarketDef[] = [...SIDEBAR_MARKETS, ...EXTRA_MODAL_MARKETS];
 
 interface BenchmarkQuote {
   symbol: string;
@@ -167,7 +163,6 @@ function resolveMarketState(
     };
   }
 
-  // Si Yahoo Finance devuelve un marketState explícito ('REGULAR', 'PRE', 'POST', 'PREPRE', 'POSTPOST', 'CLOSED'), lo priorizamos
   const stateUpper = (yahooMarketState || '').toUpperCase();
   if (stateUpper === 'REGULAR') {
     return {
@@ -190,7 +185,6 @@ function resolveMarketState(
     };
   }
 
-  // Fallback horario local por huso horario cuando aún no cargó la respuesta o para validar horarios
   const tzDate = new Date(now.toLocaleString('en-US', { timeZone: m.timeZone }));
   const day = tzDate.getDay();
   const isWeekend = day === 0 || day === 6;
@@ -209,7 +203,11 @@ function resolveMarketState(
     };
   }
 
-  if (!isWeekend && ((currentMins >= openMins - 30 && currentMins < openMins) || (currentMins >= closeMins && currentMins < closeMins + 30))) {
+  if (
+    !isWeekend &&
+    ((currentMins >= openMins - 30 && currentMins < openMins) ||
+      (currentMins >= closeMins && currentMins < closeMins + 30))
+  ) {
     return {
       status: 'pre_post',
       label: currentMins < openMins ? 'Pre-Apertura' : 'Post-Cierre',
@@ -232,20 +230,32 @@ function resolveMarketState(
 
 export const MarketStatusWidget = () => {
   const [now, setNow] = useState<Date | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const [isOpenModal, setIsOpenModal] = useState(false);
   const [benchmarks, setBenchmarks] = useState<Record<string, BenchmarkQuote>>({});
   const [loadingBenchmarks, setLoadingBenchmarks] = useState(true);
 
+  // Inicialización de reloj segura para SSR
   useEffect(() => {
     setNow(new Date());
     const clockTimer = setInterval(() => setNow(new Date()), 15_000);
     return () => clearInterval(clockTimer);
   }, []);
 
+  // Rotador dinámico: cambia de mercado cada 4 segundos si no está pausado (hover)
+  useEffect(() => {
+    if (isPaused) return;
+    const rotTimer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % MARKETS.length);
+    }, 4000);
+    return () => clearInterval(rotTimer);
+  }, [isPaused]);
+
   // Fetch de índices representativos usando /api/quotes por lote + polling inteligente
   useEffect(() => {
     let cancelled = false;
-    const traditionalSymbols = ALL_MARKETS.filter((m) => m.id !== 'crypto').map((m) => m.indexSymbol);
+    const traditionalSymbols = MARKETS.filter((m) => m.id !== 'crypto').map((m) => m.indexSymbol);
     const topAltcoins = [
       'ETH-USD',
       'BNB-USD',
@@ -270,7 +280,6 @@ export const MarketStatusWidget = () => {
           for (const item of data) {
             if (item?.symbol) {
               const hasPrice = typeof item.price === 'number' && item.price > 0;
-              // Evitar 0.0% falso cuando un índice (ej. ^MERV) no reporta variación válida
               const validChange =
                 hasPrice &&
                 typeof item.changePct === 'number' &&
@@ -326,7 +335,7 @@ export const MarketStatusWidget = () => {
     let bearish = 0;
     let neutral = 0;
 
-    for (const m of ALL_MARKETS) {
+    for (const m of MARKETS) {
       const q = benchmarks[m.indexSymbol];
       if (q && typeof q.change === 'number') {
         if (q.change > 0) bullish++;
@@ -337,12 +346,28 @@ export const MarketStatusWidget = () => {
     return { bullish, bearish, neutral, total: bullish + bearish + neutral };
   }, [benchmarks]);
 
-  if (!now) {
+  const currentMarket = MARKETS[currentIndex];
+  const currentQuote = benchmarks[currentMarket.indexSymbol];
+  const currentState = now ? resolveMarketState(now, currentMarket, currentQuote?.marketState) : null;
+  const hasChange =
+    currentQuote && typeof currentQuote.change === 'number' && Number.isFinite(currentQuote.change);
+  const isUp = hasChange && currentQuote.change! > 0;
+  const isDown = hasChange && currentQuote.change! < 0;
+
+  const nextMarket = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % MARKETS.length);
+  };
+
+  const prevMarket = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + MARKETS.length) % MARKETS.length);
+  };
+
+  if (!now || !currentState) {
     return (
       <div className="mt-auto pt-3 border-t border-line space-y-1.5 px-1">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-7 rounded bg-card/60 animate-pulse" />
-        ))}
+        <div className="h-16 rounded bg-card/60 animate-pulse" />
       </div>
     );
   }
@@ -350,11 +375,11 @@ export const MarketStatusWidget = () => {
   return (
     <>
       <div className="mt-auto pt-2.5 border-t border-line select-none">
-        {/* Cabecera de la Tira Fija de 4 Mercados */}
+        {/* Cabecera con título y botón de Sentimiento Global */}
         <div className="flex items-center justify-between px-1.5 mb-1.5">
           <span className="text-[10px] text-dim uppercase tracking-wider font-mono flex items-center gap-1">
             <Globe size={11} className="text-gold" />
-            Mercados en Vivo
+            Estado de Mercados
           </span>
           <button
             onClick={() => setIsOpenModal(true)}
@@ -366,57 +391,89 @@ export const MarketStatusWidget = () => {
           </button>
         </div>
 
-        {/* Lista Compacta Fija con los 4 Mercados Clave en Simultáneo */}
+        {/* Tarjeta única dinámica con rotación automática y controles prev/next */}
         <div
           onClick={() => setIsOpenModal(true)}
-          className="bg-bg/50 border border-line rounded-[6px] divide-y divide-line/50 overflow-hidden cursor-pointer hover:border-gold/40 transition-colors"
-          title="Click para ver detalle de índices y sentimiento mundial"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          className="bg-bg/60 hover:bg-card/70 border border-line hover:border-gold/40 rounded-[6px] p-2.5 cursor-pointer transition-all shadow-sm group"
+          title="Click para ver todos los mercados y sentimiento mundial"
         >
-          {SIDEBAR_MARKETS.map((m) => {
-            const q = benchmarks[m.indexSymbol];
-            const state = resolveMarketState(now, m, q?.marketState);
-            const hasChg = q && typeof q.change === 'number' && Number.isFinite(q.change);
-            const isUp = hasChg && q.change! > 0;
-            const isDown = hasChg && q.change! < 0;
-
-            return (
-              <div
-                key={m.id}
-                className="px-2 py-1.5 hover:bg-card/70 transition-colors flex items-center justify-between gap-1.5 text-[11px]"
-              >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-[12px] leading-none flex-shrink-0">{m.flag}</span>
-                  <div className="min-w-0">
-                    <div className="font-medium text-text truncate text-[11px] leading-tight">
-                      {m.shortName}
-                    </div>
-                    <div className="text-[9.5px] font-mono text-dim flex items-center gap-1 leading-tight mt-0.5">
-                      <span>{m.indexName}</span>
-                      <span
-                        className={`font-semibold tabular-nums ${
-                          isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
-                        }`}
-                      >
-                        {loadingBenchmarks && !q ? '...' : fmtPct(q?.change ?? null)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end flex-shrink-0">
-                  <div className="flex items-center gap-1">
-                    <span className={`w-1.5 h-1.5 rounded-full ${state.dotColor}`} />
-                    <span className={`text-[10px] font-mono font-medium ${state.textColor}`}>
-                      {state.shortLabel}
-                    </span>
-                  </div>
-                  <span className="text-[9px] font-mono text-dim tabular-nums leading-tight mt-0.5">
-                    {state.timeStr} {m.tzAbbr}
-                  </span>
-                </div>
+          {/* Fila superior: Bandera, Nombre y Estado */}
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[15px] leading-none flex-shrink-0">{currentMarket.flag}</span>
+              <div className="font-semibold text-text truncate text-[12px] leading-tight">
+                {currentMarket.name}
               </div>
-            );
-          })}
+            </div>
+
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <span className={`w-1.5 h-1.5 rounded-full ${currentState.dotColor}`} />
+              <span className={`text-[10.5px] font-mono font-medium ${currentState.textColor}`}>
+                {currentState.label}
+              </span>
+            </div>
+          </div>
+
+          {/* Fila intermedia: Índice, Variación y Hora Local */}
+          <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-line/40 text-[11px] font-mono">
+            <div className="flex items-center gap-1 truncate text-dim">
+              <span>{currentMarket.indexName}</span>
+              <span
+                className={`font-semibold tabular-nums ${
+                  isUp ? 'text-teal' : isDown ? 'text-red' : 'text-dim'
+                }`}
+              >
+                {loadingBenchmarks && !currentQuote ? '...' : fmtPct(currentQuote?.change ?? null)}
+              </span>
+            </div>
+
+            <span className="text-[9.5px] text-dim/90 tabular-nums flex-shrink-0">
+              {currentState.timeStr} {currentMarket.tzAbbr}
+            </span>
+          </div>
+
+          {/* Fila inferior: Controles de navegación y puntos indicadores */}
+          <div className="flex items-center justify-between mt-2 pt-1 border-t border-line/30 text-dim">
+            <div className="flex items-center gap-1">
+              {MARKETS.map((m, idx) => (
+                <button
+                  key={m.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentIndex(idx);
+                  }}
+                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                    currentIndex === idx ? 'w-3 bg-gold' : 'w-1.5 bg-line hover:bg-dim'
+                  }`}
+                  aria-label={`Ver ${m.name}`}
+                />
+              ))}
+            </div>
+
+            <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={prevMarket}
+                className="p-0.5 rounded hover:bg-bg hover:text-gold transition-colors"
+                title="Mercado anterior"
+                aria-label="Anterior"
+              >
+                <ChevronLeft size={13} />
+              </button>
+              <span className="text-[9.5px] font-mono text-dim/80 tabular-nums">
+                {currentIndex + 1}/{MARKETS.length}
+              </span>
+              <button
+                onClick={nextMarket}
+                className="p-0.5 rounded hover:bg-bg hover:text-gold transition-colors"
+                title="Siguiente mercado"
+                aria-label="Siguiente"
+              >
+                <ChevronRight size={13} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -448,7 +505,7 @@ export const MarketStatusWidget = () => {
                 </div>
                 <button
                   onClick={() => setIsOpenModal(false)}
-                  className="text-dim hover:text-text p-1.5 rounded-md hover:bg-bg2 transition-colors"
+                  className="text-dim hover:text-text p-1.5 rounded-md hover:bg-bg2 transition-colors cursor-pointer"
                   aria-label="Cerrar modal"
                 >
                   <X size={18} />
@@ -495,7 +552,7 @@ export const MarketStatusWidget = () => {
 
               {/* Lista detallada de cada mercado */}
               <div className="space-y-2 mt-1">
-                {ALL_MARKETS.map((m) => {
+                {MARKETS.map((m) => {
                   const q = benchmarks[m.indexSymbol];
                   const state = resolveMarketState(now, m, q?.marketState);
                   const hasData = q && typeof q.change === 'number' && Number.isFinite(q.change);
