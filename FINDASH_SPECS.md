@@ -116,5 +116,5 @@
   - Mejorar estructura, datos y visualización de índices globales.
 
 ### Epic 10: Módulos Futuros
-- [ ] **Dashboard Modular Drag & Drop (estilo Robinhood / Koyfin):** Paneles redimensionables y reordenables por el usuario con persistencia de layout en `localStorage`.
+- [x] **Dashboard Modular Drag & Drop (estilo Robinhood / Koyfin / widgets iOS):** Paneles reordenables en grilla 2D (`rectSortingStrategy` vía `@dnd-kit`) con `<SortableWidget />` y persistencia del layout en `localStorage` (`findash:dashboard_layout:v1`).
 - [ ] **Heatmap Nativo D3 por Sectores (estilo Finviz):** Motor jerárquico interactivo propio con agrupación sectorial/industrial, zoom semántico y tooltips enriquecidos sin depender de iframes externos.

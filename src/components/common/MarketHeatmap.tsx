@@ -25,6 +25,8 @@ interface MarketHeatmapProps<T extends HeatmapItem> {
   title?: string;
   /** Clases de altura del lienzo (responsive). */
   heightClassName?: string;
+  /** Deja margen superior derecho para el icono de arrastre cuando se usa en grilla modular. */
+  hasTopRightDragHandle?: boolean;
 }
 
 interface Rect {
@@ -142,6 +144,7 @@ export function MarketHeatmap<T extends HeatmapItem>({
   defaultSizeBy = 'marketCap',
   title = 'Mapa de Calor',
   heightClassName = 'h-[380px] md:h-[460px]',
+  hasTopRightDragHandle = false,
 }: MarketHeatmapProps<T>) {
   const [sizeBy, setSizeBy] = useState<HeatmapSizeBy>(defaultSizeBy);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -339,11 +342,11 @@ export function MarketHeatmap<T extends HeatmapItem>({
         className={
           isFullscreen
             ? 'fixed inset-2 sm:inset-5 z-[90] bg-card border border-line rounded-xl p-3 sm:p-4 shadow-2xl flex flex-col overflow-hidden'
-            : 'bg-card border border-line rounded-xl p-3 sm:p-4 shadow-sm'
+            : `bg-card border border-line rounded-xl p-3 sm:p-4 shadow-sm ${hasTopRightDragHandle ? 'h-full flex flex-col justify-between' : ''}`
         }
       >
         {/* Encabezado */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 flex-shrink-0">
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 flex-shrink-0 ${hasTopRightDragHandle && !isFullscreen ? 'pr-7' : ''}`}>
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-gold/15 border border-gold/30 text-gold flex items-center justify-center">
               <LayoutGrid size={14} />
