@@ -366,9 +366,9 @@ export const BolsaNewsCard = ({ onSelectTicker }: BolsaNewsCardProps) => {
   };
 
   return (
-    <div className="bg-card border border-line rounded-[6px] p-4 flex flex-col h-full shadow-sm">
+    <div className="bg-card border border-line rounded-[6px] p-4 flex flex-col w-full h-full shadow-sm">
       {/* Cabecera */}
-      <div className="flex items-center justify-between pb-3 border-b border-line gap-2">
+      <div className="draggable-handle flex items-center justify-between pb-3 border-b border-line gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-gold/15 border border-gold/30 flex items-center justify-center text-gold flex-shrink-0">
             <Newspaper size={16} />
@@ -431,7 +431,7 @@ export const BolsaNewsCard = ({ onSelectTicker }: BolsaNewsCardProps) => {
       </div>
 
       {/* Contenido Dinámico según el Tab seleccionado */}
-      <div className="flex-1 overflow-y-auto max-h-[460px] pr-1 mt-2">
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1 mt-2">
         {filter === 'balances' ? (
           /* =================================================================
              VISTA ESTILO QUARTR: CALENDARIO DE EVENTOS & BALANCES

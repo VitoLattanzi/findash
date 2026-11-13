@@ -16,6 +16,7 @@ import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { WhaleTracker } from '@/components/dashboard/WhaleTracker';
 import { CryptoNewsCard } from '@/components/dashboard/CryptoNewsCard';
 import { TradingViewCryptoHeatmap } from '@/components/common/TradingViewCryptoHeatmap';
+import { ModularGrid, ModularLayoutItem } from '@/components/common/ModularGrid';
 import { TimeframeControl } from '@/components/common/TimeframeHeader';
 import { formatPercent, formatPrice, formatVolume } from '@/lib/format';
 import {
@@ -26,6 +27,14 @@ import {
 } from '@/data/cryptoData';
 import { ChangeTimeframe, getTimeframeOption } from '@/lib/timeframe';
 import { Asset } from '@/types';
+
+const CRYPTO_DEFAULT_LAYOUT: ModularLayoutItem[] = [
+  { i: 'crypto-heatmap', x: 0, y: 0, w: 6, h: 14, minW: 4, minH: 9 },
+  { i: 'crypto-altcoins', x: 6, y: 0, w: 6, h: 7, minW: 4, minH: 5 },
+  { i: 'crypto-memecoins', x: 6, y: 7, w: 6, h: 7, minW: 4, minH: 5 },
+  { i: 'crypto-news', x: 0, y: 14, w: 6, h: 11, minW: 4, minH: 7 },
+  { i: 'crypto-whales', x: 6, y: 14, w: 6, h: 11, minW: 4, minH: 7 },
+];
 
 const STORAGE_ALT_KEY = 'findash_crypto_custom_altcoins_v2';
 const STORAGE_MEME_KEY = 'findash_crypto_custom_memecoins_v2';
@@ -267,9 +276,9 @@ export const CryptoView = () => {
       sort.key === key ? (sort.dir === 1 ? '▲' : '▼') : '↕';
 
     return (
-      <div className="bg-card border border-line rounded-[6px] p-3.5 flex flex-col shadow-sm">
+      <div className="bg-card border border-line rounded-[6px] p-3.5 w-full h-full flex flex-col shadow-sm">
         {/* Cabecera del Panel */}
-        <div className="flex items-center justify-between pb-2.5 mb-1 border-b border-line">
+        <div className="draggable-handle flex items-center justify-between pb-2.5 mb-1 border-b border-line flex-shrink-0">
           <div className="flex items-center gap-2">
             <div
               className={`w-6 h-6 rounded-md flex items-center justify-center ${
@@ -302,7 +311,7 @@ export const CryptoView = () => {
         </div>
 
         {/* Contenedor Scrolleable Compacto */}
-        <div className="max-h-[265px] overflow-y-auto overflow-x-auto pr-0.5">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto pr-0.5">
           {rows.length === 0 ? (
             <div className="py-10 text-center text-dim text-[12px]">
               {searchQuery
@@ -477,23 +486,28 @@ export const CryptoView = () => {
         </div>
       </div>
 
-      {/* Grilla Superior: Izquierda (Heatmap 53%) | Derecha (2 Paneles Apilados 47%) */}
-      <div className="flex flex-col xl:flex-row gap-4 items-stretch">
-        <div className="w-full xl:w-[53%] min-w-0">
+      {/* Grilla Modular Redimensionable: Heatmap, Altcoins, Memes, Noticias y Ballenas */}
+      <ModularGrid layoutId="crypto" defaultLayout={CRYPTO_DEFAULT_LAYOUT} rowHeight={32}>
+        <div key="crypto-heatmap" className="w-full h-full">
           <TradingViewCryptoHeatmap />
         </div>
 
-        <div className="w-full xl:w-[47%] min-w-0 flex flex-col justify-between gap-4">
+        <div key="crypto-altcoins" className="w-full h-full">
           {renderPanel('Altcoins & Capa 1', 'activas', 'altcoin', <Layers size={14} />, altRows)}
+        </div>
+
+        <div key="crypto-memecoins" className="w-full h-full">
           {renderPanel('Meme Coins Líderes', 'activas', 'memecoin', <Flame size={14} />, memeRows)}
         </div>
-      </div>
 
-      {/* Grid Inferior: 2 Cards (Portal de Noticias Cripto & Radar de Ballenas) */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch">
-        <CryptoNewsCard />
-        <WhaleTracker />
-      </div>
+        <div key="crypto-news" className="w-full h-full">
+          <CryptoNewsCard />
+        </div>
+
+        <div key="crypto-whales" className="w-full h-full">
+          <WhaleTracker />
+        </div>
+      </ModularGrid>
 
       {/* Modal para Agregar Moneda */}
       {showAddModal && (

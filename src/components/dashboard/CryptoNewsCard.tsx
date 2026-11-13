@@ -75,9 +75,9 @@ export const CryptoNewsCard = () => {
   );
 
   return (
-    <div className="bg-card border border-line rounded-xl p-4 flex flex-col h-full shadow-sm">
+    <div className="bg-card border border-line rounded-xl p-4 flex flex-col w-full h-full shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-line gap-2 flex-wrap">
+      <div className="draggable-handle flex items-center justify-between pb-3 border-b border-line gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-teal/15 border border-teal/30 flex items-center justify-center text-teal">
             <Newspaper size={17} />
@@ -141,7 +141,7 @@ export const CryptoNewsCard = () => {
       </div>
 
       {/* Lista de Noticias */}
-      <div className="flex-1 overflow-y-auto max-h-[350px] divide-y divide-line/40 pr-1 mt-1 space-y-2">
+      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-line/40 pr-1 mt-1 space-y-2">
         {loading ? (
           <div className="py-16 text-center text-dim space-y-2.5">
             <div className="w-6 h-6 border-2 border-teal border-t-transparent rounded-full animate-spin mx-auto" />

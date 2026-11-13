@@ -298,9 +298,9 @@ export const WhaleTracker = () => {
   };
 
   return (
-    <div className="bg-card border border-line rounded-xl p-4 flex flex-col h-full shadow-sm">
+    <div className="bg-card border border-line rounded-xl p-4 flex flex-col w-full h-full shadow-sm">
       {/* Header con Filtro de Umbral Ampliado ($50k | $100k | $250k | $500k) */}
-      <div className="flex items-center justify-between pb-3 border-b border-line gap-2 flex-wrap">
+      <div className="draggable-handle flex items-center justify-between pb-3 border-b border-line gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gold/15 border border-gold/30 flex items-center justify-center text-gold">
             <span className="text-[17px]">🐋</span>
@@ -563,7 +563,7 @@ export const WhaleTracker = () => {
       </div>
 
       {/* Lista de Operaciones Individuales */}
-      <div className="flex-1 overflow-y-auto max-h-[250px] divide-y divide-line/40 pr-1 mt-1 space-y-1">
+      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-line/40 pr-1 mt-1 space-y-1">
         {visibleTrades.length === 0 ? (
           <div className="py-10 text-center text-dim space-y-2">
             <Radio size={22} className="mx-auto text-gold animate-pulse" />

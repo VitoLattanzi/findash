@@ -7,6 +7,7 @@ import { fmtCompact, fmtPct, fmtPrice } from '@/lib/format';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { BolsaNewsCard } from '@/components/dashboard/BolsaNewsCard';
 import { TradingViewStockHeatmap } from '@/components/common/TradingViewStockHeatmap';
+import { ModularGrid, ModularLayoutItem } from '@/components/common/ModularGrid';
 import { AssetLogo } from '@/components/common/AssetLogo';
 import { PriceCell, ChangeCell } from '@/components/common/PriceCell';
 import { Sparkline } from '@/components/common/Sparkline';
@@ -102,6 +103,13 @@ const SECTOR_GROUPS: Array<{
     label: 'Energía & Ind.',
     symbols: ['XOM', 'CVX', 'COP', 'CAT', 'GE', 'RTX', 'LMT', 'UNP', 'DE', 'BA', 'ETN', 'HON', 'LIN', 'NEE'],
   },
+];
+
+const BOLSA_DEFAULT_LAYOUT: ModularLayoutItem[] = [
+  { i: 'bolsa-heatmap', x: 0, y: 0, w: 6, h: 14, minW: 4, minH: 9 },
+  { i: 'bolsa-sp500', x: 6, y: 0, w: 6, h: 14, minW: 4, minH: 8 },
+  { i: 'bolsa-regional', x: 0, y: 14, w: 7, h: 13, minW: 4, minH: 8 },
+  { i: 'bolsa-news', x: 7, y: 14, w: 5, h: 13, minW: 4, minH: 8 },
 ];
 
 // 1. Columna "Oro & Materias Primas" (Commodities)
@@ -505,22 +513,18 @@ export const BolsaView = () => {
         </div>
       </div>
 
-      {/* =====================================================================
-          FILA SUPERIOR (Altura 640px):
-          Izquierda (53%): Bloque 1 — Mapa de Calor Bursátil (TradingView)
-          Derecha  (47%): Bloque 2 — Principales Acciones & Conjuntos (S&P 500)
-      ===================================================================== */}
-      <div className="flex flex-col xl:flex-row gap-4 items-stretch">
-        {/* BLOQUE 1: Mapa de Calor de Acciones (53%, 640px) */}
-        <div className="w-full xl:w-[53%] min-w-0">
+      {/* Grilla Modular Redimensionable: Heatmap, Principales Acciones, Panel Triple y Noticias */}
+      <ModularGrid layoutId="bolsa" defaultLayout={BOLSA_DEFAULT_LAYOUT} rowHeight={32}>
+        {/* BLOQUE 1: Mapa de Calor de Acciones */}
+        <div key="bolsa-heatmap" className="w-full h-full">
           <TradingViewStockHeatmap />
         </div>
 
-        {/* BLOQUE 2: Principales Acciones & Conjuntos al estilo S&P 500 (47%, 640px) */}
-        <div className="w-full xl:w-[47%] min-w-0">
-          <div className="bg-card border border-line rounded-[6px] p-3.5 flex flex-col h-[640px] shadow-sm">
+        {/* BLOQUE 2: Principales Acciones & Conjuntos al estilo S&P 500 */}
+        <div key="bolsa-sp500" className="w-full h-full">
+          <div className="bg-card border border-line rounded-[6px] p-3.5 flex flex-col w-full h-full shadow-sm">
             {/* Cabecera del Panel */}
-            <div className="flex items-center justify-between pb-2 border-b border-line gap-2 flex-wrap">
+            <div className="draggable-handle flex items-center justify-between pb-2 border-b border-line gap-2 flex-wrap flex-shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md bg-gold/15 text-gold border border-gold/30 flex items-center justify-center">
                   <Layers size={14} />
@@ -800,19 +804,12 @@ export const BolsaView = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* =====================================================================
-          FILA INFERIOR:
-          Izquierda (53%): Bloque 3 — Panel Triple (Oro & Materias Primas | Mercado Global | Argentina ADRs)
-          Derecha  (47%): Bloque 4 — Noticias, Balances (Quartr) & Voces
-      ===================================================================== */}
-      <div className="flex flex-col xl:flex-row gap-4 items-stretch">
-        {/* BLOQUE 3: Panel Triple en Paralelo (53%) */}
-        <div className="w-full xl:w-[53%] min-w-0">
-          <div className="bg-card border border-line rounded-[6px] p-3.5 flex flex-col h-full shadow-sm">
+        {/* BLOQUE 3: Panel Triple en Paralelo (Commodities | Global | Argentina) */}
+        <div key="bolsa-regional" className="w-full h-full">
+          <div className="bg-card border border-line rounded-[6px] p-3.5 flex flex-col w-full h-full shadow-sm">
             {/* Barra de control compartida para las 3 columnas */}
-            <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-line gap-2 flex-wrap">
+            <div className="draggable-handle flex items-center justify-between pb-2.5 mb-3 border-b border-line gap-2 flex-wrap flex-shrink-0">
               <div className="flex items-center gap-3 text-[11px] font-mono uppercase tracking-wider text-dim">
                 <button
                   type="button"
@@ -849,7 +846,8 @@ export const BolsaView = () => {
             </div>
 
             {/* Grilla de 3 Columnas Verticales Lado a Lado */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 items-start">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-0.5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
               {/* COLUMNA 1: Oro & Materias Primas */}
               <div className="bg-bg2/60 border border-line rounded-[6px] flex flex-col overflow-hidden">
                 <div className="px-3 py-2 bg-bg2 border-b border-line flex items-center justify-between">
@@ -1143,13 +1141,14 @@ export const BolsaView = () => {
               </div>
             </div>
           </div>
+          </div>
         </div>
 
-        {/* BLOQUE 4: Noticias / Balances (Quartr) / Habló X Persona (47%) */}
-        <div className="w-full xl:w-[47%] min-w-0">
+        {/* BLOQUE 4: Noticias / Balances (Quartr) / Habló X Persona */}
+        <div key="bolsa-news" className="w-full h-full">
           <BolsaNewsCard onSelectTicker={openTickerInDetail} />
         </div>
-      </div>
+      </ModularGrid>
 
       {/* Modal Central de Detalle al hacer clic en cualquier activo de cualquiera de los bloques */}
       <DetailPanel asset={selected} isOpen={!!selected} onClose={() => setSelected(null)} />

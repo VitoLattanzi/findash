@@ -1,24 +1,9 @@
 'use client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  DndContext,
-  DragEndEvent,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  arrayMove,
-  rectSortingStrategy,
-  sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable';
 import { AssetList } from '@/components/dashboard/AssetList';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
-import { SortableWidget } from '@/components/dashboard/SortableWidget';
 import { MarketHeatmap, HeatmapItem } from '@/components/common/MarketHeatmap';
+import { ModularGrid, ModularLayoutItem } from '@/components/common/ModularGrid';
 import { estimateCryptoMarketCap } from '@/data/cryptoData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useBinanceWebSocket } from '@/hooks/useBinanceWebSocket';
@@ -28,7 +13,7 @@ import { Asset } from '@/types';
 import { CATALOG, CATALOG_GROUPS, DEFAULT_PINNED, PinnedAsset } from '@/lib/catalog';
 import { ChangeTimeframe, getTimeframeOption } from '@/lib/timeframe';
 import type { ArIndicatorsResponse } from '@/app/api/ar-indicators/route';
-import { Download, RotateCcw, Upload } from 'lucide-react';
+import { Download, GripHorizontal, Upload } from 'lucide-react';
 
 interface CryptoKlineSeries {
   firstOpen: number;
@@ -56,26 +41,17 @@ const FNG_LABEL: Record<string, string> = {
   'Extreme Greed': 'Codicia extrema',
 };
 
-const LAYOUT_STORAGE_KEY = 'findash:dashboard_layout:v1';
-
-const DEFAULT_WIDGET_IDS = [
-  'pinned-assets',
-  'heatmap',
-  'arg-indicators',
-  'fear-greed',
-  'news',
-  'add-catalog',
-] as const;
-
-type DashboardWidgetId = (typeof DEFAULT_WIDGET_IDS)[number];
-
-const isValidWidgetId = (id: unknown): id is DashboardWidgetId =>
-  typeof id === 'string' && (DEFAULT_WIDGET_IDS as readonly string[]).includes(id);
+const DASHBOARD_DEFAULT_LAYOUT: ModularLayoutItem[] = [
+  { i: 'pinned-assets', x: 0, y: 0, w: 4, h: 10, minW: 3, minH: 6 },
+  { i: 'heatmap', x: 4, y: 0, w: 4, h: 10, minW: 4, minH: 7 },
+  { i: 'arg-indicators', x: 8, y: 0, w: 4, h: 10, minW: 3, minH: 6 },
+  { i: 'fear-greed', x: 0, y: 10, w: 4, h: 8, minW: 3, minH: 5 },
+  { i: 'news', x: 4, y: 10, w: 4, h: 8, minW: 3, minH: 6 },
+  { i: 'add-catalog', x: 8, y: 10, w: 4, h: 8, minW: 3, minH: 6 },
+];
 
 export const DashboardView = () => {
   const [pinned, setPinned] = useLocalStorage<PinnedAsset[]>('findash:pinned:v1', DEFAULT_PINNED);
-  const [widgetIds, setWidgetIds] = useState<DashboardWidgetId[]>([...DEFAULT_WIDGET_IDS]);
-  const layoutRestoredRef = useRef(false);
 
   const [view, setView] = useState<'list' | 'card' | 'map'>('list');
   const [timeframe, setTimeframe] = useState<ChangeTimeframe>('24h');
@@ -88,80 +64,6 @@ export const DashboardView = () => {
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState<string>('crypto');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Sensores para arrastrar con mouse/touch o teclado accesible
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 6,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  // Restaurar el orden guardado del usuario al montar
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (cancelled) return;
-      try {
-        const saved = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
-        if (saved) {
-          const parsed: unknown = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            const validSaved = parsed.filter(isValidWidgetId);
-            const uniqueSaved = Array.from(new Set(validSaved));
-            const missingDefaults = DEFAULT_WIDGET_IDS.filter((id) => !uniqueSaved.includes(id));
-            const merged = [...uniqueSaved, ...missingDefaults];
-            if (merged.length > 0) {
-              setWidgetIds(merged);
-            }
-          }
-        }
-      } catch {
-        // Si el JSON guardado está corrupto, mantenemos el orden por defecto
-      } finally {
-        layoutRestoredRef.current = true;
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Guardar el orden del array widgetIds cada vez que el usuario lo reordena
-  useEffect(() => {
-    if (typeof window === 'undefined' || !layoutRestoredRef.current) return;
-    try {
-      window.localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(widgetIds));
-    } catch {
-      // ignore quota errors
-    }
-  }, [widgetIds]);
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    setWidgetIds((prev) => {
-      const oldIndex = prev.indexOf(active.id as DashboardWidgetId);
-      const newIndex = prev.indexOf(over.id as DashboardWidgetId);
-      if (oldIndex === -1 || newIndex === -1) return prev;
-      return arrayMove(prev, oldIndex, newIndex);
-    });
-  };
-
-  const isCustomLayout = useMemo(
-    () => widgetIds.some((id, idx) => DEFAULT_WIDGET_IDS[idx] !== id),
-    [widgetIds]
-  );
-
-  const resetLayout = () => {
-    setWidgetIds([...DEFAULT_WIDGET_IDS]);
-  };
 
   const cryptoPinned = useMemo(
     () => pinned.filter((p) => p.type === 'crypto').map((p) => `${p.symbol.toLowerCase()}usdt`),
@@ -374,13 +276,48 @@ export const DashboardView = () => {
 
   const d = arIndicators?.dolares;
 
-  const renderWidget = (id: DashboardWidgetId) => {
-    switch (id) {
-      case 'pinned-assets':
-        return (
-          <div className="bg-card border border-line rounded-[6px] p-4 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-2.5 gap-2 flex-wrap pr-8">
-              <h3 className="text-[13.5px] text-dim font-medium">ACTIVOS FIJADOS</h3>
+  return (
+    <>
+      <div className="flex justify-between items-center mb-[18px] flex-wrap gap-2">
+        <div>
+          <h2 className="text-[22px]">Dashboard</h2>
+          <p className="text-[11.5px] text-dim">
+            Arrastrá desde la cabecera de cada módulo y redimensioná desde su esquina inferior derecha.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex border border-line rounded-[5px] overflow-hidden">
+            <button
+              onClick={() => setView('list')}
+              className={`px-[14px] py-[7px] text-[12.5px] ${view === 'list' ? 'bg-gold text-bg' : 'bg-bg2 text-dim'}`}
+            >
+              Lista
+            </button>
+            <button
+              onClick={() => setView('card')}
+              className={`px-[14px] py-[7px] text-[12.5px] ${view === 'card' ? 'bg-gold text-bg' : 'bg-bg2 text-dim'}`}
+            >
+              Cards
+            </button>
+            <button
+              onClick={() => setView('map')}
+              className={`px-[14px] py-[7px] text-[12.5px] ${view === 'map' ? 'bg-gold text-bg' : 'bg-bg2 text-dim'}`}
+            >
+              Mapa
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <ModularGrid layoutId="dashboard" defaultLayout={DASHBOARD_DEFAULT_LAYOUT} rowHeight={32}>
+        {/* 1. Activos Fijados */}
+        <div key="pinned-assets" className="w-full h-full">
+          <div className="bg-card border border-line rounded-[6px] p-4 w-full h-full flex flex-col">
+            <div className="draggable-handle flex items-center justify-between mb-2.5 gap-2 flex-wrap pb-2 border-b border-line/60">
+              <div className="flex items-center gap-1.5">
+                <GripHorizontal size={13} className="text-dim/60" />
+                <h3 className="text-[13.5px] text-dim font-medium">ACTIVOS FIJADOS</h3>
+              </div>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
@@ -410,94 +347,103 @@ export const DashboardView = () => {
               </div>
             </div>
 
-            {pinned.length === 0 ? (
-              <div className="text-dim text-[12.5px]">
-                Todavía no fijaste ningún activo. Usá el catálogo de abajo para agregarlos.
-              </div>
-            ) : (
-              <AssetList
-                assets={assets}
-                view={view === 'map' ? 'list' : view}
-                onAssetClick={(a) => setSelectedAsset(a)}
-                onRemove={(a) => unpin(a.symbol ?? a.name)}
-                timeframe={timeframe}
-                onTimeframeChange={setTimeframe}
-                loading={loadingStocks}
-              />
-            )}
+            <div className="flex-1 min-h-0 overflow-y-auto pr-0.5">
+              {pinned.length === 0 ? (
+                <div className="text-dim text-[12.5px]">
+                  Todavía no fijaste ningún activo. Usá el catálogo para agregarlos.
+                </div>
+              ) : (
+                <AssetList
+                  assets={assets}
+                  view={view === 'map' ? 'list' : view}
+                  onAssetClick={(a) => setSelectedAsset(a)}
+                  onRemove={(a) => unpin(a.symbol ?? a.name)}
+                  timeframe={timeframe}
+                  onTimeframeChange={setTimeframe}
+                  loading={loadingStocks}
+                />
+              )}
+            </div>
           </div>
-        );
+        </div>
 
-      case 'heatmap':
-        return (
-          <div className={`h-full rounded-xl ${view === 'map' ? 'ring-1 ring-gold/50' : ''}`}>
-            <MarketHeatmap
-              items={heatmapItems}
-              defaultSizeBy="volatility"
-              title="Mapa de Calor · Activos Fijados"
-              heightClassName="h-[260px] sm:h-[280px]"
-              hasTopRightDragHandle
-              onItemClick={(it) => setSelectedAsset(it.asset)}
-            />
-          </div>
-        );
+        {/* 2. Mapa de Calor Activos Fijados */}
+        <div key="heatmap" className={`w-full h-full rounded-xl ${view === 'map' ? 'ring-1 ring-gold/50' : ''}`}>
+          <MarketHeatmap
+            items={heatmapItems}
+            defaultSizeBy="volatility"
+            title="Mapa de Calor · Activos Fijados"
+            heightClassName="flex-1 min-h-[180px]"
+            onItemClick={(it) => setSelectedAsset(it.asset)}
+          />
+        </div>
 
-      case 'arg-indicators':
-        return (
-          <div className="bg-card border border-line rounded-[6px] p-4 h-full flex flex-col">
-            <h3 className="text-[13.5px] text-dim font-medium mb-2.5 pr-8">INDICADORES ARGENTINA</h3>
-            {!arIndicators ? (
-              <div className="space-y-2 py-1">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-5 rounded bg-white/5 animate-pulse" />
-                ))}
+        {/* 3. Indicadores Argentina */}
+        <div key="arg-indicators" className="w-full h-full">
+          <div className="bg-card border border-line rounded-[6px] p-4 w-full h-full flex flex-col">
+            <div className="draggable-handle flex items-center justify-between mb-2.5 pb-2 border-b border-line/60">
+              <div className="flex items-center gap-1.5">
+                <GripHorizontal size={13} className="text-dim/60" />
+                <h3 className="text-[13.5px] text-dim font-medium">INDICADORES ARGENTINA</h3>
               </div>
-            ) : (
-              <div className="divide-y divide-line">
-                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
-                  <span className="font-sans">Dólar Oficial</span>
-                  <b className="font-semibold">{fmtPrice(d?.oficial)}</b>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              {!arIndicators ? (
+                <div className="space-y-2 py-1">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-5 rounded bg-white/5 animate-pulse" />
+                  ))}
                 </div>
-                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
-                  <span className="font-sans">Dólar Blue</span>
-                  <b className="font-semibold">{fmtPrice(d?.blue)}</b>
-                </div>
-                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
-                  <span className="font-sans">Dólar MEP</span>
-                  <b className="font-semibold text-gold">{fmtPrice(d?.mep)}</b>
-                </div>
-                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
-                  <span className="font-sans">Dólar CCL</span>
-                  <b className="font-semibold">{fmtPrice(d?.ccl)}</b>
-                </div>
-                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
-                  <span className="font-sans">Brecha Cambiaria (MEP)</span>
-                  <b className="font-semibold text-teal">{fmtPct(d?.brechaMep)}</b>
-                </div>
-                <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
-                  <span className="font-sans">Riesgo País (EMBI)</span>
-                  <b className="font-semibold text-gold">
-                    {arIndicators.riesgoPais != null
-                      ? `${arIndicators.riesgoPais.toLocaleString('es-AR')} pb`
-                      : '—'}
-                  </b>
-                </div>
-                {arIndicators.inflacionMensual != null && (
+              ) : (
+                <div className="divide-y divide-line">
                   <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
-                    <span className="font-sans">Inflación Mensual (INDEC)</span>
-                    <b className="font-semibold">{fmtPct(arIndicators.inflacionMensual)}</b>
+                    <span className="font-sans">Dólar Oficial</span>
+                    <b className="font-semibold">{fmtPrice(d?.oficial)}</b>
                   </div>
-                )}
-              </div>
-            )}
+                  <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                    <span className="font-sans">Dólar Blue</span>
+                    <b className="font-semibold">{fmtPrice(d?.blue)}</b>
+                  </div>
+                  <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                    <span className="font-sans">Dólar MEP</span>
+                    <b className="font-semibold text-gold">{fmtPrice(d?.mep)}</b>
+                  </div>
+                  <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                    <span className="font-sans">Dólar CCL</span>
+                    <b className="font-semibold">{fmtPrice(d?.ccl)}</b>
+                  </div>
+                  <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                    <span className="font-sans">Brecha Cambiaria (MEP)</span>
+                    <b className="font-semibold text-teal">{fmtPct(d?.brechaMep)}</b>
+                  </div>
+                  <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                    <span className="font-sans">Riesgo País (EMBI)</span>
+                    <b className="font-semibold text-gold">
+                      {arIndicators.riesgoPais != null
+                        ? `${arIndicators.riesgoPais.toLocaleString('es-AR')} pb`
+                        : '—'}
+                    </b>
+                  </div>
+                  {arIndicators.inflacionMensual != null && (
+                    <div className="flex justify-between text-[12.5px] py-1.5 font-mono tabular-nums">
+                      <span className="font-sans">Inflación Mensual (INDEC)</span>
+                      <b className="font-semibold">{fmtPct(arIndicators.inflacionMensual)}</b>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        );
+        </div>
 
-      case 'fear-greed':
-        return (
-          <div className="bg-card border border-line rounded-[6px] p-4 h-full flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-2 pr-8">
-              <h3 className="text-[13.5px] text-dim font-medium">MIEDO Y CODICIA</h3>
+        {/* 4. Miedo y Codicia */}
+        <div key="fear-greed" className="w-full h-full">
+          <div className="bg-card border border-line rounded-[6px] p-4 w-full h-full flex flex-col justify-between">
+            <div className="draggable-handle flex items-center justify-between mb-2 pb-2 border-b border-line/60">
+              <div className="flex items-center gap-1.5">
+                <GripHorizontal size={13} className="text-dim/60" />
+                <h3 className="text-[13.5px] text-dim font-medium">MIEDO Y CODICIA</h3>
+              </div>
               <span className="text-[10px] text-dim/70 uppercase tracking-wide">Cripto</span>
             </div>
             {fng ? (
@@ -524,47 +470,55 @@ export const DashboardView = () => {
               <div className="h-12 rounded bg-white/5 animate-pulse" />
             )}
           </div>
-        );
+        </div>
 
-      case 'news':
-        return (
-          <div className="bg-card border border-line rounded-[6px] p-4 h-full flex flex-col">
-            <h3 className="text-[13.5px] text-dim font-medium mb-2.5 pr-8">RESUMEN DEL DÍA</h3>
-            {loadingNews ? (
-              <div className="space-y-2 py-1">
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="h-10 rounded bg-white/5 animate-pulse" />
-                ))}
-              </div>
-            ) : headlines.length === 0 ? (
-              <div className="text-dim text-[12px]">Sin titulares disponibles.</div>
-            ) : (
-              headlines.map((h, i) => (
-                <a
-                  key={`${h.link}-${i}`}
-                  href={h.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`block py-[9px] text-[12.5px] hover:text-gold ${
-                    i < headlines.length - 1 ? 'border-b border-line' : ''
-                  }`}
-                >
-                  {h.title}
-                  <span className="text-gold text-[11px] block mt-[2px]">
-                    {h.source}
-                    {h.pubDate ? ` · ${new Date(h.pubDate).toLocaleDateString('es-AR')}` : ''}
-                  </span>
-                </a>
-              ))
-            )}
+        {/* 5. Resumen del Día */}
+        <div key="news" className="w-full h-full">
+          <div className="bg-card border border-line rounded-[6px] p-4 w-full h-full flex flex-col">
+            <div className="draggable-handle flex items-center gap-1.5 mb-2.5 pb-2 border-b border-line/60">
+              <GripHorizontal size={13} className="text-dim/60" />
+              <h3 className="text-[13.5px] text-dim font-medium">RESUMEN DEL DÍA</h3>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto pr-0.5">
+              {loadingNews ? (
+                <div className="space-y-2 py-1">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div key={i} className="h-10 rounded bg-white/5 animate-pulse" />
+                  ))}
+                </div>
+              ) : headlines.length === 0 ? (
+                <div className="text-dim text-[12px]">Sin titulares disponibles.</div>
+              ) : (
+                headlines.map((h, i) => (
+                  <a
+                    key={`${h.link}-${i}`}
+                    href={h.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`block py-[9px] text-[12.5px] hover:text-gold ${
+                      i < headlines.length - 1 ? 'border-b border-line' : ''
+                    }`}
+                  >
+                    {h.title}
+                    <span className="text-gold text-[11px] block mt-[2px]">
+                      {h.source}
+                      {h.pubDate ? ` · ${new Date(h.pubDate).toLocaleDateString('es-AR')}` : ''}
+                    </span>
+                  </a>
+                ))
+              )}
+            </div>
           </div>
-        );
+        </div>
 
-      case 'add-catalog':
-        return (
-          <div className="bg-card border border-line rounded-[6px] p-4 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-2.5 flex-wrap gap-2 pr-8">
-              <h3 className="text-[13.5px] text-dim font-medium">AGREGAR AL DASHBOARD</h3>
+        {/* 6. Agregar al Dashboard */}
+        <div key="add-catalog" className="w-full h-full">
+          <div className="bg-card border border-line rounded-[6px] p-4 w-full h-full flex flex-col">
+            <div className="draggable-handle flex justify-between items-center mb-2.5 flex-wrap gap-2 pb-2 border-b border-line/60">
+              <div className="flex items-center gap-1.5">
+                <GripHorizontal size={13} className="text-dim/60" />
+                <h3 className="text-[13.5px] text-dim font-medium">AGREGAR AL DASHBOARD</h3>
+              </div>
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -572,7 +526,7 @@ export const DashboardView = () => {
                 className="bg-bg2 border border-line text-text px-2.5 py-1 rounded-[4px] text-[16px] sm:text-[12px] w-[150px]"
               />
             </div>
-            <div className="mb-3">
+            <div className="mb-3 flex-shrink-0">
               {CATALOG_GROUPS.map((g) => (
                 <button
                   key={g.key}
@@ -585,7 +539,7 @@ export const DashboardView = () => {
                 </button>
               ))}
             </div>
-            <div className="flex flex-wrap gap-1.5 max-h-[190px] overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-wrap gap-1.5 content-start pr-0.5">
               {catalogFiltered.map((item) => {
                 const isPinned = pinned.some((p) => p.symbol === item.symbol);
                 return (
@@ -593,7 +547,7 @@ export const DashboardView = () => {
                     key={item.symbol}
                     onClick={() => (isPinned ? unpin(item.symbol) : pin(item))}
                     title={item.label}
-                    className={`text-[11.5px] px-2 py-1 rounded-[4px] border ${
+                    className={`text-[11.5px] px-2 py-1 rounded-[4px] border h-fit ${
                       isPinned
                         ? 'border-gold text-gold bg-bg2'
                         : 'border-line text-dim bg-bg2 hover:border-dim'
@@ -609,70 +563,8 @@ export const DashboardView = () => {
               )}
             </div>
           </div>
-        );
-    }
-  };
-
-  return (
-    <>
-      <div className="flex justify-between items-center mb-[18px] flex-wrap gap-2">
-        <div>
-          <h2 className="text-[22px]">Dashboard</h2>
-          <p className="text-[11.5px] text-dim">
-            Arrastrá desde el icono superior derecho de cada tarjeta para personalizar tu tablero.
-          </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {isCustomLayout && (
-            <button
-              type="button"
-              onClick={resetLayout}
-              title="Restablecer orden original de tarjetas"
-              className="inline-flex items-center gap-1.5 px-2.5 py-[7px] rounded-[5px] bg-bg2 hover:bg-card border border-line text-[12px] text-dim hover:text-gold transition-colors cursor-pointer"
-            >
-              <RotateCcw size={13} />
-              <span>Restablecer orden</span>
-            </button>
-          )}
-          <div className="flex border border-line rounded-[5px] overflow-hidden">
-            <button
-              onClick={() => setView('list')}
-              className={`px-[14px] py-[7px] text-[12.5px] ${view === 'list' ? 'bg-gold text-bg' : 'bg-bg2 text-dim'}`}
-            >
-              Lista
-            </button>
-            <button
-              onClick={() => setView('card')}
-              className={`px-[14px] py-[7px] text-[12.5px] ${view === 'card' ? 'bg-gold text-bg' : 'bg-bg2 text-dim'}`}
-            >
-              Cards
-            </button>
-            <button
-              onClick={() => setView('map')}
-              className={`px-[14px] py-[7px] text-[12.5px] ${view === 'map' ? 'bg-gold text-bg' : 'bg-bg2 text-dim'}`}
-            >
-              Mapa
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <DndContext
-        id="findash-dashboard-dnd"
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext items={widgetIds} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
-            {widgetIds.map((id) => (
-              <SortableWidget key={id} id={id}>
-                {renderWidget(id)}
-              </SortableWidget>
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      </ModularGrid>
 
       <DetailPanel asset={selectedAsset} isOpen={!!selectedAsset} onClose={() => setSelectedAsset(null)} />
     </>

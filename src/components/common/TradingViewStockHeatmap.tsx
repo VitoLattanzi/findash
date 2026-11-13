@@ -70,7 +70,7 @@ const TradingViewStockHeatmapComponent = () => {
 
       {/* Placeholder para mantener la grilla intacta cuando pasa a pantalla completa */}
       {isFullscreen && (
-        <div className="bg-card/40 border border-line/50 rounded-[6px] h-[640px] w-full flex items-center justify-center text-dim text-[12.5px] font-mono">
+        <div className="bg-card/40 border border-line/50 rounded-[6px] h-full w-full flex items-center justify-center text-dim text-[12.5px] font-mono">
           Mapa de Calor Bursátil abierto en pantalla completa...
         </div>
       )}
@@ -79,11 +79,11 @@ const TradingViewStockHeatmapComponent = () => {
         className={
           isFullscreen
             ? 'fixed inset-2 sm:inset-5 z-[90] bg-card border border-line rounded-[8px] shadow-2xl overflow-hidden flex flex-col'
-            : 'relative bg-card border border-line rounded-[6px] h-[640px] overflow-hidden w-full flex flex-col'
+            : 'relative bg-card border border-line rounded-[6px] h-full min-h-[380px] overflow-hidden w-full flex flex-col'
         }
       >
         {/* Barra superior de control del Heatmap con toggle Tamaño Igual (Mono) */}
-        <div className="flex items-center justify-between px-3 py-1.5 bg-bg2 border-b border-line flex-shrink-0 gap-2">
+        <div className="draggable-handle flex items-center justify-between px-3 py-1.5 bg-bg2 border-b border-line flex-shrink-0 gap-2">
           <div className="flex items-center gap-2 text-[11.5px] font-mono text-dim">
             <span className="text-gold font-semibold">S&amp;P 500 Heatmap</span>
             <span className="hidden sm:inline text-[10.5px]">

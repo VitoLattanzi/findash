@@ -9,6 +9,7 @@ import {
 } from '@/lib/argentina';
 import { DetailPanel } from '@/components/dashboard/DetailPanel';
 import { AssetLogo } from '@/components/common/AssetLogo';
+import { ModularGrid, ModularLayoutItem } from '@/components/common/ModularGrid';
 import { PriceCell, ChangeCell } from '@/components/common/PriceCell';
 import { Sparkline } from '@/components/common/Sparkline';
 import { TimeframeControl } from '@/components/common/TimeframeHeader';
@@ -30,6 +31,39 @@ interface Quote {
 
 type TabMode = 'cedears' | 'bonos' | 'calculadora';
 type CedearSortField = 'ticker' | 'name' | 'usd' | 'ars' | 'change' | 'volume';
+
+const AR_MACRO_DEFAULT_LAYOUT: ModularLayoutItem[] = [
+  { i: 'ar-blue', x: 0, y: 0, w: 2, h: 3, minW: 2, minH: 3 },
+  { i: 'ar-mep', x: 2, y: 0, w: 2, h: 3, minW: 2, minH: 3 },
+  { i: 'ar-ccl', x: 4, y: 0, w: 2, h: 3, minW: 2, minH: 3 },
+  { i: 'ar-oficial', x: 6, y: 0, w: 2, h: 3, minW: 2, minH: 3 },
+  { i: 'ar-brecha', x: 8, y: 0, w: 2, h: 3, minW: 2, minH: 3 },
+  { i: 'ar-riesgo', x: 10, y: 0, w: 2, h: 3, minW: 2, minH: 3 },
+];
+
+const AR_CEDEARS_DEFAULT_LAYOUT: ModularLayoutItem[] = [
+  { i: 'cedears-table', x: 0, y: 0, w: 12, h: 15, minW: 6, minH: 8 },
+];
+
+const AR_BONOS_DEFAULT_LAYOUT: ModularLayoutItem[] = [
+  { i: 'bonos-mep-info', x: 0, y: 0, w: 6, h: 6, minW: 4, minH: 5 },
+  { i: 'bonos-ccl-info', x: 6, y: 0, w: 6, h: 6, minW: 4, minH: 5 },
+  { i: 'bonos-curva-table', x: 0, y: 6, w: 12, h: 11, minW: 6, minH: 7 },
+  ...INSTRUMENTOS_PESOS.map((inst, idx) => ({
+    i: `pesos-${inst.ticker}`,
+    x: (idx * 4) % 12,
+    y: 17,
+    w: 4,
+    h: 6,
+    minW: 3,
+    minH: 5,
+  })),
+];
+
+const AR_CALC_DEFAULT_LAYOUT: ModularLayoutItem[] = [
+  { i: 'calc-cedear', x: 0, y: 0, w: 6, h: 12, minW: 4, minH: 9 },
+  { i: 'calc-mep', x: 6, y: 0, w: 6, h: 12, minW: 4, minH: 9 },
+];
 
 export const ArgentinaView = () => {
   const [tab, setTab] = useState<TabMode>('cedears');
@@ -192,90 +226,102 @@ export const ArgentinaView = () => {
         </p>
       </div>
 
-      {/* Panel Superior: Dólares y Riesgo País */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        <div className="bg-card border border-line p-3 rounded-[6px]">
-          <div className="text-[11px] text-dim flex items-center justify-between">
-            <span>Dólar Blue</span>
-            <span className="text-[9px] text-teal">Libre</span>
-          </div>
-          <div className="text-[17px] font-mono font-semibold mt-1">
-            <PriceCell price={arIndicators?.blue ?? null} currency="$" />
-          </div>
-          <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
-            Brecha: {fmtPct(brechaBlue)}
-          </div>
-        </div>
-
-        <div className="bg-card border border-line p-3 rounded-[6px]">
-          <div className="text-[11px] text-dim flex items-center justify-between">
-            <span>Dólar MEP (Bolsa)</span>
-            <span className="text-[9px] text-gold">AL30</span>
-          </div>
-          <div className="text-[17px] font-mono font-semibold mt-1 text-gold">
-            <PriceCell price={arIndicators?.mep ?? null} currency="$" />
-          </div>
-          <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
-            Brecha: {fmtPct(brechaMep)} vs Of.
+      {/* Panel Superior Modular: Dólares y Riesgo País */}
+      <ModularGrid layoutId="argentina-macro" defaultLayout={AR_MACRO_DEFAULT_LAYOUT} rowHeight={30} margin={[10, 10]}>
+        <div key="ar-blue" className="w-full h-full">
+          <div className="bg-card border border-line p-3 rounded-[6px] w-full h-full flex flex-col justify-between">
+            <div className="draggable-handle text-[11px] text-dim flex items-center justify-between">
+              <span>Dólar Blue</span>
+              <span className="text-[9px] text-teal">Libre</span>
+            </div>
+            <div className="text-[17px] font-mono font-semibold mt-1">
+              <PriceCell price={arIndicators?.blue ?? null} currency="$" />
+            </div>
+            <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
+              Brecha: {fmtPct(brechaBlue)}
+            </div>
           </div>
         </div>
 
-        <div className="bg-card border border-line p-3 rounded-[6px]">
-          <div className="text-[11px] text-dim flex items-center justify-between">
-            <span>Dólar CCL</span>
-            <span className="text-[9px] text-teal">GD30 / Cable</span>
-          </div>
-          <div className="text-[17px] font-mono font-semibold mt-1">
-            <PriceCell price={arIndicators?.ccl ?? null} currency="$" />
-          </div>
-          <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
-            Canje (CCL/MEP): {fmtPct(canjeRate)}
-          </div>
-        </div>
-
-        <div className="bg-card border border-line p-3 rounded-[6px]">
-          <div className="text-[11px] text-dim flex items-center justify-between">
-            <span>Dólar Oficial</span>
-            <span className="text-[9px] text-dim">BNA</span>
-          </div>
-          <div className="text-[17px] font-mono font-semibold mt-1">
-            <PriceCell price={arIndicators?.oficial ?? null} currency="$" />
-          </div>
-          <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
-            Mayorista: {fmtPrice(mayoristaPrice)}
+        <div key="ar-mep" className="w-full h-full">
+          <div className="bg-card border border-line p-3 rounded-[6px] w-full h-full flex flex-col justify-between">
+            <div className="draggable-handle text-[11px] text-dim flex items-center justify-between">
+              <span>Dólar MEP (Bolsa)</span>
+              <span className="text-[9px] text-gold">AL30</span>
+            </div>
+            <div className="text-[17px] font-mono font-semibold mt-1 text-gold">
+              <PriceCell price={arIndicators?.mep ?? null} currency="$" />
+            </div>
+            <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
+              Brecha: {fmtPct(brechaMep)} vs Of.
+            </div>
           </div>
         </div>
 
-        <div className="bg-card border border-line p-3 rounded-[6px]">
-          <div className="text-[11px] text-dim flex items-center justify-between">
-            <span>Brecha Cambiaria</span>
-            <span className="text-[9px] text-dim">MEP vs BNA</span>
-          </div>
-          <div className="text-[17px] font-mono font-semibold mt-1 text-teal">
-            <ChangeCell change={brechaMep} />
-          </div>
-          <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
-            CCL vs Of: {fmtPct(brechaCcl)}
+        <div key="ar-ccl" className="w-full h-full">
+          <div className="bg-card border border-line p-3 rounded-[6px] w-full h-full flex flex-col justify-between">
+            <div className="draggable-handle text-[11px] text-dim flex items-center justify-between">
+              <span>Dólar CCL</span>
+              <span className="text-[9px] text-teal">GD30 / Cable</span>
+            </div>
+            <div className="text-[17px] font-mono font-semibold mt-1">
+              <PriceCell price={arIndicators?.ccl ?? null} currency="$" />
+            </div>
+            <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
+              Canje (CCL/MEP): {fmtPct(canjeRate)}
+            </div>
           </div>
         </div>
 
-        <div className="bg-card border border-line p-3 rounded-[6px]">
-          <div className="text-[11px] text-dim flex items-center justify-between">
-            <span>Riesgo País</span>
-            <span className="text-[9px] text-dim">EMBI+</span>
-          </div>
-          <div className="text-[17px] font-mono font-semibold mt-1 text-gold tabular-nums">
-            {riskCountry != null ? (
-              `${riskCountry.toLocaleString('es-AR')} pb`
-            ) : (
-              <span className="inline-block h-4 w-16 animate-pulse rounded bg-white/10 align-middle" />
-            )}
-          </div>
-          <div className="text-[10px] text-dim mt-0.5">
-            ArgentinaDatos API
+        <div key="ar-oficial" className="w-full h-full">
+          <div className="bg-card border border-line p-3 rounded-[6px] w-full h-full flex flex-col justify-between">
+            <div className="draggable-handle text-[11px] text-dim flex items-center justify-between">
+              <span>Dólar Oficial</span>
+              <span className="text-[9px] text-dim">BNA</span>
+            </div>
+            <div className="text-[17px] font-mono font-semibold mt-1">
+              <PriceCell price={arIndicators?.oficial ?? null} currency="$" />
+            </div>
+            <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
+              Mayorista: {fmtPrice(mayoristaPrice)}
+            </div>
           </div>
         </div>
-      </div>
+
+        <div key="ar-brecha" className="w-full h-full">
+          <div className="bg-card border border-line p-3 rounded-[6px] w-full h-full flex flex-col justify-between">
+            <div className="draggable-handle text-[11px] text-dim flex items-center justify-between">
+              <span>Brecha Cambiaria</span>
+              <span className="text-[9px] text-dim">MEP vs BNA</span>
+            </div>
+            <div className="text-[17px] font-mono font-semibold mt-1 text-teal">
+              <ChangeCell change={brechaMep} />
+            </div>
+            <div className="text-[10px] text-dim mt-0.5 font-mono tabular-nums">
+              CCL vs Of: {fmtPct(brechaCcl)}
+            </div>
+          </div>
+        </div>
+
+        <div key="ar-riesgo" className="w-full h-full">
+          <div className="bg-card border border-line p-3 rounded-[6px] w-full h-full flex flex-col justify-between">
+            <div className="draggable-handle text-[11px] text-dim flex items-center justify-between">
+              <span>Riesgo País</span>
+              <span className="text-[9px] text-dim">EMBI+</span>
+            </div>
+            <div className="text-[17px] font-mono font-semibold mt-1 text-gold tabular-nums">
+              {riskCountry != null ? (
+                `${riskCountry.toLocaleString('es-AR')} pb`
+              ) : (
+                <span className="inline-block h-4 w-16 animate-pulse rounded bg-white/10 align-middle" />
+              )}
+            </div>
+            <div className="text-[10px] text-dim mt-0.5">
+              ArgentinaDatos API
+            </div>
+          </div>
+        </div>
+      </ModularGrid>
 
       {/* Selector de sub-pestañas */}
       <div className="flex border-b border-line gap-2">
@@ -352,11 +398,21 @@ export const ArgentinaView = () => {
             </div>
           </div>
 
-          {/* Tabla de CEDEARs */}
-          <div className="bg-card border border-line rounded-[6px]">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[12.5px] border-collapse">
-                <thead>
+          {/* Tabla de CEDEARs Modular */}
+          <ModularGrid layoutId="argentina-cedears" defaultLayout={AR_CEDEARS_DEFAULT_LAYOUT} rowHeight={32}>
+            <div key="cedears-table" className="w-full h-full">
+              <div className="bg-card border border-line rounded-[6px] w-full h-full flex flex-col overflow-hidden">
+                <div className="draggable-handle px-3 py-2 bg-bg2 border-b border-line flex items-center justify-between flex-shrink-0">
+                  <span className="font-semibold text-[13px] text-text">
+                    Panel de CEDEARs &amp; Ratios de Conversión
+                  </span>
+                  <span className="text-[11px] font-mono text-dim">
+                    {filteredCedears.length} especies
+                  </span>
+                </div>
+                <div className="flex-1 min-h-0 overflow-auto">
+                  <table className="w-full text-left text-[12.5px] border-collapse">
+                    <thead className="sticky top-0 z-10">
                   <tr className="bg-bg2 text-dim border-b border-line text-[11px] uppercase tracking-wider">
                     <th
                       onClick={() => toggleSort('ticker')}
@@ -486,6 +542,8 @@ export const ArgentinaView = () => {
               </table>
             </div>
           </div>
+          </div>
+          </ModularGrid>
 
           <div className="text-[11px] text-dim flex items-center justify-between px-1">
             <span>
@@ -498,15 +556,14 @@ export const ArgentinaView = () => {
 
       {/* PESTAÑA 2: BONOS SOBERANOS & DEUDA */}
       {tab === 'bonos' && (
-        <div className="space-y-6">
-          {/* Tarjetas informativas de Mecánica del Mercado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-card border border-line p-4 rounded-[6px]">
-              <div className="flex items-center gap-2 mb-2">
+        <ModularGrid layoutId="argentina-bonos" defaultLayout={AR_BONOS_DEFAULT_LAYOUT} rowHeight={32}>
+          <div key="bonos-mep-info" className="w-full h-full">
+            <div className="bg-card border border-line p-4 rounded-[6px] w-full h-full flex flex-col">
+              <div className="draggable-handle flex items-center gap-2 mb-2 pb-2 border-b border-line/60 flex-shrink-0">
                 <ArrowRightLeft className="text-gold" size={18} />
                 <h3 className="font-semibold text-[14px]">Mecánica del Dólar MEP (Dólar Bolsa)</h3>
               </div>
-              <ol className="text-[12px] text-dim space-y-1.5 list-decimal list-inside">
+              <ol className="flex-1 min-h-0 overflow-y-auto text-[12px] text-dim space-y-1.5 list-decimal list-inside">
                 <li>
                   <b className="text-text">Compra del bono en pesos:</b> Se compra <b>AL30</b> en pesos (plazo contado inmediato o 24hs).
                 </li>
@@ -518,118 +575,122 @@ export const ArgentinaView = () => {
                 </li>
               </ol>
             </div>
+          </div>
 
-            <div className="bg-card border border-line p-4 rounded-[6px]">
-              <div className="flex items-center gap-2 mb-2">
+          <div key="bonos-ccl-info" className="w-full h-full">
+            <div className="bg-card border border-line p-4 rounded-[6px] w-full h-full flex flex-col">
+              <div className="draggable-handle flex items-center gap-2 mb-2 pb-2 border-b border-line/60 flex-shrink-0">
                 <Sparkles className="text-teal" size={18} />
                 <h3 className="font-semibold text-[14px]">Dólar CCL vs MEP (El &quot;Canje&quot; o Cable)</h3>
               </div>
-              <p className="text-[12px] text-dim leading-relaxed">
+              <p className="flex-1 min-h-0 overflow-y-auto text-[12px] text-dim leading-relaxed">
                 El <b>Dólar CCL</b> (Contado con Liquidación) se opera con bonos ley extranjera (como <b>GD30 / GD30C</b>) o CEDEARs y permite enviar divisas a cuentas bancarias del exterior (o ingresarlas). El diferencial de precio entre el dólar cable (CCL) y el dólar MEP se conoce como <b>tasa de canje</b> (actualmente <span className="text-gold font-mono font-semibold">{fmtPct(canjeRate)}</span>).
               </p>
             </div>
           </div>
 
           {/* Tabla de la Curva Soberana de Bonos */}
-          <div className="bg-card border border-line rounded-[6px] overflow-hidden">
-            <div className="p-3 bg-bg2 border-b border-line flex items-center justify-between">
-              <span className="font-semibold text-[13px] text-text">Curva Soberana en Dólares (Bonares vs Globales)</span>
-              <span className="text-[11px] text-dim">Amortizaciones semestrales (Julio / Enero)</span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[12.5px] border-collapse">
-                <thead>
-                  <tr className="bg-bg2/60 text-dim border-b border-line text-[11px] uppercase tracking-wider">
-                    <th className="p-3">Bono</th>
-                    <th className="p-3">Legislación</th>
-                    <th className="p-3">Vencimiento</th>
-                    <th className="p-3 text-center">Cupón</th>
-                    <th className="p-3 text-right">Paridad Ref.</th>
-                    <th className="p-3 text-right">TIR Estimada</th>
-                    <th className="p-3">Uso Principal en la City</th>
-                    <th className="p-3 text-center">Gráfico</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {BONOS_SOBERANOS.map((b) => (
-                    <tr key={b.ticker} className="hover:bg-[#1a2030] transition-colors">
-                      <td className="p-3 font-mono font-bold text-gold">
-                        <div className="flex items-center gap-2">
-                          <AssetLogo symbol={b.ticker} type="stock" size={22} />
-                          <span>{b.ticker}</span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-[12px]">
-                        <span
-                          className={`px-1.5 py-0.5 rounded text-[10.5px] font-mono ${
-                            b.legislation.includes('Local')
-                              ? 'bg-teal/10 text-teal border border-teal/20'
-                              : 'bg-gold/10 text-gold border border-gold/20'
-                          }`}
-                        >
-                          {b.legislation}
-                        </span>
-                      </td>
-                      <td className="p-3 font-mono text-dim text-[11.5px]">{b.maturity}</td>
-                      <td className="p-3 text-center font-mono text-[11.5px] text-dim">{b.coupon}</td>
-                      <td className="p-3 text-right font-mono font-semibold text-text">{b.paridadRef}%</td>
-                      <td className="p-3 text-right font-mono font-semibold text-teal">{b.tirRef}%</td>
-                      <td className="p-3 text-dim text-[12px]">{b.useCase}</td>
-                      <td className="p-3 text-center">
-                        <a
-                          href={getTradingViewUrl(b.ticker)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] bg-bg2 hover:bg-card border border-line hover:border-gold px-2 py-0.5 rounded text-dim hover:text-gold transition-colors inline-flex items-center gap-1 font-mono"
-                          title={`Abrir ${b.ticker} en TradingView`}
-                        >
-                          <span>TV</span>
-                          <ExternalLink size={10} />
-                        </a>
-                      </td>
+          <div key="bonos-curva-table" className="w-full h-full">
+            <div className="bg-card border border-line rounded-[6px] w-full h-full flex flex-col overflow-hidden">
+              <div className="draggable-handle p-3 bg-bg2 border-b border-line flex items-center justify-between flex-shrink-0">
+                <span className="font-semibold text-[13px] text-text">Curva Soberana en Dólares (Bonares vs Globales)</span>
+                <span className="text-[11px] text-dim">Amortizaciones semestrales (Julio / Enero)</span>
+              </div>
+              <div className="flex-1 min-h-0 overflow-auto">
+                <table className="w-full text-left text-[12.5px] border-collapse">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="bg-bg2 text-dim border-b border-line text-[11px] uppercase tracking-wider">
+                      <th className="p-3">Bono</th>
+                      <th className="p-3">Legislación</th>
+                      <th className="p-3">Vencimiento</th>
+                      <th className="p-3 text-center">Cupón</th>
+                      <th className="p-3 text-right">Paridad Ref.</th>
+                      <th className="p-3 text-right">TIR Estimada</th>
+                      <th className="p-3">Uso Principal en la City</th>
+                      <th className="p-3 text-center">Gráfico</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {BONOS_SOBERANOS.map((b) => (
+                      <tr key={b.ticker} className="hover:bg-[#1a2030] transition-colors">
+                        <td className="p-3 font-mono font-bold text-gold">
+                          <div className="flex items-center gap-2">
+                            <AssetLogo symbol={b.ticker} type="stock" size={22} />
+                            <span>{b.ticker}</span>
+                          </div>
+                        </td>
+                        <td className="p-3 text-[12px]">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10.5px] font-mono ${
+                              b.legislation.includes('Local')
+                                ? 'bg-teal/10 text-teal border border-teal/20'
+                                : 'bg-gold/10 text-gold border border-gold/20'
+                            }`}
+                          >
+                            {b.legislation}
+                          </span>
+                        </td>
+                        <td className="p-3 font-mono text-dim text-[11.5px]">{b.maturity}</td>
+                        <td className="p-3 text-center font-mono text-[11.5px] text-dim">{b.coupon}</td>
+                        <td className="p-3 text-right font-mono font-semibold text-text">{b.paridadRef}%</td>
+                        <td className="p-3 text-right font-mono font-semibold text-teal">{b.tirRef}%</td>
+                        <td className="p-3 text-dim text-[12px]">{b.useCase}</td>
+                        <td className="p-3 text-center">
+                          <a
+                            href={getTradingViewUrl(b.ticker)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] bg-bg2 hover:bg-card border border-line hover:border-gold px-2 py-0.5 rounded text-dim hover:text-gold transition-colors inline-flex items-center gap-1 font-mono"
+                            title={`Abrir ${b.ticker} en TradingView`}
+                          >
+                            <span>TV</span>
+                            <ExternalLink size={10} />
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
           {/* Instrumentos en pesos: Lecaps, CER, Bopreales */}
-          <div>
-            <h3 className="text-[16px] font-semibold mb-3">Deuda en Pesos &amp; Bopreales del BCRA</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {INSTRUMENTOS_PESOS.map((inst) => (
-                <div key={inst.ticker} className="bg-card border border-line p-3.5 rounded-[6px] space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-gold text-[13px]">{inst.ticker}</span>
-                    <span className="text-[10px] bg-bg2 border border-line px-1.5 py-0.5 rounded text-dim">
-                      {inst.type}
-                    </span>
-                  </div>
+          {INSTRUMENTOS_PESOS.map((inst) => (
+            <div key={`pesos-${inst.ticker}`} className="w-full h-full">
+              <div className="bg-card border border-line p-3.5 rounded-[6px] w-full h-full flex flex-col justify-between space-y-2">
+                <div className="draggable-handle flex items-center justify-between pb-1.5 border-b border-line/60">
+                  <span className="font-mono font-bold text-gold text-[13px]">{inst.ticker}</span>
+                  <span className="text-[10px] bg-bg2 border border-line px-1.5 py-0.5 rounded text-dim">
+                    {inst.type}
+                  </span>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5">
                   <div className="text-[12px] font-medium text-text">{inst.name}</div>
                   <p className="text-[11.5px] text-dim leading-relaxed">{inst.description}</p>
-                  <div className="text-[11px] text-teal/90 bg-teal/5 p-2 rounded border border-teal/15">
-                    <b>Estrategia:</b> {inst.mechanism}
-                  </div>
                 </div>
-              ))}
+                <div className="text-[11px] text-teal/90 bg-teal/5 p-2 rounded border border-teal/15">
+                  <b>Estrategia:</b> {inst.mechanism}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          ))}
+        </ModularGrid>
       )}
 
       {/* PESTAÑA 3: CALCULADORAS DEL INVERSOR ARGENTINO */}
       {tab === 'calculadora' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <ModularGrid layoutId="argentina-calc" defaultLayout={AR_CALC_DEFAULT_LAYOUT} rowHeight={32}>
           {/* Calculadora de CEDEARs */}
-          <div className="bg-card border border-line p-5 rounded-[6px] space-y-4">
-            <div className="flex items-center gap-2 border-b border-line pb-3">
-              <Calculator className="text-gold" size={18} />
-              <div>
-                <h3 className="font-semibold text-[15px]">Calculadora de Compra de CEDEARs</h3>
-                <p className="text-dim text-[11.5px]">Simulá cuántos CEDEARs podés comprar con tu capital en pesos.</p>
+          <div key="calc-cedear" className="w-full h-full">
+            <div className="bg-card border border-line p-5 rounded-[6px] w-full h-full flex flex-col space-y-4 overflow-y-auto">
+              <div className="draggable-handle flex items-center gap-2 border-b border-line pb-3 flex-shrink-0">
+                <Calculator className="text-gold" size={18} />
+                <div>
+                  <h3 className="font-semibold text-[15px]">Calculadora de Compra de CEDEARs</h3>
+                  <p className="text-dim text-[11.5px]">Simulá cuántos CEDEARs podés comprar con tu capital en pesos.</p>
+                </div>
               </div>
-            </div>
 
             <div>
               <label className="text-[11.5px] text-dim block mb-1">Elegí el CEDEAR</label>
@@ -692,16 +753,18 @@ export const ArgentinaView = () => {
               </div>
             </div>
           </div>
+          </div>
 
           {/* Calculadora de Dólar MEP */}
-          <div className="bg-card border border-line p-5 rounded-[6px] space-y-4">
-            <div className="flex items-center gap-2 border-b border-line pb-3">
-              <ArrowRightLeft className="text-teal" size={18} />
-              <div>
-                <h3 className="font-semibold text-[15px]">Simulador de Dólar MEP</h3>
-                <p className="text-dim text-[11.5px]">Estimá cuántos dólares recibís en mano al comprar bono AL30.</p>
+          <div key="calc-mep" className="w-full h-full">
+            <div className="bg-card border border-line p-5 rounded-[6px] w-full h-full flex flex-col space-y-4 overflow-y-auto">
+              <div className="draggable-handle flex items-center gap-2 border-b border-line pb-3 flex-shrink-0">
+                <ArrowRightLeft className="text-teal" size={18} />
+                <div>
+                  <h3 className="font-semibold text-[15px]">Simulador de Dólar MEP</h3>
+                  <p className="text-dim text-[11.5px]">Estimá cuántos dólares recibís en mano al comprar bono AL30.</p>
+                </div>
               </div>
-            </div>
 
             <div>
               <label className="text-[11.5px] text-dim block mb-1">Monto en Pesos a dolarizar</label>
@@ -739,8 +802,9 @@ export const ArgentinaView = () => {
                 * El cálculo no incluye el riesgo de variación de precio del bono AL30 durante el día de parking regulatorio.
               </p>
             </div>
+            </div>
           </div>
-        </div>
+        </ModularGrid>
       )}
 
       {/* Panel lateral con el gráfico interactivo */}
